@@ -308,12 +308,13 @@ public class Admin extends HttpServlet {
 			
 			// New Accounts
 			List<Deployment> review = ofy().load().type(Deployment.class).filter("status", "pending").list();
+			review.addAll(ofy().load().type(Deployment.class).filter("status","blocked").list());
 			if (review.size() > 0) buf.append("<h2>Accounts Needing Review and Approval</h2>");
 			for (Deployment d : review) {
 				buf.append("<form method=post><input type=hidden name=UserRequest value='Submit Review'/><input type=hidden name=sig value='" + user.getTokenSignature() + "'/>"
 						+ "<input type=hidden name=platform_deployment_id value='" + d.platform_deployment_id + "'/>"
 						+ d.platform_deployment_id + " (" + d.lms_type + ")<br/>"
-						+ "by " + d.contact_name + " (" + d.email + ") at " + d.organization + " (" + d.org_url + ").<br/>");
+						+ "by " + d.contact_name + " (" + d.email + ") at " + d.organization + " (" + d.org_url + ") -- " + d.status + "<br/>");
 				int nAssignments = ofy().load().type(Assignment.class).filter("domain",d.platform_deployment_id).count();
 				buf.append("Assignments: " + nAssignments + ".<br/>"
 						+ "<input type=submit name=action value='Approve'/>&nbsp;"
