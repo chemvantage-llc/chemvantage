@@ -145,11 +145,13 @@ public class LTIRegistration extends HttpServlet {
 					response.setContentType("text/html");
 					out.println(successfulRegistrationRequestPage(d));
 				} else { // manual registration
+					ofy().save().entity(rc).now();			
 					if (Subject.getProjectId().equals("dev-vantage-hrd") && !rc.email.equals("admin@chemvantage.org")) {
 						out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner 
-							+ "<h1>Development Registration</h1>Thank you for your interest in ChemVantage. In this development environment, registration codes are not automatically generated or emailed. Please contact Chuck Wight at admin@chemvantage.org for more information.");
+							+ "<h1>Development Registration</h1>Thank you for your interest in ChemVantage. "
+							+ "In this development environment, registration codes are not automatically generated or emailed.>br/><br/>"
+							+ "Please contact Chuck Wight at admin@chemvantage.org for more information.");
 					} else {
-						ofy().save().entity(rc).now();			
 						sendRegistrationEmail(rc);
 						out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner 
 							+ "<h1>Success</h1>Thank you. A registration code has been sent to your email address.<p>"
