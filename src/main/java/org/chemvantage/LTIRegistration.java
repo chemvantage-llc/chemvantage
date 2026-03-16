@@ -282,7 +282,7 @@ public class LTIRegistration extends HttpServlet {
 				+ " <li>All ChemVantage subscription fees are non-refundable.</li>"
 				+ "</ul>\n");
 
-		buf.append("<label><input type=checkbox required name=AcceptChemVantageTOS value=true " + ((AcceptChemVantageTOS!=null && AcceptChemVantageTOS.equals("true"))?"checked":"") + " />Accept the <a href=/terms_and_conditions.html target=_blank aria-label='opens new tab'>ChemVantage Terms of Service</a></label><br/><br/>\n");
+		buf.append("<label><input type=checkbox required name=AcceptChemVantageTOS value=true " + ((AcceptChemVantageTOS!=null && AcceptChemVantageTOS.equals("true"))?"checked":"") + " />&nbsp;Accept the <a href=/terms_and_conditions.html target=_blank aria-label='opens new tab'>ChemVantage Terms of Service</a></label><br/><br/>\n");
 
 		if (!dynamic && !request.getServerName().contains("localhost")) { // use reCAPTCHA v2 for manual registration, but skip localhost testing
 			buf.append("Note: This page is protected by reCAPTCHA to prevent abuse. The reCAPTCHA service is provided by Google and is subject to Google's <a href=https://policies.google.com/privacy>Privacy Policy</a> and <a href=https://policies.google.com/terms>Terms of Service</a>.<br/><br/>"
@@ -313,6 +313,7 @@ public class LTIRegistration extends HttpServlet {
 		String url = request.getParameter("url");
 		String lms = request.getParameter("lms");
 		String lms_other = request.getParameter("lms_other");
+		String reg_code = request.getParameter("reg_code");
 		String openid_configuration = request.getParameter("openid_configuration");
 		boolean dynamic = openid_configuration != null;
 		
@@ -345,12 +346,12 @@ public class LTIRegistration extends HttpServlet {
 
 		if (dynamic) {
 			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
-				String reg_code = request.getParameter("reg_code");
+				if (reg_code==null || reg_code.isEmpty()) throw new Exception("Registration code is required in the development environment. Please contact admin@chemvantage.org for assistance.");
 				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 				if (rc==null || rc.expires.before(new Date())) {
 					throw new Exception("The registration code is invalid or has expired. Please contact admin@chemvantage.org for assistance.");
 				}
-}
+			}
 		} else {
 			if (lms==null) throw new Exception("Please select the type of LMS that you are connecting to ChemVantage. ");
 			if ("other".equals(lms) && (lms_other==null || lms_other.isEmpty())) throw new Exception("Please describe the type of LMS that you are connecting to ChemVantage. ");
