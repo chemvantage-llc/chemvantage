@@ -600,6 +600,7 @@ public class LTIRegistration extends HttpServlet {
 			Deployment d = new Deployment(platformId,deploymentId,clientId,oidc_auth_url,oauth_access_token_url,well_known_jwks_url,contact_name,contact_email,organization,org_url,lms);
 			
 			if (d.email.equals("admin@chemvantage.org")) d.status = "approved";
+			else if (Subject.getProjectId().equals("dev-vantage-hrd")) d.status = "blocked";
 			else if (d.lms_type.equals("canvas") || d.lms_type.equals("brightspace")) d.status = "pending";
 			else d.status = "blocked";
 
