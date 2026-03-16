@@ -96,13 +96,13 @@ public class LTIRegistration extends HttpServlet {
 			if (userRequest==null) userRequest = "";
 
 			String iss = "https://" + request.getServerName();
-			
+			String reg_code = request.getParameter("reg_code");
+				
 			if ("config".contentEquals(userRequest)) {
 				response.setContentType("application/json");
 				out.println(getConfigurationJson(iss,request.getParameter("lms")));
-			} else if (request.getParameter("reg_code")!=null) {
+			} else if (reg_code!=null) {
 				response.setContentType("text/html");
-				String reg_code = request.getParameter("reg_code");
 				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 				if (rc==null || rc.expires.before(new Date())) {
 					throw new Exception("The registration code is invalid or has expired. "
@@ -201,14 +201,15 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<div id=reg_code style='display:" + (message==null && !dynamic?"block":"none") + "'>"
 				+ "<form method=get action=/lti/registration><br/>"		
-				+ "If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text name=reg_code /><input type=submit value=Submit />");
-		if (dynamic) {
-			buf.append("<input type=hidden name=openid_configuration value='" + openid_configuration + "' />"
-					+ "<input type=hidden name=registration_token value='" + registration_token + "' />");
-		}		
-		buf.append("</form><br/><br/>"
-				+ "Otherwise, you may <a href=# onClick=document.getElementById('reg_code').style.display='none';document.getElementById('reg_form').style.display='block';>request a new code here</a>.<br/>"
-				+ "</div>");
+				+ "If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text name=reg_code /><input type=submit value=Submit />"
+				+ "</form><br/><br/>");
+		if (Subject.getProjectId().equals("dev-vantage-hrd")) {
+			buf.append("In this development environment, registration codes are not automatically generated or emailed.<br/>"
+				+ "Please contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a> for additional information.<br/><br/>");
+		} else {
+			buf.append("Otherwise, you may <a href=# onClick=document.getElementById('reg_code').style.display='none';document.getElementById('reg_form').style.display='block';>request a new code here</a>.<br/>");
+		}
+		buf.append("</div>");
 
 		buf.append("<div id=reg_form style='display:" + (message!=null || dynamic?"block":"none") + "'>"
 				+ "<form id=regform method=post action=/lti/registration>"
@@ -225,23 +226,27 @@ public class LTIRegistration extends HttpServlet {
 		buf.append("Your school, business or organization:<br/>"
 				+ "<label>Org Name: <input type=text required name=org size=30 value='" + (org==null?"":org) + "' /> </label><br/>\n"
 				+ "<label>Home Page: <input type=text required name=url size=30 placeholder='https://myschool.edu' value='" + (url==null?"":url) + "' /></label><br/><br/>\n");
-		
+
 		if (dynamic) {
 			if (registration_token!=null) buf.append("<input type=hidden name=registration_token value='" + registration_token + "' />");
 			buf.append("<input type=hidden name=openid_configuration value='" + openid_configuration + "' />");
+			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
+				String reg_code = request.getParameter("reg_code");
+				buf.append("Registration Code: <input type=text name=reg_code value='" + (reg_code==null?"":reg_code) + "' /> (contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a>)<br/><br/>");
+			} 
 		} else {
 			buf.append("<fieldset style='width:400px'><legend>Type of LMS:<br/></legend>"
-					+ "<div id=rec_dyn style='color:#EE0000;display:none;'>Dynamic Registration is highly recommended for this LMS. Stop now and <a href=/install.html>see the instructions.</a></div><br/>\n"
-					+ "<label><input type=radio name=lms required value=blackboard " + ((lms!=null && lms.equals("blackboard"))?"checked":"") + "  />&nbsp;Blackboard</label><br/>\n"
-					+ "<label><input type=radio name=lms required value=brightspace " + ((lms!=null && lms.equals("brightspace"))?"checked":"") + "  />&nbsp;Brightspace</label><br/>\n"
-					+ "<label><input type=radio name=lms required value=canvas " + ((lms!=null && lms.equals("canvas"))?"checked":"") + "  />&nbsp;Canvas</label><br/>\n"
-					+ "<label><input type=radio name=lms required value=moodle " + ((lms!=null && lms.equals("moodle"))?"checked":"") + "  />&nbsp;Moodle</label><br/>\n"
-					+ "<label><input type=radio name=lms required value=sakai " + ((lms!=null && lms.equals("sakai"))?"checked":"") + "  />&nbsp;Sakai</label><br/>\n"
-					+ "<label><input type=radio name=lms required value=schoology " + ((lms!=null && lms.equals("schoology"))?"checked":"") + "  />&nbsp;Schoology</label><br/>\n"
-					+ "<label><input type=radio name=lms required id=other value=other " + ((lms!=null && lms.equals("other"))?"checked":"") + "  />&nbsp;Other:</label>\n"
-					+ "<label><input type=text name=lms_other value='" + (lms_other==null?"":lms_other) + "' placeholder='(specify)' onFocus=document.getElementById('other').checked=true; /></label>\n"
-					+ "</fieldset>\n"
-					+ "<br/>");
+				+ "<div id=rec_dyn style='color:#EE0000;display:none;'>Dynamic Registration is highly recommended for this LMS. Stop now and <a href=/install.html>see the instructions.</a></div><br/>\n"
+				+ "<label><input type=radio name=lms required value=blackboard " + ((lms!=null && lms.equals("blackboard"))?"checked":"") + "  />&nbsp;Blackboard</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=brightspace " + ((lms!=null && lms.equals("brightspace"))?"checked":"") + "  />&nbsp;Brightspace</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=canvas " + ((lms!=null && lms.equals("canvas"))?"checked":"") + "  />&nbsp;Canvas</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=moodle " + ((lms!=null && lms.equals("moodle"))?"checked":"") + "  />&nbsp;Moodle</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=sakai " + ((lms!=null && lms.equals("sakai"))?"checked":"") + "  />&nbsp;Sakai</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=schoology " + ((lms!=null && lms.equals("schoology"))?"checked":"") + "  />&nbsp;Schoology</label><br/>\n"
+				+ "<label><input type=radio name=lms required id=other value=other " + ((lms!=null && lms.equals("other"))?"checked":"") + "  />&nbsp;Other:</label>\n"
+				+ "<label><input type=text name=lms_other value='" + (lms_other==null?"":lms_other) + "' placeholder='(specify)' onFocus=document.getElementById('other').checked=true; /></label>\n"
+				+ "</fieldset>\n"
+				+ "<br/>");
 		
 			buf.append("<script>"
 				+ "function onLmsChange() {"
@@ -338,7 +343,15 @@ public class LTIRegistration extends HttpServlet {
 			throw new Exception("Invalid domain name (" + url + "). " + e.toString());
 		}
 
-		if (!dynamic) {
+		if (dynamic) {
+			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
+				String reg_code = request.getParameter("reg_code");
+				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
+				if (rc==null || rc.expires.before(new Date())) {
+					throw new Exception("The registration code is invalid or has expired. Please contact admin@chemvantage.org for assistance.");
+				}
+}
+		} else {
 			if (lms==null) throw new Exception("Please select the type of LMS that you are connecting to ChemVantage. ");
 			if ("other".equals(lms) && (lms_other==null || lms_other.isEmpty())) throw new Exception("Please describe the type of LMS that you are connecting to ChemVantage. ");
 			if ("other".equals(lms)) lms = lms_other;
@@ -602,7 +615,7 @@ public class LTIRegistration extends HttpServlet {
 			Deployment d = new Deployment(platformId,deploymentId,clientId,oidc_auth_url,oauth_access_token_url,well_known_jwks_url,contact_name,contact_email,organization,org_url,lms);
 			
 			if (d.email.equals("admin@chemvantage.org")) d.status = "approved";
-			else if (Subject.getProjectId().equals("dev-vantage-hrd")) d.status = "blocked";
+			else if (Subject.getProjectId().equals("dev-vantage-hrd")) d.status = "pending";
 			else if (d.lms_type.equals("canvas") || d.lms_type.equals("brightspace") || d.lms_type.equals("desire2learn")) d.status = "pending";
 			else d.status = "blocked";
 
@@ -874,14 +887,14 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<h2>Your ChemVantage Registration Was Successful</h2>"
 				+ "The LTI Advantage deployment was created in ChemVantage and in your LMS.<br/>"
-				+ "Please be sure to activate the deployment in your LMS.");
+				+ "Please be sure to activate the deployment in your LMS.<br/>");
 
 		if (d.status.equals("blocked")) {
 			buf.append("<h3>Your Deployment is Currently Under Review</h3>"
 					+ "You should receive an email within 1-2 business days when the registration is approved and your deployment is active.<br/><br/>");
 		} else {
 			buf.append("<h3>Your Deployment is Active</h3>"
-					+ "Your deployment is now active and you can start using ChemVantage.<br/><br/>"
+					+ "You can start using ChemVantage immediately.<br/>"
 					+ "We recommend creating and testing a ChemVantage assignment in a sandbox course.<br/><br/>");
 		}
 		buf.append("If you have any questions or need assistance, please contact us at admin@chemvantage.org.<br/><br/>");
