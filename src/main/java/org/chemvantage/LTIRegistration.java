@@ -603,7 +603,7 @@ public class LTIRegistration extends HttpServlet {
 			
 			if (d.email.equals("admin@chemvantage.org")) d.status = "approved";
 			else if (Subject.getProjectId().equals("dev-vantage-hrd")) d.status = "blocked";
-			else if (d.lms_type.equals("canvas") || d.lms_type.equals("brightspace")) d.status = "pending";
+			else if (d.lms_type.equals("canvas") || d.lms_type.equals("brightspace") || d.lms_type.equals("desire2learn")) d.status = "pending";
 			else d.status = "blocked";
 
 			d.price = Integer.parseInt(price);
