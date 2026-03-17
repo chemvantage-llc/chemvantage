@@ -577,3 +577,374 @@
   "message": "Event 'testCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
 }}).
 2026-03-17T19:06:03.893Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:06:24.538Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:06:24.538Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "details": {
+    "commitId": "49dbdfc0",
+    "stepNumber": 3,
+    "stepTitle": "Final Validation"
+  },
+  "event": "upgradeValidationCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:24.539Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:06:24.539Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:06:24.539Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:06:24.564Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:06:24.565Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "details": {
+    "commitId": "49dbdfc0",
+    "stepNumber": 3,
+    "stepTitle": "Final Validation"
+  },
+  "event": "upgradeValidationCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:24.565Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:06:24.565Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'upgradeValidationCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:06:24.565Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:06:24.578Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:06:24.578Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "planExecutionCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:24.578Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:06:24.578Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:06:24.578Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:06:24.592Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:06:24.592Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "planExecutionCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:24.592Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:06:24.617Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'planExecutionCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:06:24.618Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:07:10.198Z [INFO] ---------------------prepare validate_cves_for_java----------------------
+2026-03-17T19:07:10.198Z [INFO] [Tool.prepareInvocation]({name: validate_cves_for_java, input: {
+  "dependencies": [
+    "org.springframework.boot:spring-boot-starter-web:3.5.8",
+    "com.googlecode.objectify:objectify:6.1.3",
+    "com.auth0:java-jwt:4.5.0",
+    "com.auth0:jwks-rsa:0.23.0",
+    "com.google.code.gson:gson:2.13.2",
+    "com.google.cloud:google-cloud-tasks:2.59.0",
+    "com.google.auth:google-auth-library-oauth2-http:1.33.1",
+    "com.sendgrid:sendgrid-java:4.10.3",
+    "com.github.librepdf:openpdf-html:3.0.0",
+    "com.google.appengine:appengine-api-1.0-sdk:1.9.76",
+    "com.paypal.sdk:checkout-sdk:2.0.0",
+    "com.google.cloud:google-cloud-recaptchaenterprise:3.56.0",
+    "com.google.cloud:google-cloud-vertexai:1.19.0"
+  ],
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226"
+}}).
+2026-03-17T19:07:10.198Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:07:10.198Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Validate CVEs"
+}}).
+2026-03-17T19:07:10.198Z [INFO] ----------------------prepared validate_cves_for_java----------------------
+2026-03-17T19:07:10.223Z [INFO] ----------------------invoke validate_cves_for_java----------------------
+2026-03-17T19:07:10.223Z [INFO] [Tool.invoke]({name: validate_cves_for_java, input: {
+  "dependencies": [
+    "org.springframework.boot:spring-boot-starter-web:3.5.8",
+    "com.googlecode.objectify:objectify:6.1.3",
+    "com.auth0:java-jwt:4.5.0",
+    "com.auth0:jwks-rsa:0.23.0",
+    "com.google.code.gson:gson:2.13.2",
+    "com.google.cloud:google-cloud-tasks:2.59.0",
+    "com.google.auth:google-auth-library-oauth2-http:1.33.1",
+    "com.sendgrid:sendgrid-java:4.10.3",
+    "com.github.librepdf:openpdf-html:3.0.0",
+    "com.google.appengine:appengine-api-1.0-sdk:1.9.76",
+    "com.paypal.sdk:checkout-sdk:2.0.0",
+    "com.google.cloud:google-cloud-recaptchaenterprise:3.56.0",
+    "com.google.cloud:google-cloud-vertexai:1.19.0"
+  ],
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226"
+}}).
+2026-03-17T19:07:10.223Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:07:10.224Z [INFO] Project /Users/wight/git/chemvantage is a maven project, try to get java version from pom.xml
+2026-03-17T19:07:10.224Z [INFO] Project java version: 21
+2026-03-17T19:07:10.224Z [INFO] Maven project detected.
+2026-03-17T19:07:10.224Z [INFO] Build tool type: mvn
+2026-03-17T19:07:10.240Z [INFO] JDK: {
+  "name": "java",
+  "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+  "version": "21"
+}
+2026-03-17T19:07:10.240Z [INFO] Build tool: {
+  "name": "mvn",
+  "path": "/Users/wight/apache-maven-3.9.9/bin",
+  "version": "",
+  "source": "PATH"
+}
+2026-03-17T19:07:10.240Z [INFO] Project config: {
+  "buildTool": {
+    "path": "/Users/wight/apache-maven-3.9.9/bin",
+    "name": "mvn",
+    "version": "",
+    "source": "PATH"
+  },
+  "jdk": {
+    "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+    "name": "java",
+    "version": "21"
+  },
+  "name": "chemvantage",
+  "dir": "/Users/wight/git/chemvantage"
+}
+2026-03-17T19:07:10.241Z [INFO] [Environment] Running command (Java undefined): mvn dependency:tree -B
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< org.chemvantage:chemvantage >---------------------
+[INFO] Building ChemVantage 20240207t0610
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.8.1:tree (default-cli) @ chemvantage ---
+[INFO] org.chemvantage:chemvantage:jar:20240207t0610
+[INFO] +- org.springframework.boot:spring-boot-starter-web:jar:3.5.8:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter:jar:3.5.8:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot:jar:3.5.8:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot-autoconfigure:jar:3.5.8:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot-starter-logging:jar:3.5.8:compile
+[INFO] |  |  |  +- ch.qos.logback:logback-classic:jar:1.5.21:compile
+[INFO] |  |  |  |  \- ch.qos.logback:logback-core:jar:1.5.21:compile
+[INFO] |  |  |  +- org.apache.logging.log4j:log4j-to-slf4j:jar:2.24.3:compile
+[INFO] |  |  |  |  \- org.apache.logging.log4j:log4j-api:jar:2.24.3:compile
+[INFO] |  |  |  \- org.slf4j:jul-to-slf4j:jar:2.0.17:compile
+[INFO] |  |  +- jakarta.annotation:jakarta.annotation-api:jar:2.1.1:compile
+[INFO] |  |  \- org.yaml:snakeyaml:jar:2.4:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter-json:jar:3.5.8:compile
+[INFO] |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:jar:2.19.4:compile
+[INFO] |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:jar:2.19.4:compile
+[INFO] |  |  \- com.fasterxml.jackson.module:jackson-module-parameter-names:jar:2.19.4:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter-tomcat:jar:3.5.8:compile
+[INFO] |  |  +- org.apache.tomcat.embed:tomcat-embed-core:jar:10.1.49:compile
+[INFO] |  |  +- org.apache.tomcat.embed:tomcat-embed-el:jar:10.1.49:compile
+[INFO] |  |  \- org.apache.tomcat.embed:tomcat-embed-websocket:jar:10.1.49:compile
+[INFO] |  +- org.springframework:spring-web:jar:6.2.14:compile
+[INFO] |  |  +- org.springframework:spring-beans:jar:6.2.14:compile
+[INFO] |  |  \- io.micrometer:micrometer-observation:jar:1.15.6:compile
+[INFO] |  |     \- io.micrometer:micrometer-commons:jar:1.15.6:compile
+[INFO] |  \- org.springframework:spring-webmvc:jar:6.2.14:compile
+[INFO] |     +- org.springframework:spring-aop:jar:6.2.14:compile
+[INFO] |     +- org.springframework:spring-context:jar:6.2.14:compile
+[INFO] |     \- org.springframework:spring-expression:jar:6.2.14:compile
+[INFO] +- org.springframework.boot:spring-boot-starter-test:jar:3.5.8:test
+[INFO] |  +- org.springframework.boot:spring-boot-test:jar:3.5.8:test
+[INFO] |  +- org.springframework.boot:spring-boot-test-autoconfigure:jar:3.5.8:test
+[INFO] |  +- com.jayway.jsonpath:json-path:jar:2.9.0:test
+[INFO] |  +- jakarta.xml.bind:jakarta.xml.bind-api:jar:4.0.4:test
+[INFO] |  |  \- jakarta.activation:jakarta.activation-api:jar:2.1.4:test
+[INFO] |  +- net.minidev:json-smart:jar:2.5.2:test
+[INFO] |  |  \- net.minidev:accessors-smart:jar:2.5.2:test
+[INFO] |  |     \- org.ow2.asm:asm:jar:9.7.1:test
+[INFO] |  +- org.assertj:assertj-core:jar:3.27.6:test
+[INFO] |  |  \- net.bytebuddy:byte-buddy:jar:1.17.8:test
+[INFO] |  +- org.awaitility:awaitility:jar:4.2.2:test
+[INFO] |  +- org.hamcrest:hamcrest:jar:3.0:test
+[INFO] |  +- org.junit.jupiter:junit-jupiter:jar:5.12.2:test
+[INFO] |  |  +- org.junit.jupiter:junit-jupiter-api:jar:5.12.2:test
+[INFO] |  |  |  +- org.opentest4j:opentest4j:jar:1.3.0:test
+[INFO] |  |  |  +- org.junit.platform:junit-platform-commons:jar:1.12.2:test
+[INFO] |  |  |  \- org.apiguardian:apiguardian-api:jar:1.1.2:test
+[INFO] |  |  +- org.junit.jupiter:junit-jupiter-params:jar:5.12.2:test
+[INFO] |  |  \- org.junit.jupiter:junit-jupiter-engine:jar:5.12.2:test
+[INFO] |  |     \- org.junit.platform:junit-platform-engine:jar:1.12.2:test
+[INFO] |  +- org.mockito:mockito-core:jar:5.17.0:test
+[INFO] |  |  +- net.bytebuddy:byte-buddy-agent:jar:1.17.8:test
+[INFO] |  |  \- org.objenesis:objenesis:jar:3.3:test
+[INFO] |  +- org.mockito:mockito-junit-jupiter:jar:5.17.0:test
+[INFO] |  +- org.skyscreamer:jsonassert:jar:1.5.3:test
+[INFO] |  |  \- com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1:test
+[INFO] |  +- org.springframework:spring-core:jar:6.2.14:compile
+[INFO] |  |  \- org.springframework:spring-jcl:jar:6.2.14:compile
+[INFO] |  +- org.springframework:spring-test:jar:6.2.14:test
+[INFO] |  \- org.xmlunit:xmlunit-core:jar:2.10.4:test
+[INFO] +- com.googlecode.objectify:objectify:jar:6.1.3:compile
+[INFO] |  +- com.google.cloud:google-cloud-datastore:jar:2.26.4:compile
+[INFO] |  |  +- com.google.api.grpc:grpc-google-cloud-datastore-admin-v1:jar:2.26.4:compile
+[INFO] |  |  +- com.google.cloud:google-cloud-core-http:jar:2.52.0:compile
+[INFO] |  |  +- com.google.api-client:google-api-client:jar:2.7.2:compile
+[INFO] |  |  +- com.google.http-client:google-http-client-apache-v2:jar:1.46.3:compile
+[INFO] |  |  +- com.google.http-client:google-http-client-appengine:jar:1.46.3:compile
+[INFO] |  |  +- com.google.api.grpc:proto-google-cloud-datastore-v1:jar:0.117.4:compile
+[INFO] |  |  +- com.google.api.grpc:proto-google-cloud-datastore-admin-v1:jar:2.26.4:compile
+[INFO] |  |  +- com.google.cloud.datastore:datastore-v1-proto-client:jar:2.26.4:compile
+[INFO] |  |  +- com.google.http-client:google-http-client-protobuf:jar:1.46.3:compile
+[INFO] |  |  +- com.google.cloud:google-cloud-core:jar:2.52.0:compile
+[INFO] |  |  +- com.google.http-client:google-http-client-jackson2:jar:1.46.3:compile
+[INFO] |  |  +- com.google.oauth-client:google-oauth-client:jar:1.37.0:compile
+[INFO] |  |  +- io.opentelemetry:opentelemetry-api:jar:1.49.0:compile
+[INFO] |  |  \- io.opentelemetry:opentelemetry-context:jar:1.49.0:compile
+[INFO] |  +- net.spy:spymemcached:jar:2.12.3:compile
+[INFO] |  \- org.slf4j:slf4j-api:jar:2.0.17:compile
+[INFO] +- com.auth0:java-jwt:jar:4.5.0:compile
+[INFO] |  +- com.fasterxml.jackson.core:jackson-core:jar:2.19.4:compile
+[INFO] |  \- com.fasterxml.jackson.core:jackson-databind:jar:2.19.4:compile
+[INFO] +- com.auth0:jwks-rsa:jar:0.23.0:compile
+[INFO] |  \- com.google.guava:guava:jar:33.4.0-jre:compile
+[INFO] +- com.google.code.gson:gson:jar:2.13.2:compile
+[INFO] |  \- com.google.errorprone:error_prone_annotations:jar:2.41.0:compile
+[INFO] +- com.google.cloud:google-cloud-tasks:jar:2.59.0:compile
+[INFO] |  +- io.grpc:grpc-api:jar:1.70.0:compile
+[INFO] |  +- com.google.code.findbugs:jsr305:jar:3.0.2:compile
+[INFO] |  +- io.grpc:grpc-stub:jar:1.70.0:compile
+[INFO] |  +- org.codehaus.mojo:animal-sniffer-annotations:jar:1.24:compile
+[INFO] |  +- io.grpc:grpc-protobuf:jar:1.70.0:compile
+[INFO] |  +- io.grpc:grpc-protobuf-lite:jar:1.70.0:runtime
+[INFO] |  +- com.google.api:api-common:jar:2.45.0:compile
+[INFO] |  +- com.google.auto.value:auto-value-annotations:jar:1.11.0:compile
+[INFO] |  +- javax.annotation:javax.annotation-api:jar:1.3.2:compile
+[INFO] |  +- com.google.j2objc:j2objc-annotations:jar:3.0.0:compile
+[INFO] |  +- com.google.protobuf:protobuf-java:jar:4.29.0:compile
+[INFO] |  +- com.google.api.grpc:proto-google-common-protos:jar:2.53.0:compile
+[INFO] |  +- com.google.api.grpc:proto-google-cloud-tasks-v2beta3:jar:0.149.0:compile
+[INFO] |  +- com.google.api.grpc:proto-google-cloud-tasks-v2beta2:jar:0.149.0:compile
+[INFO] |  +- com.google.api.grpc:proto-google-cloud-tasks-v2:jar:2.59.0:compile
+[INFO] |  +- com.google.guava:failureaccess:jar:1.0.2:compile
+[INFO] |  +- com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava:compile
+[INFO] |  +- org.checkerframework:checker-qual:jar:3.49.0:compile
+[INFO] |  +- com.google.api:gax:jar:2.62.0:compile
+[INFO] |  +- com.google.auth:google-auth-library-credentials:jar:1.33.1:compile
+[INFO] |  +- com.google.protobuf:protobuf-java-util:jar:4.29.0:compile
+[INFO] |  +- io.opencensus:opencensus-api:jar:0.31.1:compile
+[INFO] |  +- io.grpc:grpc-context:jar:1.70.0:compile
+[INFO] |  +- com.google.api:gax-grpc:jar:2.62.0:compile
+[INFO] |  +- io.grpc:grpc-inprocess:jar:1.70.0:compile
+[INFO] |  +- io.grpc:grpc-core:jar:1.70.0:compile
+[INFO] |  +- com.google.android:annotations:jar:4.1.1.4:runtime
+[INFO] |  +- io.grpc:grpc-alts:jar:1.70.0:compile
+[INFO] |  +- io.grpc:grpc-grpclb:jar:1.70.0:compile
+[INFO] |  +- org.conscrypt:conscrypt-openjdk-uber:jar:2.5.2:compile
+[INFO] |  +- io.grpc:grpc-auth:jar:1.70.0:compile
+[INFO] |  +- io.grpc:grpc-netty-shaded:jar:1.70.0:compile
+[INFO] |  +- io.grpc:grpc-util:jar:1.70.0:runtime
+[INFO] |  +- io.perfmark:perfmark-api:jar:0.27.0:runtime
+[INFO] |  +- io.grpc:grpc-googleapis:jar:1.70.0:runtime
+[INFO] |  +- io.grpc:grpc-xds:jar:1.70.0:runtime
+[INFO] |  +- io.grpc:grpc-services:jar:1.70.0:runtime
+[INFO] |  +- com.google.re2j:re2j:jar:1.7:runtime
+[INFO] |  +- com.google.api:gax-httpjson:jar:2.62.0:compile
+[INFO] |  +- com.google.http-client:google-http-client:jar:1.46.3:compile
+[INFO] |  +- org.apache.httpcomponents:httpclient:jar:4.5.14:compile
+[INFO] |  +- commons-codec:commons-codec:jar:1.18.0:compile
+[INFO] |  +- org.apache.httpcomponents:httpcore:jar:4.4.16:compile
+[INFO] |  +- io.opencensus:opencensus-contrib-http-util:jar:0.31.1:compile
+[INFO] |  +- com.google.http-client:google-http-client-gson:jar:1.46.3:compile
+[INFO] |  +- org.threeten:threetenbp:jar:1.7.0:compile
+[INFO] |  \- com.google.api.grpc:proto-google-iam-v1:jar:1.48.0:compile
+[INFO] +- com.google.auth:google-auth-library-oauth2-http:jar:1.33.1:compile
+[INFO] +- com.sendgrid:sendgrid-java:jar:4.10.3:compile
+[INFO] |  +- com.sendgrid:java-http-client:jar:4.5.0:compile
+[INFO] |  \- com.fasterxml.jackson.core:jackson-annotations:jar:2.19.4:compile
+[INFO] +- com.github.librepdf:openpdf-html:jar:3.0.0:compile
+[INFO] |  +- org.htmlunit:neko-htmlunit:jar:4.14.0:compile
+[INFO] |  \- com.github.librepdf:openpdf:jar:3.0.0:compile
+[INFO] +- com.google.appengine:appengine-api-1.0-sdk:jar:1.9.76:compile
+[INFO] +- com.paypal.sdk:checkout-sdk:jar:2.0.0:compile
+[INFO] |  \- com.paypal:paypalhttp:jar:2.0.0:compile
+[INFO] +- com.google.cloud:google-cloud-recaptchaenterprise:jar:3.56.0:compile
+[INFO] |  +- com.google.api.grpc:proto-google-cloud-recaptchaenterprise-v1:jar:3.56.0:compile
+[INFO] |  \- com.google.api.grpc:proto-google-cloud-recaptchaenterprise-v1beta1:jar:0.98.0:compile
+[INFO] \- com.google.cloud:google-cloud-vertexai:jar:1.19.0:compile
+[INFO]    +- com.google.api.grpc:proto-google-cloud-vertexai-v1:jar:1.19.0:compile
+[INFO]    +- com.google.api.grpc:grpc-google-common-protos:jar:2.53.0:compile
+[INFO]    \- com.google.api.grpc:grpc-google-iam-v1:jar:1.48.0:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.796 s
+[INFO] Finished at: 2026-03-17T13:07:11-06:00
+[INFO] ------------------------------------------------------------------------
+2026-03-17T19:07:11.756Z [INFO] [MavenBuildTool] Successfully got dependency tree of /Users/wight/git/chemvantage
+2026-03-17T19:07:11.756Z [INFO] [MavenBuildTool] Getting Java version of /Users/wight/git/chemvantage from pom.xml
+2026-03-17T19:07:11.756Z [INFO] [MavenBuildTool] Searching for pom.xml files in /Users/wight/git/chemvantage
+2026-03-17T19:07:11.756Z [INFO] [MavenBuildTool] Getting all module coordinates of /Users/wight/git/chemvantage
+2026-03-17T19:07:11.756Z [INFO] [MavenBuildTool] Getting effective POMs of /Users/wight/git/chemvantage
+2026-03-17T19:07:11.756Z [INFO] [Environment] Running command (Java undefined): mvn help:effective-pom -Doutput=effective-pom-1bba69d1-1205-482f-9916-74d94016695c.log
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< org.chemvantage:chemvantage >---------------------
+[INFO] Building ChemVantage 20240207t0610
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- help:3.5.1:effective-pom (default-cli) @ chemvantage ---
+[INFO] Effective-POM written to: /Users/wight/git/chemvantage/effective-pom-1bba69d1-1205-482f-9916-74d94016695c.log
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.617 s
+[INFO] Finished at: 2026-03-17T13:07:13-06:00
+[INFO] ------------------------------------------------------------------------
+2026-03-17T19:07:13.116Z [INFO] [MavenBuildTool] Found pom.xml files: /Users/wight/git/chemvantage/pom.xml
+2026-03-17T19:07:13.117Z [INFO] [MavenBuildTool] Java version found in /Users/wight/git/chemvantage/pom.xml: 21
+2026-03-17T19:07:13.127Z [INFO] Getting CVEs for dependencies: org.springframework.boot:spring-boot-starter-web:3.5.8,com.googlecode.objectify:objectify:6.1.3,com.auth0:java-jwt:4.5.0,com.auth0:jwks-rsa:0.23.0,com.google.code.gson:gson:2.13.2,com.google.cloud:google-cloud-tasks:2.59.0,com.google.auth:google-auth-library-oauth2-http:1.33.1,com.sendgrid:sendgrid-java:4.10.3,com.github.librepdf:openpdf-html:3.0.0,com.google.appengine:appengine-api-1.0-sdk:1.9.76,com.paypal.sdk:checkout-sdk:2.0.0,com.google.cloud:google-cloud-recaptchaenterprise:3.56.0,com.google.cloud:google-cloud-vertexai:1.19.0
+2026-03-17T19:07:13.127Z [INFO] getting CVEs for dependencies:
+ - org.springframework.boot:spring-boot-starter-web:3.5.8
+  - com.googlecode.objectify:objectify:6.1.3
+  - com.auth0:java-jwt:4.5.0
+  - com.auth0:jwks-rsa:0.23.0
+  - com.google.code.gson:gson:2.13.2
+  - com.google.cloud:google-cloud-tasks:2.59.0
+  - com.google.auth:google-auth-library-oauth2-http:1.33.1
+  - com.sendgrid:sendgrid-java:4.10.3
+  - com.github.librepdf:openpdf-html:3.0.0
+  - com.google.appengine:appengine-api-1.0-sdk:1.9.76
+  - com.paypal.sdk:checkout-sdk:2.0.0
+  - com.google.cloud:google-cloud-recaptchaenterprise:3.56.0
+  - com.google.cloud:google-cloud-vertexai:1.19.0...
+2026-03-17T19:07:13.127Z [INFO] getting gitHub access token...
+2026-03-17T19:07:13.128Z [INFO] Processing batch 1/1, size: 13
+2026-03-17T19:07:13.129Z [INFO] Proxy configuration: HTTPS_PROXY=(not set), HTTP_PROXY=(not set), NO_PROXY=(not set), NODE_EXTRA_CA_CERTS=(not set), vscode http.proxy=(not set), hasProxy=false
+2026-03-17T19:07:13.129Z [INFO] No proxy detected, using direct connection.
+2026-03-17T19:07:13.129Z [INFO] listing CVEs from GitHub for dependencies [
+  "org.springframework.boot:spring-boot-starter-web:3.5.8",
+  "com.googlecode.objectify:objectify:6.1.3",
+  "com.auth0:java-jwt:4.5.0",
+  "com.auth0:jwks-rsa:0.23.0",
+  "com.google.code.gson:gson:2.13.2",
+  "com.google.cloud:google-cloud-tasks:2.59.0",
+  "com.google.auth:google-auth-library-oauth2-http:1.33.1",
+  "com.sendgrid:sendgrid-java:4.10.3",
+  "com.github.librepdf:openpdf-html:3.0.0",
+  "com.google.appengine:appengine-api-1.0-sdk:1.9.76",
+  "com.paypal.sdk:checkout-sdk:2.0.0",
+  "com.google.cloud:google-cloud-recaptchaenterprise:3.56.0",
+  "com.google.cloud:google-cloud-vertexai:1.19.0"
+]
+2026-03-17T19:07:13.491Z [INFO] Fetched 0 total advisories across all pages
+2026-03-17T19:07:13.492Z [INFO] grouping CVEs and finding max patched version by dep...
+2026-03-17T19:07:13.492Z [INFO] done getting 0 CVEs for 13 dependencies
+2026-03-17T19:07:13.492Z [INFO] calculating patched version by dep...
+2026-03-17T19:07:13.493Z [INFO] finished getting CVEs for dependencies.
+2026-03-17T19:07:13.493Z [INFO] Found 0 dependencies with known CVEs
+2026-03-17T19:07:13.493Z [INFO] No known CVEs that need to be fixed are found for dependencies: org.springframework.boot:spring-boot-starter-web:3.5.8,com.googlecode.objectify:objectify:6.1.3,com.auth0:java-jwt:4.5.0,com.auth0:jwks-rsa:0.23.0,com.google.code.gson:gson:2.13.2,com.google.cloud:google-cloud-tasks:2.59.0,com.google.auth:google-auth-library-oauth2-http:1.33.1,com.sendgrid:sendgrid-java:4.10.3,com.github.librepdf:openpdf-html:3.0.0,com.google.appengine:appengine-api-1.0-sdk:1.9.76,com.paypal.sdk:checkout-sdk:2.0.0,com.google.cloud:google-cloud-recaptchaenterprise:3.56.0,com.google.cloud:google-cloud-vertexai:1.19.0
+2026-03-17T19:07:13.493Z [INFO] [Tool.invoke]({result: {
+  "message": "No known CVEs that need to be fixed are found for the given dependencies."
+}}).
+2026-03-17T19:07:13.493Z [INFO] ----------------------invoked validate_cves_for_java----------------------
