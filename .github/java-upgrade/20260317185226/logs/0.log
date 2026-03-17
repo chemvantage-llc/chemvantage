@@ -948,3 +948,31 @@
   "message": "No known CVEs that need to be fixed are found for the given dependencies."
 }}).
 2026-03-17T19:07:13.493Z [INFO] ----------------------invoked validate_cves_for_java----------------------
+2026-03-17T19:10:51.844Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:10:51.844Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "summaryGenerated",
+  "message": "ChemVantage successfully validated for Java 21 LTS: 79 source files compiled, Spring Boot 3.5.8 application starts successfully, no CVEs detected",
+  "phase": "summarize",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:10:51.845Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:10:51.845Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:10:51.845Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:10:51.858Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:10:51.858Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "summaryGenerated",
+  "message": "ChemVantage successfully validated for Java 21 LTS: 79 source files compiled, Spring Boot 3.5.8 application starts successfully, no CVEs detected",
+  "phase": "summarize",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:10:51.858Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:10:51.877Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'summaryGenerated' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:10:51.877Z [INFO] ----------------------invoked report_event----------------------
