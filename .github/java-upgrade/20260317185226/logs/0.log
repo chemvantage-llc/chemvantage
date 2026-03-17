@@ -441,3 +441,139 @@
   "message": "Event 'baselineSetup' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
 }}).
 2026-03-17T19:02:52.980Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:03:48.716Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:03:48.716Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "buildCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:03:48.716Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:03:48.716Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:03:48.716Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:03:48.733Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:03:48.734Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "buildCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:03:48.734Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:03:48.734Z [INFO] Project /Users/wight/git/chemvantage is a maven project, try to get java version from pom.xml
+2026-03-17T19:03:48.734Z [INFO] Project java version: 21
+2026-03-17T19:03:48.734Z [INFO] Maven project detected.
+2026-03-17T19:03:48.734Z [INFO] Build tool type: mvn
+2026-03-17T19:03:48.754Z [INFO] JDK: {
+  "name": "java",
+  "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+  "version": "21"
+}
+2026-03-17T19:03:48.755Z [INFO] Build tool: {
+  "name": "mvn",
+  "path": "/Users/wight/apache-maven-3.9.9/bin",
+  "version": "",
+  "source": "PATH"
+}
+2026-03-17T19:03:48.755Z [INFO] Project config: {
+  "buildTool": {
+    "path": "/Users/wight/apache-maven-3.9.9/bin",
+    "name": "mvn",
+    "version": "",
+    "source": "PATH"
+  },
+  "jdk": {
+    "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+    "name": "java",
+    "version": "21"
+  },
+  "name": "chemvantage",
+  "dir": "/Users/wight/git/chemvantage"
+}
+2026-03-17T19:03:48.755Z [INFO] [MavenBuildTool] Getting all module coordinates of /Users/wight/git/chemvantage
+2026-03-17T19:03:48.755Z [INFO] [MavenBuildTool] Getting effective POMs of /Users/wight/git/chemvantage
+2026-03-17T19:03:48.755Z [INFO] [Environment] Running command (Java undefined): mvn help:effective-pom -Doutput=effective-pom-36150443-048b-4f4a-81a2-2bfa3e918674.log
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< org.chemvantage:chemvantage >---------------------
+[INFO] Building ChemVantage 20240207t0610
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- help:3.5.1:effective-pom (default-cli) @ chemvantage ---
+[INFO] Effective-POM written to: /Users/wight/git/chemvantage/effective-pom-36150443-048b-4f4a-81a2-2bfa3e918674.log
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.596 s
+[INFO] Finished at: 2026-03-17T13:03:50-06:00
+[INFO] ------------------------------------------------------------------------
+2026-03-17T19:03:50.130Z [INFO] [BaseBuildTool] Found 1 modules: .
+2026-03-17T19:03:50.134Z [INFO] [BaseBuildTool] Finish counting Java and class files
+2026-03-17T19:03:50.134Z [INFO] [MavenBuildTool] Cleaning /Users/wight/git/chemvantage using Maven
+2026-03-17T19:03:50.134Z [INFO] [Environment] Running command (Java undefined): mvn clean -q -B -fn
+2026-03-17T19:03:51.203Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'buildCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:03:51.204Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:06:03.858Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:06:03.859Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "testCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:03.859Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:06:03.859Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:06:03.859Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:06:03.873Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:06:03.873Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "testCompleted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:06:03.873Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:06:03.873Z [INFO] Project /Users/wight/git/chemvantage is a maven project, try to get java version from pom.xml
+2026-03-17T19:06:03.874Z [INFO] Project java version: 21
+2026-03-17T19:06:03.874Z [INFO] Maven project detected.
+2026-03-17T19:06:03.874Z [INFO] Build tool type: mvn
+2026-03-17T19:06:03.889Z [INFO] JDK: {
+  "name": "java",
+  "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+  "version": "21"
+}
+2026-03-17T19:06:03.890Z [INFO] Build tool: {
+  "name": "mvn",
+  "path": "/Users/wight/apache-maven-3.9.9/bin",
+  "version": "",
+  "source": "PATH"
+}
+2026-03-17T19:06:03.890Z [INFO] Project config: {
+  "buildTool": {
+    "path": "/Users/wight/apache-maven-3.9.9/bin",
+    "name": "mvn",
+    "version": "",
+    "source": "PATH"
+  },
+  "jdk": {
+    "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+    "name": "java",
+    "version": "21"
+  },
+  "name": "chemvantage",
+  "dir": "/Users/wight/git/chemvantage"
+}
+2026-03-17T19:06:03.890Z [INFO] [BaseBuildTool] Gathering test results...
+2026-03-17T19:06:03.892Z [INFO] [BaseBuildTool] Summarizing surefire reports.
+2026-03-17T19:06:03.893Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'testCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:06:03.893Z [INFO] ----------------------invoked report_event----------------------
