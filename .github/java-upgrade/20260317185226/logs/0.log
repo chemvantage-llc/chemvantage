@@ -1,0 +1,281 @@
+2026-03-17T18:52:26.178Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:52:26.178Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "projectPath": "/Users/wight/git/chemvantage",
+  "event": "precheckCompleted",
+  "phase": "precheck",
+  "status": "succeeded"
+}}).
+2026-03-17T18:52:26.178Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:52:26.180Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'precheckCompleted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:52:26.180Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:47.586Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:56:47.587Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "planInitialized",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.587Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:47.587Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:56:47.588Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:56:47.640Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:56:47.640Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "planInitialized",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.640Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:56:47.640Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'planInitialized' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:56:47.640Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:47.647Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:56:47.648Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "environmentAnalyzed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.648Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:47.648Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:56:47.648Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:56:47.655Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:56:47.655Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "environmentAnalyzed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.655Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:56:47.655Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'environmentAnalyzed' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:56:47.655Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:47.658Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:56:47.659Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "dependenciesAnalyzed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.659Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:47.659Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:56:47.659Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:56:47.667Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:56:47.668Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "dependenciesAnalyzed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.668Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:56:47.668Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'dependenciesAnalyzed' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:56:47.668Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:47.671Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:56:47.671Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "upgradePathDesigned",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.671Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:47.671Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:56:47.671Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:56:47.681Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:56:47.681Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "upgradePathDesigned",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.681Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:56:47.681Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'upgradePathDesigned' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:56:47.681Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:47.685Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:56:47.685Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "planReviewed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.685Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:47.685Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:56:47.685Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:56:47.694Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:56:47.694Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "planReviewed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:56:47.694Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:56:47.695Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'planReviewed' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:56:47.695Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T18:56:51.251Z [INFO] ---------------------prepare confirm_upgrade_plan----------------------
+2026-03-17T18:56:51.252Z [INFO] [Tool.prepareInvocation]({name: confirm_upgrade_plan, input: {
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226"
+}}).
+2026-03-17T18:56:51.252Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:56:51.252Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Review [upgrade plan](/Users/wight/git/chemvantage/.github/java-upgrade/20260317185226/plan.md)",
+  "confirmationMessages": {
+    "title": "Plan generated",
+    "message": "Please review the generated plan and make any necessary adjustments before proceeding. You can modify the generated [`plan.md`](/Users/wight/git/chemvantage/.github/java-upgrade/20260317185226/plan.md) directly."
+  }
+}}).
+2026-03-17T18:56:51.252Z [INFO] ----------------------prepared confirm_upgrade_plan----------------------
+2026-03-17T18:59:25.485Z [INFO] ----------------------invoke confirm_upgrade_plan----------------------
+2026-03-17T18:59:25.485Z [INFO] [Tool.invoke]({name: confirm_upgrade_plan, input: {
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226"
+}}).
+2026-03-17T18:59:25.485Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:59:25.485Z [INFO] Upgrade plan confirmed successfully.
+2026-03-17T18:59:25.486Z [INFO] [Tool.invoke]({result: {
+  "message": "Generated plan is reviewed and confirmed by the user! the upgrade process will start now and be tracked in markdown file: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226/progress.md."
+}}).
+2026-03-17T18:59:25.486Z [INFO] ----------------------invoked confirm_upgrade_plan----------------------
+2026-03-17T18:59:31.142Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T18:59:31.142Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "planConfirmed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:59:31.142Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T18:59:31.143Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T18:59:31.143Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T18:59:31.189Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T18:59:31.189Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "planConfirmed",
+  "phase": "plan",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T18:59:31.189Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T18:59:31.190Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'planConfirmed' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T18:59:31.190Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:01:08.784Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:01:08.785Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "planExecutionStarted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:01:08.785Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:01:08.785Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:01:08.785Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:01:08.795Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:01:08.795Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "planExecutionStarted",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded"
+}}).
+2026-03-17T19:01:08.795Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:01:08.810Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'planExecutionStarted' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:01:08.810Z [INFO] ----------------------invoked report_event----------------------
+2026-03-17T19:01:31.428Z [INFO] ---------------------prepare report_event----------------------
+2026-03-17T19:01:31.428Z [INFO] [Tool.prepareInvocation]({name: report_event, input: {
+  "event": "environmentSetup",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded",
+  "details": {
+    "jdkPath": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+    "buildToolPath": "/Users/wight/apache-maven-3.9.9/bin/mvn"
+  }
+}}).
+2026-03-17T19:01:31.429Z [INFO] [Tool.prepareInvocation] do prepare invocation.
+2026-03-17T19:01:31.429Z [INFO] [Tool.prepareInvocation]({result: {
+  "invocationMessage": "Report upgrade event"
+}}).
+2026-03-17T19:01:31.429Z [INFO] ----------------------prepared report_event----------------------
+2026-03-17T19:01:31.445Z [INFO] ----------------------invoke report_event----------------------
+2026-03-17T19:01:31.445Z [INFO] [Tool.invoke]({name: report_event, input: {
+  "event": "environmentSetup",
+  "phase": "execute",
+  "projectPath": "/Users/wight/git/chemvantage",
+  "sessionId": "20260317185226",
+  "status": "succeeded",
+  "details": {
+    "jdkPath": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+    "buildToolPath": "/Users/wight/apache-maven-3.9.9/bin/mvn"
+  }
+}}).
+2026-03-17T19:01:31.445Z [INFO] [Tool.invoke] do invoke.
+2026-03-17T19:01:31.446Z [INFO] Project /Users/wight/git/chemvantage is a maven project, try to get java version from pom.xml
+2026-03-17T19:01:31.446Z [INFO] Project java version: 21
+2026-03-17T19:01:31.447Z [INFO] Maven project detected.
+2026-03-17T19:01:31.447Z [INFO] Build tool type: mvn
+2026-03-17T19:01:31.447Z [INFO] JDK: {
+  "name": "java",
+  "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+  "version": "21"
+}
+2026-03-17T19:01:31.447Z [INFO] Build tool: {
+  "name": "mvn",
+  "path": "/Users/wight/apache-maven-3.9.9/bin/mvn/bin",
+  "version": ""
+}
+2026-03-17T19:01:31.447Z [INFO] Project config: {
+  "buildTool": {
+    "path": "/Users/wight/apache-maven-3.9.9/bin/mvn/bin",
+    "name": "mvn",
+    "version": ""
+  },
+  "jdk": {
+    "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin",
+    "name": "java",
+    "version": "21"
+  },
+  "name": "chemvantage",
+  "dir": "/Users/wight/git/chemvantage"
+}
+2026-03-17T19:01:34.412Z [INFO] [Tool.invoke]({result: {
+  "message": "Event 'environmentSetup' reported!\nSession ID: 20260317185226,\nSession Dir: /Users/wight/git/chemvantage/.github/java-upgrade/20260317185226"
+}}).
+2026-03-17T19:01:34.412Z [INFO] ----------------------invoked report_event----------------------
