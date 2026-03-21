@@ -57,7 +57,7 @@ public class Edit extends HttpServlet {
 
 	private static final long serialVersionUID = 137L;
 	private static final String VERTEX_AI_LOCATION = "us-central1";
-	private static final String VERTEX_AI_MODEL = "gemini-2.5-flash";  // or gemini-2.5-pro
+	private static final String VERTEX_AI_MODEL = Subject.getGemModel();  // e.g. gemini-2.5-flash
 	//private static final String CORRECT_ANSWER_PROMPT_ID = "pmpt_69aca16a881081938f557752ab5ef5a107c7ea937e14ff76";
 	//private static final String AI_VALIDATOR_PROVIDER = System.getProperty("cv.ai.validator", "gemini").trim().toLowerCase(); // gemini | chatgpt
 	Map<Key<Question>,Question> questions = new HashMap<Key<Question>,Question>();

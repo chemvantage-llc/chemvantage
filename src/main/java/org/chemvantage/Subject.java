@@ -44,7 +44,8 @@ public class Subject {
 	private double avgStars;
 	private String projectId;
 	private String serverUrl;
-	private String gptModel;
+	private String gptModel;  // e.g. "gpt-4-0613"
+	private String gemModel;  // e.g. "gemini-2.5-pro"
 	private String payPalClientId;
 	private String payPalClientSecret;
 	
@@ -62,6 +63,7 @@ public class Subject {
 			s.reCaptchaKey = "changeMe";
 			s.openai_key = "changeMe";
 			s.gptModel = "changeMe";
+			s.gemModel = "changeMe";
 			s.sendGridAPIKey = "changeMe";
 			s.payPalClientId = "changeMe";
 			s.payPalClientSecret = "changeMe";
@@ -165,9 +167,14 @@ public class Subject {
         }
 	}
 	
-	static String getGPTModel() {
+	static String getGPTModel() {  // GPT-4.0 is "gpt-4-0613", GPT-3.5 is "gpt-3.5-turbo-0613"
 		if (s==null) refresh(); 
 		return s.gptModel;
+	}
+	
+	static String getGemModel() { // Gemini is Google's family of LLMs, e.g. "gemini-2.5-pro"
+		if (s==null) refresh(); 
+		return s.gemModel;
 	}
 	
 	static String getOpenAIKey() {
