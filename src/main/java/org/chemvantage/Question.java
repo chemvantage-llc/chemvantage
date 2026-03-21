@@ -70,8 +70,7 @@ public class Question implements Serializable, Cloneable {
 			String explanation;
 			boolean scrambleChoices;
 			boolean strictSpelling;
-	@Index  boolean checkedByAI = false;
-			String aiGeneratedAnswer;
+	@Index  Boolean checkedByAI; // true="valid", false="flagged", null="not checked
 	private Integer nCorrectAnswers = null;
 	private Integer nTotalAttempts = null;
 			int[] parameters = {0,0,0,0};
@@ -143,7 +142,6 @@ public class Question implements Serializable, Cloneable {
 		if (contributorId==null) contributorId="";
 		if (editorId==null) editorId="";
 		if (notes==null) notes="";
-		if (aiGeneratedAnswer==null) aiGeneratedAnswer="";
 	}
 	public Long getId() {
 		return this.id;

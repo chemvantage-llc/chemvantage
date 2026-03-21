@@ -21,13 +21,7 @@ import static com.googlecode.objectify.ObjectifyService.key;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,10 +32,11 @@ import java.util.Map;
 
 import com.google.cloud.vertexai.VertexAI;
 import com.google.cloud.vertexai.api.GenerateContentResponse;
+import com.google.cloud.vertexai.api.GenerationConfig;
+import com.google.cloud.vertexai.api.Schema;
+import com.google.cloud.vertexai.api.Type;
 import com.google.cloud.vertexai.generativeai.GenerativeModel;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.googlecode.objectify.Key;
@@ -63,8 +58,8 @@ public class Edit extends HttpServlet {
 	private static final long serialVersionUID = 137L;
 	private static final String VERTEX_AI_LOCATION = "us-central1";
 	private static final String VERTEX_AI_MODEL = "gemini-2.5-flash";  // or gemini-2.5-pro
-	private static final String CORRECT_ANSWER_PROMPT_ID = "pmpt_69aca16a881081938f557752ab5ef5a107c7ea937e14ff76";
-	private static final String AI_VALIDATOR_PROVIDER = System.getProperty("cv.ai.validator", "gemini").trim().toLowerCase(); // gemini | chatgpt
+	//private static final String CORRECT_ANSWER_PROMPT_ID = "pmpt_69aca16a881081938f557752ab5ef5a107c7ea937e14ff76";
+	//private static final String AI_VALIDATOR_PROVIDER = System.getProperty("cv.ai.validator", "gemini").trim().toLowerCase(); // gemini | chatgpt
 	Map<Key<Question>,Question> questions = new HashMap<Key<Question>,Question>();
 	Map<Key<Question>,Integer> pointValue = new HashMap<Key<Question>,Integer>();
 	List<Concept> concepts = new ArrayList<Concept>();
@@ -155,20 +150,21 @@ public class Edit extends HttpServlet {
 	throws ServletException, IOException {
 		String userRequest = request.getParameter("UserRequest");
 		if (userRequest == null) userRequest = "";
-		
-		if (userRequest.equals("ValidateCorrectAnswerWithAI")) {
-			validateCorrectAnswerWithAI(request,response);
-			return;
-		}
-		
-		response.setContentType("text/html");
+
+		boolean isJsonRequest = "ValidateCorrectAnswerWithAI".equals(userRequest);
+		response.setContentType(isJsonRequest ? "application/json" : "text/html");
 		PrintWriter out = response.getWriter();
 		
 		try {
 			String userId = "admin";
 			User user = new User("https://"+request.getServerName(), userId);
 			user.setIsChemVantageAdmin(true);
-			
+
+			if (isJsonRequest) {
+				out.println(validateQuestionItemWithAI(request));
+				return;
+			}
+
 			out.println(Subject.getHeader(user));
 			
 			switch (userRequest) {
@@ -298,10 +294,18 @@ public class Edit extends HttpServlet {
 			}
 
 		} catch (Exception e) {
-			out.println("Error: " + e.getMessage()==null?e.toString():e.getMessage());
-			Utilities.sendEmail("ChemVantage Administrator", "admin@chemvantage.org", "Error in Edit servlet", "An error occurred in the Edit servlet:\n\n" + e.getMessage()==null?e.toString():e.getMessage());
+			if (isJsonRequest) {
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				JsonObject error = new JsonObject();
+				error.addProperty("success", false);
+				error.addProperty("message", e.getMessage() == null ? e.toString() : e.getMessage());
+				out.println(error);
+				return;
+			}
+			out.println("Error: " + (e.getMessage()==null?e.toString():e.getMessage()));
+			Utilities.sendEmail("ChemVantage Administrator", "admin@chemvantage.org", "Error in Edit servlet", "An error occurred in the Edit servlet:\n\n" + (e.getMessage()==null?e.toString():e.getMessage()));
 		}
-		out.println(Subject.footer);
+		if (!isJsonRequest) out.println(Subject.footer);
 	}
 
 	private Question assembleQuestion(HttpServletRequest request) {
@@ -315,7 +319,6 @@ public class Edit extends HttpServlet {
 	
 	private Question assembleQuestion(HttpServletRequest request,Question q) {
 		String assignmentType = request.getParameter("AssignmentType");
-		String priorCorrectAnswer = q.correctAnswer;
 		Long conceptId = null;
 		try {
 			Long requestedConceptId = Long.parseLong(request.getParameter("ConceptId"));
@@ -385,13 +388,7 @@ public class Edit extends HttpServlet {
 		q.scrambleChoices = Boolean.parseBoolean(request.getParameter("ScrambleChoices"));
 		q.strictSpelling = Boolean.parseBoolean(request.getParameter("StrictSpelling"));
 		String checkedByAI = request.getParameter("CheckedByAI");
-		if (checkedByAI != null) q.checkedByAI = Boolean.parseBoolean(checkedByAI);
-		String aiGeneratedAnswer = request.getParameter("AIGeneratedAnswer");
-		if (aiGeneratedAnswer != null) q.aiGeneratedAnswer = aiGeneratedAnswer;
-		if (priorCorrectAnswer != null && q.correctAnswer != null && !priorCorrectAnswer.equals(q.correctAnswer)) {
-			q.checkedByAI = false;
-			q.aiGeneratedAnswer = "";
-		}
+		q.checkedByAI = (checkedByAI==null?null:Boolean.parseBoolean(checkedByAI));
 		q.validateFields();
 		return q;
 	}
@@ -746,18 +743,19 @@ void assignToConcept(User user, HttpServletRequest request) {
 			buf.append("Author: " + q.authorId + "<br>");
 			buf.append("Editor: " + q.editorId + "<br>");
 			buf.append("Success Rate: " + q.getSuccess() + "<br/>");
-			if (q.checkedByAI) buf.append("&#x2705; Checked by AI<br/>");
-			else if (q.getQuestionType() <= 5) {
+			if (q.getQuestionType()>5) {
+				buf.append("<br/>");
+			} else if (q.checkedByAI==null) {
 				buf.append("<div id='AIAnswerContainer'><button class='btn btn-secondary' onClick=\"validateCorrectAnswerWithAI('" + questionId + "','" + parameterSeed + "')\">Check by AI</button></div><br/>");
 			} else {
-				buf.append("<br/>");
+				buf.append(q.checkedByAI?"&#x2705; Validated<br/><br/>":"&#x26A0;&#xFE0F; Flagged by AI<br/><br/>");
 			}
-
+			
 			buf.append("<script>\n"
 					+ "async function validateCorrectAnswerWithAI(questionId,parameterSeed) {\n"
 					+ "  const ai_answer_container = document.getElementById('AIAnswerContainer');\n"
 					+ "  ai_answer_container.textContent = 'Validating...';\n"
-					+ "  var result;"
+					+ "  var result;\n"
 					+ "  try {\n"
 					+ "    const response = await fetch('/Edit', {\n"
 					+ "      method: 'POST',\n"
@@ -766,10 +764,11 @@ void assignToConcept(User user, HttpServletRequest request) {
 					+ "    });\n"
 					+ "    result = await response.json();\n"
 					+ "    console.log(result);\n"
-					+ "    if (!response.ok || !result.success) throw new Error(result.message || 'Validation failed.');\n"
-					+ "    ai_answer_container.innerHTML = result.aiGeneratedAnswer + ' ' + (result.checkedByAI ? '&#x2705;' : '&#x274C;');\n"
+					+ "    if (!response.ok) throw new Error(result.message || 'Validation failed.');\n"
+					+ "    ai_answer_container.innerHTML = (result.isCorrect ? '&#x2705; Checked by AI.' : '&#x26A0;&#xFE0F; Flagged by AI.') + ' The best answer is: ' + result.best_answer + '<br/>';\n"
 					+ "  } catch (err) {\n"
-					+ "    ai_answer_container.textContent = 'Validation failed. ' + err.message + JSON.stringify(result);\n"
+					+ "    const details = result ? (' ' + JSON.stringify(result)) : '';\n"
+					+ "    ai_answer_container.textContent = 'Validation failed. ' + err.message + details;\n"
 					+ "  }\n"
 					+ "}\n"
 					+ "</script>");
@@ -780,12 +779,9 @@ void assignToConcept(User user, HttpServletRequest request) {
 			
 			if (q.authorId==null) q.authorId="";
 			if (q.editorId==null) q.editorId="";
-			if (q.aiGeneratedAnswer==null) q.aiGeneratedAnswer="";
 			buf.append("<INPUT TYPE=HIDDEN NAME=AuthorId VALUE='" + q.authorId + "' />");
 			buf.append("<INPUT TYPE=HIDDEN NAME=EditorId VALUE='" + q.editorId + "' />");
-			buf.append("<INPUT TYPE=HIDDEN NAME=CheckedByAI id=CheckedByAIHidden VALUE='" + q.checkedByAI + "' />");
 			buf.append((assignmentId==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + assignmentId + "' />"));
-			buf.append("<INPUT TYPE=HIDDEN NAME=AIGeneratedAnswer id=AIGeneratedAnswerHidden VALUE='" + Question.quot2html(Question.amp2html(q.aiGeneratedAnswer)) + "' />");
 			buf.append("<INPUT TYPE=HIDDEN NAME=QuestionId VALUE=" + questionId + " />");
 			buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Delete Question' />");
 			buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Quit' />");
@@ -796,7 +792,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			buf.append(("Custom".equals(q.assignmentType)?"":"Concept:" + conceptSelectBox(q.conceptId) + "<br/>"));
 			buf.append("Question Type:" + questionTypeDropDownBox(q.getQuestionType()));
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br/>");
-			buf.append("<label><input type=checkbox name=CheckedByAI value=true " + (q.checkedByAI?" checked":"") + " /> Checked by AI</label><br/>");
+			buf.append("<label><input type=checkbox name=CheckedByAI value=true /> Approve manually</label><br/><br/>");
 
 			buf.append(q.edit());
 			
@@ -1129,7 +1125,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 					+ "<TR id=q" + q.id + " VALIGN=TOP>"
 					+ "<TD><INPUT TYPE=SUBMIT NAME=UserRequest VALUE=Edit /><br/>"
 					+ "<FONT SIZE=-2>" + q.getSuccess() + "</FONT><br/>"
-					+ (q.checkedByAI?"&#x2705; by AI":"") + "<br/>"
+					+ (q.checkedByAI==null?"":(q.checkedByAI?"&#x2705;":"&#x26A0;&#xFE0F;<span style='color:red'>Needs attention</span>"))
 					+ "</TD>");
 			buf.append("</FORM>");
 			buf.append("<FORM METHOD=POST ACTION=/Edit>"
@@ -1146,7 +1142,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			
 		return buf.toString();
 	}
-
+/* 
 	private boolean extractCorrectAnswerValue(String aiResponseText) {
 		if (aiResponseText == null) return false;
 		String text = aiResponseText.trim();
@@ -1159,11 +1155,14 @@ void assignToConcept(User user, HttpServletRequest request) {
 		}
 
 		try {
-			return JsonParser.parseString(text).getAsJsonObject().get("correct_answer").getAsBoolean();
+			JsonObject obj = JsonParser.parseString(text).getAsJsonObject();
+			if (obj.has("isCorrect") && !obj.get("isCorrect").isJsonNull()) return obj.get("isCorrect").getAsBoolean();
+			if (obj.has("correct_answer") && !obj.get("correct_answer").isJsonNull()) return obj.get("correct_answer").getAsBoolean();
+			return false;
 		} catch (Exception e) {
 			return false;
 		}
-/*
+
 		try {
 			JsonElement element = JsonParser.parseString(text);
 			if (element.isJsonPrimitive()) return element.getAsString().trim();
@@ -1192,7 +1191,8 @@ void assignToConcept(User user, HttpServletRequest request) {
 		}
 		return text;
 */
-	}
+
+
 
 	private void hideDuplicateQuestion(User user,HttpServletRequest request) {  // moves question to Concept called duplicates (hidden from instructors but accessible to assignments
 		try {
@@ -1499,18 +1499,15 @@ void assignToConcept(User user, HttpServletRequest request) {
 			buf.append(c==null?"":"Concept: " + c.title + "<br/>");
 			buf.append("Author: " + q.authorId + "<br/>");
 			buf.append("Editor: " + user.getId() + "<br/>");
-			buf.append((q.checkedByAI?"&#x2705; Checked by AI<br/>":"") + "<br/>");
+			buf.append((q.checkedByAI==null?"":(q.checkedByAI?"&#x2705; Validated<br/>":"&#x26A0;&#xFE0F; Flagged by AI<br/>")) + "<br/>");
 
 			buf.append("<FORM ACTION=/Edit#q" + questionId + " METHOD=POST>");
 			
 			buf.append(q.printAll());
 			
 			if (q.authorId==null) q.authorId="";
-			if (q.aiGeneratedAnswer==null) q.aiGeneratedAnswer="";
 			buf.append("<INPUT TYPE=HIDDEN NAME=AuthorId VALUE='" + q.authorId + "'>");
 			buf.append("<INPUT TYPE=HIDDEN NAME=EditorId VALUE='" + user.getId() + "'>");
-			buf.append("<INPUT TYPE=HIDDEN NAME=CheckedByAI VALUE='" + q.checkedByAI + "'>");
-			buf.append("<INPUT TYPE=HIDDEN NAME=AIGeneratedAnswer VALUE='" + Question.quot2html(Question.amp2html(q.aiGeneratedAnswer)) + "'>");
 			buf.append((assignmentId==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + assignmentId + "' />"));
 			
 			if (current) {
@@ -1534,7 +1531,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			} else q.pointValue = 1;
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br>");
 			
-			buf.append("<input type=checkbox name=CheckedByAI value=true " + (q.checkedByAI?" checked":"") + " /> Checked by AI<br/><br/>");
+			buf.append("<input type=checkbox name=CheckedByAI value=true " + (Boolean.TRUE.equals(q.checkedByAI)?" checked":"") + " /> Approve manually<br/><br/>");
 
 			buf.append(q.edit());
 			
@@ -1560,94 +1557,52 @@ void assignToConcept(User user, HttpServletRequest request) {
 		return buf.toString();
 	}
 
-	private String readResponseBody(HttpURLConnection connection, boolean success) throws IOException {
-		BufferedReader reader;
-		if (success) {
-			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-		} else if (connection.getErrorStream() != null) {
-			reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-		} else {
-			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-		}
-		try (BufferedReader br = reader) {
-			StringBuilder sb = new StringBuilder();
-			String line;
-			while ((line = br.readLine()) != null) sb.append(line).append('\n');
-			return sb.toString().trim();
-		}
-	}
-
-	private String requestCorrectAnswerFromChatGPT(Question q) throws Exception {
+	private JsonObject requestValidationFromGemini(Question q) throws Exception {
 		String questionItem = q.printForSage();
 		if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
 
-		JsonObject api_request = new JsonObject();
-		api_request.addProperty("model", "gpt-5");
-		
-		JsonObject prompt = new JsonObject();
-		prompt.addProperty("id", CORRECT_ANSWER_PROMPT_ID);
-		JsonObject variables = new JsonObject();
-		variables.addProperty("question_item", questionItem);
-		variables.addProperty("student_answer", q.getCorrectAnswer());
-		prompt.add("variables", variables);
-		api_request.add("prompt", prompt);
-		
-		URL u = new URI("https://api.openai.com/v1/responses").toURL();
-		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-		uc.setRequestMethod("POST");
-		uc.setDoInput(true);
-		uc.setDoOutput(true);
-		uc.setRequestProperty("Authorization", "Bearer " + Subject.getOpenAIKey());
-		uc.setRequestProperty("Content-Type", "application/json");
-		uc.setRequestProperty("Accept", "application/json");
+		Schema responseSchema = Schema.newBuilder()
+				.setType(Type.OBJECT)
+				.putProperties("best_answer", Schema.newBuilder().setType(Type.STRING).build())
+				.putProperties("isCorrect", Schema.newBuilder().setType(Type.BOOLEAN).build())
+				.addRequired("best_answer")
+				.addRequired("isCorrect")
+				.build();
 
-		OutputStream os = uc.getOutputStream();
-		byte[] jsonBytes = api_request.toString().getBytes("utf-8");
-		os.write(jsonBytes,0,jsonBytes.length);
-		os.close();
+		GenerationConfig generationConfig = GenerationConfig.newBuilder()
+				.setResponseMimeType("application/json")
+				.setResponseSchema(responseSchema)
+				.build();
 
-		int responseCode = uc.getResponseCode();
-		boolean success = responseCode / 100 == 2;
-		String responseBody = readResponseBody(uc, success);
-		JsonObject apiResponse;
-		try {
-			apiResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-		} catch (Exception e) {
-			throw new Exception((success?"OpenAI API returned malformed JSON: ":"OpenAI API error (non-JSON response): ") + responseBody);
-		}
-		if (!success) {
-			throw new Exception("OpenAI API error: " + apiResponse.toString());
-		}
-
-		JsonArray output = apiResponse.get("output").getAsJsonArray();
-		for (JsonElement element0 : output) {
-			JsonObject message = element0.getAsJsonObject();
-			if (!message.has("content")) continue;
-			JsonArray content = message.get("content").getAsJsonArray();
-			for (JsonElement element1 : content) {
-				JsonObject outputText = element1.getAsJsonObject();
-				if (outputText.has("text")) return outputText.get("text").getAsString().trim();
-			}
-		}
-		throw new Exception("OpenAI response did not contain answer text.");
-	}
-
-	private String requestCorrectAnswerFromGemini(Question q) throws Exception {
-		String questionItem = q.printForSage();
-		if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
-
-		String prompt = "You are validating whether the instructor-provided student answer is correct for the chemistry question item below. "
-				+ "Return only JSON with this exact schema: {\"correct_answer\": true|false}. "
-				+ "Do not include markdown, explanations, or any additional fields.\n\n"
+		String prompt = "You are validating a chemistry question and a proposed answer. "
+				+ "Determine the single best answer to the question_item, then evaluate whether proposed_answer matches that best answer. "
+				+ "Return ONLY a valid JSON object (no markdown, no code fences, no extra text) with this exact schema:\n"
+				+ "{\n"
+				+ "  \"best_answer\": \"string\",\n"
+				+ "  \"isCorrect\": true|false\n"
+				+ "}\n\n"
+				+ "Rules:\n"
+				+ "- best_answer must be concise and unambiguous.\n"
+				+ "- isCorrect is true only if proposed_answer is equivalent to best_answer in chemistry meaning.\n"
+				+ "- If units or significant figures are required, enforce them.\n"
+				+ "- Do not include units in the answer.\n"
 				+ "question_item:\n" + questionItem + "\n\n"
-				+ "student_answer:\n" + q.getCorrectAnswer();
+				+ "proposed_answer:\n" + q.getCorrectAnswer();
 
 		try (VertexAI vertexAI = new VertexAI(Subject.getProjectId(), VERTEX_AI_LOCATION)) {
-			GenerativeModel model = new GenerativeModel(VERTEX_AI_MODEL, vertexAI);
+			GenerativeModel model = new GenerativeModel.Builder()
+					.setModelName(VERTEX_AI_MODEL)
+					.setVertexAi(vertexAI)
+					.setGenerationConfig(generationConfig)
+					.build();
 			GenerateContentResponse response = model.generateContent(prompt);
 			String text = ResponseHandler.getText(response);
 			if (text == null || text.trim().isEmpty()) throw new Exception("Vertex AI response did not contain answer text.");
-			return text.trim();
+			try {
+				return JsonParser.parseString(text.trim()).getAsJsonObject();
+			} catch (Exception parseException) {
+				throw new Exception("Vertex AI response was not valid JSON object: " + text.trim());
+			}
 		} catch (Exception e) {
 			throw new Exception("Vertex AI API error: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
 		}
@@ -2135,33 +2090,27 @@ void assignToConcept(User user, HttpServletRequest request) {
 		if (!a.assignmentType.equals("Homework")) return buf.append("The assignmrent type must be Homework.").toString(); // only validate homework assignments for now
 		// For each question in the assignment, send the question text and correct answer to the AI and ask if the correct answer is correct.
 		// If any answer is deemed incorrect by the AI, send email to the ChemVantage administrator with a list of links to edit the questions.
-		List<Key<Question>> faultyQuestionKeys = new ArrayList<Key<Question>>();
+		List<Key<Question>> flaggedQuestionKeys = new ArrayList<Key<Question>>();
 		List<Key<Question>> failedQuestionKeys = new ArrayList<Key<Question>>();
 		for (Key<Question> k : a.questionKeys) {
 			Question q = ofy().load().key(k).now();
 			if (q==null || q.checkedByAI || q.getQuestionType() > 5) continue;
 			try {
-				String aiGeneratedAnswer = "chatgpt".equals(AI_VALIDATOR_PROVIDER)
-						? requestCorrectAnswerFromChatGPT(q)
-						: requestCorrectAnswerFromGemini(q);
-				if (extractCorrectAnswerValue(aiGeneratedAnswer)) {
-					q.checkedByAI = true;
-					ofy().save().entity(q);
-				} else {
-					faultyQuestionKeys.add(k);
-				}
+				JsonObject aiValidation = requestValidationFromGemini(q);
+				q.checkedByAI = aiValidation.get("isCorrect").getAsBoolean();
+				ofy().save().entity(q);
 			} catch (Exception e) {
 				failedQuestionKeys.add(k);
 				continue;
 			}
 		}
-		if (faultyQuestionKeys.size()==0 && failedQuestionKeys.size()==0) return buf.append("All questions in this assignment passed AI validation.").toString();
+		if (flaggedQuestionKeys.size()==0 && failedQuestionKeys.size()==0) return buf.append("All questions in this assignment passed AI validation.").toString();
 		
 		String message = "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?AssignmentId=" + a.id + ">View Assignment</a> or "
 		+ "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?UserRequest=ValidateAssignmentWithAI&AssignmentId=" + a.id + ">Run Validation Interactively</a><br/><br/>";
-		if (faultyQuestionKeys.size()>0) {
+		if (flaggedQuestionKeys.size()>0) {
 			message += "The following questions in Assignment " + a.id + " were flagged by the AI validator as potentially having incorrect answers:<br/>";
-			for (Key<Question> k : faultyQuestionKeys) {
+			for (Key<Question> k : flaggedQuestionKeys) {
 				Long questionId = k.getId();
 				message += "Question ID: " + questionId + " <a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?UserRequest=Edit&AssignmentId=" + a.id + "&QuestionId=" + questionId + ">Edit</a><br/>";
 			}
@@ -2187,7 +2136,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		buf.append(message);
 		return buf.toString();
 	}
-
+/* 
 	private void validateCorrectAnswerWithAI(HttpServletRequest request,HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		JsonObject api_response = new JsonObject();
@@ -2219,6 +2168,19 @@ void assignToConcept(User user, HttpServletRequest request) {
 			api_response.addProperty("message", e.getMessage()==null?e.toString():e.getMessage());
 		}
 		response.getWriter().println(api_response.toString());
+	}
+*/
+	JsonObject validateQuestionItemWithAI(HttpServletRequest request) throws Exception{
+		Question q = ofy().load().type(Question.class).id(Long.parseLong(request.getParameter("QuestionId"))).now();
+		Long parameterSeed = null;
+		try {
+			parameterSeed = Long.parseLong(request.getParameter("ParameterSeed"));
+			q.setParameters(parameterSeed);
+		} catch (Exception e) {}
+		JsonObject api_response = requestValidationFromGemini(q);
+		q.checkedByAI = api_response.get("isCorrect").getAsBoolean();
+		ofy().save().entity(q);
+		return api_response;
 	}
 
 	String videosForm() {
