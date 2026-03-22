@@ -753,9 +753,9 @@ void assignToConcept(User user, HttpServletRequest request) {
 			if (q.getQuestionType()>5) {
 				buf.append("<br/>");
 			} else if (q.checkedByAI==null) {
-				buf.append("<div id='AIAnswerContainer'><button class='btn btn-secondary' onClick=\"validateCorrectAnswerWithAI('" + questionId + "','" + parameterSeed + "')\">Check by AI</button></div><br/>");
+				buf.append("<div id='AIAnswerContainer'><a href='#' onClick=\"validateCorrectAnswerWithAI('" + questionId + "','" + parameterSeed + "')\">Validate with AI</a></div><br/>");
 			} else {
-				buf.append(q.checkedByAI?"&#x2705; Validated<br/><br/>":"&#x26A0;&#xFE0F; Flagged by AI<br/><br/>");
+				buf.append("<div id='AIAnswerContainer'>" + (q.checkedByAI?"&#x2705; Validated":"&#x26A0;&#xFE0F; Flagged by AI. <a href='#' onClick=\"validateCorrectAnswerWithAI('" + questionId + "','" + parameterSeed + "')\">Recheck</a>") + "</div><br/>");
 			}
 			
 			buf.append("<script>\n"
@@ -1538,7 +1538,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			} else q.pointValue = 1;
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br>");
 			
-			buf.append("<input type=checkbox name=CheckedByAI value=true " + (Boolean.TRUE.equals(q.checkedByAI)?" checked":"") + " /> Approve manually<br/><br/>");
+			buf.append("<label><input type=checkbox name=CheckedByAI value=true " + (Boolean.TRUE.equals(q.checkedByAI)?" checked":"") + " /> Approve manually</label><br/><br/>");
 
 			buf.append(q.edit());
 			
