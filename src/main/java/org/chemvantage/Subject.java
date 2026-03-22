@@ -22,6 +22,8 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.security.MessageDigest;
 import java.text.DecimalFormat;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.cloud.ServiceOptions;
 import com.googlecode.objectify.NotFoundException;
@@ -30,6 +32,10 @@ import com.googlecode.objectify.annotation.Id;
 
 @Entity
 public class Subject {
+	private static final Logger logger = Logger.getLogger(Subject.class.getName());
+	private static final int REFRESH_RETRY_LIMIT = 5;
+	private static final long REFRESH_RETRY_DELAY_MS = 200L;
+
 	@Id Long id;
 	private static Subject s;
 	
@@ -50,31 +56,60 @@ public class Subject {
 	private String payPalClientSecret;
 	
 	private Subject() {}
+
+	private static Subject createDefaultSubject() {
+		Subject fallback = new Subject();
+		fallback.id = 1L;
+		fallback.title = "General Chemistry";
+		fallback.HMAC256Secret = "ChangeMeInTheDatastoreManuallyForYourProtection";
+		fallback.salt = "ChangeMeInTheDatastoreManuallyForYourProtection";
+		fallback.reCaptchaKey = "changeMe";
+		fallback.openai_key = "changeMe";
+		fallback.gptModel = "changeMe";
+		fallback.gemModel = "changeMe";
+		fallback.sendGridAPIKey = "changeMe";
+		fallback.payPalClientId = "changeMe";
+		fallback.payPalClientSecret = "changeMe";
+		fallback.projectId = ServiceOptions.getDefaultProjectId();
+		if (fallback.projectId == null || fallback.projectId.isBlank()) fallback.projectId = "localhost";
+		fallback.serverUrl = switch (fallback.projectId) {
+			case "dev-vantage-hrd" -> "https://dev-vantage-hrd.appspot.com";
+			case "localhost" -> "http://localhost:8080";
+			default -> "https://www.chemvantage.org";
+		};
+		return fallback;
+	}
 	
-	private static void refresh() {
-		try {
-			if (s==null) s = ofy().load().type(Subject.class).id(1L).safe();
-		} catch (NotFoundException e) {  // runs only once at inception of datastore
-			s = new Subject();
-			s.id = 1L;
-			s.title = "General Chemistry";
-			s.HMAC256Secret = "ChangeMeInTheDatastoreManuallyForYourProtection";
-			s.salt = "ChangeMeInTheDatastoreManuallyForYourProtection";
-			s.reCaptchaKey = "changeMe";
-			s.openai_key = "changeMe";
-			s.gptModel = "changeMe";
-			s.gemModel = "changeMe";
-			s.sendGridAPIKey = "changeMe";
-			s.payPalClientId = "changeMe";
-			s.payPalClientSecret = "changeMe";
-			s.projectId = ServiceOptions.getDefaultProjectId();
-			s.serverUrl = "https://" + (s.projectId.equals("dev-vantage-hrd")?"dev-vantage-hrd.appspot.com":"www.chemvantage.org");
-			ofy().save().entity(s);
-		} catch (Exception e) {  // ofy() not ready
+	private static synchronized void refresh() {
+		if (s != null) return;
+
+		for (int attempt = 1; attempt <= REFRESH_RETRY_LIMIT; attempt++) {
 			try {
-				Thread.sleep(1000);
-				refresh();				// recursive wait for ofy() to be ready
-			} catch (Exception e2) {}
+				s = ofy().load().type(Subject.class).id(1L).safe();
+				return;
+			} catch (NotFoundException e) {  // runs only once at inception of datastore
+				s = createDefaultSubject();
+				try {
+					ofy().save().entity(s).now();
+				} catch (Exception saveException) {
+					logger.log(Level.WARNING, "Unable to persist default Subject during initialization.", saveException);
+				}
+				return;
+			} catch (Exception e) {  // ofy() may not be ready during classloading
+				if (attempt == REFRESH_RETRY_LIMIT) {
+					s = createDefaultSubject();
+					logger.log(Level.WARNING, "Subject datastore initialization unavailable; using fallback defaults.", e);
+					return;
+				}
+				try {
+					Thread.sleep(REFRESH_RETRY_DELAY_MS);
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					s = createDefaultSubject();
+					logger.log(Level.WARNING, "Interrupted while waiting for Subject initialization; using fallback defaults.", ie);
+					return;
+				}
+			}
 		}
 	}
 	
@@ -87,17 +122,7 @@ public class Subject {
 		if (s==null) refresh();
 		return s.HMAC256Secret; 
 	}
-/*	
-	static String getReCaptchaSecret() {
-		if (s==null) refresh();
-		return s.reCaptchaSecret;
-	}
-	
-	static String getReCaptchaSiteKey() {
-		if (s==null) refresh();
-		return s.reCaptchaSiteKey;
-	}
-*/	
+
 	static String getReCaptchaKey() {
 		if (s==null) refresh();
 		return s.reCaptchaKey;
@@ -305,7 +330,7 @@ public class Subject {
 		+ "<main id='main-content'>");
 	}
 	
-	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='" + getServerUrl() + "/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
 			
 	public static String footer = """
 			

@@ -57,13 +57,20 @@ public class Edit extends HttpServlet {
 
 	private static final long serialVersionUID = 137L;
 	private static final String VERTEX_AI_LOCATION = "us-central1";
-	private static final String VERTEX_AI_MODEL = Subject.getGemModel();  // e.g. gemini-2.5-flash
+	private static final String VERTEX_AI_DEFAULT_MODEL = "gemini-2.5-flash";
 	//private static final String CORRECT_ANSWER_PROMPT_ID = "pmpt_69aca16a881081938f557752ab5ef5a107c7ea937e14ff76";
 	//private static final String AI_VALIDATOR_PROVIDER = System.getProperty("cv.ai.validator", "gemini").trim().toLowerCase(); // gemini | chatgpt
 	Map<Key<Question>,Question> questions = new HashMap<Key<Question>,Question>();
 	Map<Key<Question>,Integer> pointValue = new HashMap<Key<Question>,Integer>();
 	List<Concept> concepts = new ArrayList<Concept>();
 	Map<Long,Concept> conceptMap = new HashMap<Long,Concept>();
+
+	private static String getVertexAiModel() {
+		String model = Subject.getGemModel();
+		return model == null || model.isBlank() || "changeMe".equalsIgnoreCase(model)
+				? VERTEX_AI_DEFAULT_MODEL
+				: model;
+	}
 	
 	public String getServletInfo() {
 		return "This servlet is used by editors and admins to create, review, edit and delete question items.";
@@ -1591,7 +1598,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 
 		try (VertexAI vertexAI = new VertexAI(Subject.getProjectId(), VERTEX_AI_LOCATION)) {
 			GenerativeModel model = new GenerativeModel.Builder()
-					.setModelName(VERTEX_AI_MODEL)
+					.setModelName(getVertexAiModel())
 					.setVertexAi(vertexAI)
 					.setGenerationConfig(generationConfig)
 					.build();

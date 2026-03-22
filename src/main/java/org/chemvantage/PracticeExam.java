@@ -272,7 +272,7 @@ public class PracticeExam extends HttpServlet {
 			if (a.timeAllowed!=null) {
 				timeAllowed = a.timeAllowed;  // instructor option, e.g. for student disability accommodations
 				user = timeAllowed>3600?User.getUser(user.getTokenSignature(),timeAllowed/60+30):user;
-				if (user==null) return Logout.message;
+				if (user==null) return Logout.message();
 			}
 			debug.append("3");
 			

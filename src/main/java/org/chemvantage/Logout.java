@@ -27,19 +27,21 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class Logout {
 
-	static String message = Subject.header() 
-			+ "<h1>Logout</h1>"
-			+ "<h2>You have successfully signed out of ChemVantage</h2>" 
-			+ "If this happened unexpectedly, it is likely that your browser's web "
-			+ "session timed out after a period of inactivity, or the access token "
-			+ "exchanged between your learning management system (LMS) and ChemVantage "
-			+ "has expired (after a period of typically 90 minutes)."
-			+ "<p>"
-			+ "You can activate a new session and token by returning to your learning "
-			+ "management system (LMS) and clicking the link for any assignment there.<p>"
-			+ "If you are having technical difficulty using ChemVantage, <a href=/Feedback>"
-			+ "please tell us</a> so we can fix the problem."	
-			+ Subject.footer;
+	static String message() {
+		return Subject.header()
+				+ "<h1>Logout</h1>"
+				+ "<h2>You have successfully signed out of ChemVantage</h2>"
+				+ "If this happened unexpectedly, it is likely that your browser's web "
+				+ "session timed out after a period of inactivity, or the access token "
+				+ "exchanged between your learning management system (LMS) and ChemVantage "
+				+ "has expired (after a period of typically 90 minutes)."
+				+ "<p>"
+				+ "You can activate a new session and token by returning to your learning "
+				+ "management system (LMS) and clicking the link for any assignment there.<p>"
+				+ "If you are having technical difficulty using ChemVantage, <a href=/Feedback>"
+				+ "please tell us</a> so we can fix the problem."
+				+ Subject.footer;
+	}
 	
 	static String now(HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<h1>Logout</h1>");
