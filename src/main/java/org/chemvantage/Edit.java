@@ -775,7 +775,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 					+ "    ai_answer_container.innerHTML = (result.isCorrect ? '&#x2705; Checked by AI.' : '&#x26A0;&#xFE0F; Flagged by AI.') + ' The best answer is: ' + result.best_answer + '<br/>';\n"
 					+ "  } catch (err) {\n"
 					+ "    const details = result ? (' ' + JSON.stringify(result)) : '';\n"
-					+ "    ai_answer_container.textContent = 'Validation failed. ' + err.message + details;\n"
+					+ "    ai_answer_container.textContent = 'Validation failed. ' + details;\n"
 					+ "  }\n"
 					+ "}\n"
 					+ "</script>");
@@ -1095,7 +1095,8 @@ void assignToConcept(User user, HttpServletRequest request) {
 
 			if (concept != null) {
 				buf.append("<h3>Questions for Concept: " + concept.title + "</h3>");
-				buf.append("<FORM NAME=NewQuestion METHOD=GET ACTION=/Edit>"
+				buf.append("<FORM NAME=NewQuestion METHOD=GET ACTION=/Edit>New: "
+						+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE=NewQuestionForm />"
 						+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + concept.id + "'>"
 						+ "<INPUT TYPE=HIDDEN NAME=AssignmentType VALUE='" + assignmentType + "'>"
 						+ "<INPUT TYPE=HIDDEN NAME=QuestionType>"
@@ -1592,7 +1593,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				+ "- best_answer must be concise and unambiguous.\n"
 				+ "- isCorrect is true only if proposed_answer is equivalent to best_answer in chemistry meaning.\n"
 				+ "- If units or significant figures are required, enforce them.\n"
-				+ "- Do not include units in the answer.\n"
+				+ "- Do not include units in the best_answer.\n"
 				+ "question_item:\n" + questionItem + "\n\n"
 				+ "proposed_answer:\n" + q.getCorrectAnswer();
 
