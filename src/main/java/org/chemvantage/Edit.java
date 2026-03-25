@@ -2102,7 +2102,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		List<Key<Question>> failedQuestionKeys = new ArrayList<Key<Question>>();
 		for (Key<Question> k : a.questionKeys) {
 			Question q = ofy().load().key(k).now();
-			if (q==null || q.checkedByAI || q.getQuestionType() > 5) continue;
+			if (q==null || q.getQuestionType() > 5 || (q.checkedByAI != null && q.checkedByAI)) continue;
 			try {
 				JsonObject aiValidation = requestValidationFromGemini(q);
 				q.checkedByAI = aiValidation.get("isCorrect").getAsBoolean();
