@@ -40,6 +40,7 @@ import com.google.gson.JsonParser;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
+import com.googlecode.objectify.annotation.OnLoad;
 
 @Entity
 public class Question implements Serializable, Cloneable {
@@ -51,13 +52,13 @@ public class Question implements Serializable, Cloneable {
 	@Index	String assignmentType;
 	@Index	String text;
 			String type;
-			int nChoices=0;
+			Integer nChoices;
 			List<String> choices = new ArrayList<String>();
 			double requiredPrecision=0;
-			int significantFigures = 0;
+			Integer significantFigures;
 			String correctAnswer;
 			String tag;
-	@Index	int pointValue=1;
+	@Index	Integer pointValue;
 			String parameterString;
 			String hint;
 			String solution;
@@ -75,6 +76,17 @@ public class Question implements Serializable, Cloneable {
 	private Integer nTotalAttempts = null;
 			int[] parameters = {0,0,0,0};
 	@Index	boolean isActive = false;
+	
+	@OnLoad
+	void onLoad() {
+		// Ensure primitive fields have sensible defaults if null in datastore
+		// This handles legacy entities that may not have these fields
+		if (nChoices == null) nChoices = 0;
+		if (significantFigures == null) significantFigures = 0;
+		if (pointValue == null) pointValue = 1;
+		if (parameters == null) parameters = new int[]{0,0,0,0};
+		if (choices == null) choices = new ArrayList<String>();
+	}
 	
 	public static final int MULTIPLE_CHOICE = 1;
 	public static final int TRUE_FALSE = 2;
