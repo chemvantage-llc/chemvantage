@@ -97,7 +97,8 @@ public class LTIRegistration extends HttpServlet {
 
 			String iss = "https://" + request.getServerName();
 			String reg_code = request.getParameter("reg_code");
-				
+			boolean dynamicRegistration = request.getParameter("openid_configuration")!=null;
+			
 			if ("config".contentEquals(userRequest)) {
 				response.setContentType("application/json");
 				out.println(getConfigurationJson(iss,request.getParameter("lms")));
@@ -108,7 +109,8 @@ public class LTIRegistration extends HttpServlet {
 					throw new Exception("The registration code is invalid or has expired. "
 					+ (Subject.getProjectId().equals("dev-vantage-hrd")?"Please contact admin@chemvantage.org for a new code.":"Please request a new code."));
 				}
-				out.println(Subject.header("LTI Registration") + clientIdForm(rc) + Subject.footer);
+				if (dynamicRegistration) doPost(request, response);
+				else out.println(Subject.header("LTI Registration") + clientIdForm(rc) + Subject.footer);
 			} else {
 				out.println(Subject.header() + registrationForm(request,null) + Subject.footer);
 			}
@@ -128,19 +130,21 @@ public class LTIRegistration extends HttpServlet {
 		if (userRequest==null) userRequest = "";
 
 		boolean dynamicRegistration = request.getParameter("openid_configuration")!=null;
-		
+		String reg_code = request.getParameter("reg_code");
+		RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
+				
 		try {
-			if ("finalize".contentEquals(userRequest)) {				
-				String reg_code = request.getParameter("reg_code");
-				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).safe();
+			if ("finalize".contentEquals(userRequest)) {
+				if (rc==null) throw new Exception("The registration code provided with this link could not be validated.");
 				out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner + "<h1>Registration Success</h1>" + createDeployment(request, rc) + Subject.footer);			
 			} else {
-				RegistrationCode rc = validateApplicationFormContents(request);
+				if (rc==null) rc = validateApplicationFormContents(request);
 				if (dynamicRegistration) {
 					JsonObject openIdConfiguration = getOpenIdConfiguration(request);  // LTIDRSv1p0 section 3.4
+					String registration_token = request.getParameter("registration_token");
 					validateOpenIdConfigurationURL(request.getParameter("openid_configuration"),openIdConfiguration);  // LTIDRSv1p0 section 3.5.1
-					JsonObject registrationResponse = postRegistrationRequest(openIdConfiguration,request);  // LTIDRSv1p0 section 3.5.2 & 3.6
-			        Deployment d = createNewDeployment(openIdConfiguration,registrationResponse,request);
+					JsonObject registrationResponse = postRegistrationRequest(openIdConfiguration, registration_token);  // LTIDRSv1p0 section 3.5.2 & 3.6
+			        Deployment d = createNewDeployment(openIdConfiguration,registrationResponse,rc); // LTIDRSv1p0 section 3.7
 					sendApprovalEmail(d);
 					response.setContentType("text/html");
 					out.println(successfulRegistrationRequestPage(d));
@@ -190,7 +194,8 @@ public class LTIRegistration extends HttpServlet {
 		String openid_configuration = request.getParameter("openid_configuration");
 		String registration_token = request.getParameter("registration_token");
 		boolean dynamic = openid_configuration != null;
-		
+		boolean dev = Subject.getProjectId().equals("dev-vantage-hrd");
+
 		StringBuffer buf = new StringBuffer(Subject.banner);
 		
 		if (message != null) {
@@ -199,9 +204,13 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<h1>LTI Advantage " + (dynamic?"Dynamic ":"Manual ") + "Registration</h1>");
 		
-		buf.append("<div id=reg_code style='display:" + (message==null && !dynamic?"block":"none") + "'>"
-				+ "<form method=get action=/lti/registration><br/>"		
-				+ "If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text name=reg_code /><input type=submit value=Submit />"
+		buf.append("<div id=reg_code style='display:" + (dev || (message==null && !dynamic)?"block":"none") + "'>"
+			+ "<form method=" + (dynamic?"post":"get") + " action=/lti/registration><br/>");
+		if (dynamic) {
+			buf.append("<input type=hidden name=openid_configuration value='" + (openid_configuration==null?"":openid_configuration) + "' />"
+				+ "<input type=hidden name=registration_token value='" + (registration_token==null?"":registration_token) + "' />");
+		}
+		buf.append("If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text name=reg_code /><input type=submit value=Submit />"
 				+ "</form><br/><br/>");
 		if (Subject.getProjectId().equals("dev-vantage-hrd")) {
 			buf.append("In this development environment, registration codes are not automatically generated or emailed.<br/>"
@@ -211,7 +220,7 @@ public class LTIRegistration extends HttpServlet {
 		}
 		buf.append("</div>");
 
-		buf.append("<div id=reg_form style='display:" + (message!=null || dynamic?"block":"none") + "'>"
+		buf.append("<div id=reg_form style='display:" + (!dev && (message!=null || dynamic)?"block":"none") + "'>"
 				+ "<form id=regform method=post action=/lti/registration>"
 				+ "Please complete the form below to create a trusted LTI Advantage connection between your LMS and ChemVantage "
 				+ "that is convenient, secure and <a href=https://site.imsglobal.org/certifications/chemvantage/chemvantage>certified by 1EdTech</a>. "
@@ -317,6 +326,15 @@ public class LTIRegistration extends HttpServlet {
 		String openid_configuration = request.getParameter("openid_configuration");
 		boolean dynamic = openid_configuration != null;
 		
+		if (Subject.getProjectId().equals("dev-vantage-hrd")) {
+			if (reg_code==null || reg_code.isEmpty()) throw new Exception("Registration code is required in the development environment. Please contact admin@chemvantage.org for assistance.");
+			RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
+			if (rc==null || rc.expires.before(new Date())) {
+				throw new Exception("The registration code is invalid or has expired. Please contact admin@chemvantage.org for assistance.");
+			}
+			return rc;
+		}
+	
 		if (name==null) name = "";
 		else name = name.trim();
 		if (name.isEmpty()) throw new Exception("Name is required.");
@@ -344,15 +362,7 @@ public class LTIRegistration extends HttpServlet {
 			throw new Exception("Invalid domain name (" + url + "). " + e.toString());
 		}
 
-		if (dynamic) {
-			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
-				if (reg_code==null || reg_code.isEmpty()) throw new Exception("Registration code is required in the development environment. Please contact admin@chemvantage.org for assistance.");
-				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
-				if (rc==null || rc.expires.before(new Date())) {
-					throw new Exception("The registration code is invalid or has expired. Please contact admin@chemvantage.org for assistance.");
-				}
-			}
-		} else {
+		if (!dynamic) {
 			if (lms==null) throw new Exception("Please select the type of LMS that you are connecting to ChemVantage. ");
 			if ("other".equals(lms) && (lms_other==null || lms_other.isEmpty())) throw new Exception("Please describe the type of LMS that you are connecting to ChemVantage. ");
 			if ("other".equals(lms)) lms = lms_other;
@@ -587,7 +597,7 @@ public class LTIRegistration extends HttpServlet {
 		return msg;
 	}
 
-	Deployment createNewDeployment(JsonObject openIdConfiguration, JsonObject registrationResponse, HttpServletRequest request) throws Exception {
+	Deployment createNewDeployment(JsonObject openIdConfiguration, JsonObject registrationResponse, RegistrationCode rc) throws Exception {
 		/* Dynamic Registration */
 		try {
 			String platformId = openIdConfiguration.get("issuer").getAsString();
@@ -603,10 +613,10 @@ public class LTIRegistration extends HttpServlet {
 				Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org","Dynamic Registration Error: LMS Type Unknown",openIdConfiguration.toString());
 			}
 	
-			String contact_name = request.getParameter("name");
-			String contact_email = request.getParameter("email");
-			String organization = request.getParameter("org");
-			String org_url = request.getParameter("url");
+			String contact_name = rc.name;
+			String contact_email = rc.email;
+			String organization = rc.org;
+			String org_url = rc.url;
 			
 			String deploymentId = "";  // Most LMS platforms send the deployment_id in the registration response, but it's not required. Thanks, Brightspace and Canvas.
 			try {
@@ -727,9 +737,8 @@ public class LTIRegistration extends HttpServlet {
 		}		
 	}
 	
-	JsonObject postRegistrationRequest(JsonObject openIdConfiguration,HttpServletRequest request) throws Exception {
+	JsonObject postRegistrationRequest(JsonObject openIdConfiguration,String registration_token) throws Exception {
 		
-		String registrationToken = request.getParameter("registration_token");
 		StringBuffer registrationResponseBuffer = new StringBuffer();
 		JsonObject registrationResponse = new JsonObject();;
 		JsonObject regJson = new JsonObject();
@@ -837,7 +846,7 @@ public class LTIRegistration extends HttpServlet {
 		URL u = new URI(reg_endpoint).toURL();
 		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
 		uc.setRequestMethod("POST");
-		if (registrationToken != null) uc.setRequestProperty("Authorization", "Bearer " + registrationToken);
+		if (registration_token != null) uc.setRequestProperty("Authorization", "Bearer " + registration_token);
 		uc.setRequestProperty("Content-Type", "application/json");
 		uc.setRequestProperty("Content-Length", String.valueOf(json_bytes.length));
 		uc.setRequestProperty("Accept", "application/json");
