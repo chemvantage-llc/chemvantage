@@ -250,6 +250,7 @@ public class LTIRegistration extends HttpServlet {
 				+ "<label><input type=radio name=lms required value=brightspace " + ((lms!=null && lms.equals("brightspace"))?"checked":"") + "  />&nbsp;Brightspace</label><br/>\n"
 				+ "<label><input type=radio name=lms required value=canvas " + ((lms!=null && lms.equals("canvas"))?"checked":"") + "  />&nbsp;Canvas</label><br/>\n"
 				+ "<label><input type=radio name=lms required value=moodle " + ((lms!=null && lms.equals("moodle"))?"checked":"") + "  />&nbsp;Moodle</label><br/>\n"
+				+ "<label><input type=radio name=lms required value=open_edx " + ((lms!=null && lms.equals("open_edx"))?"checked":"") + "  />&nbsp;Open edX</label><br/>\n"
 				+ "<label><input type=radio name=lms required value=sakai " + ((lms!=null && lms.equals("sakai"))?"checked":"") + "  />&nbsp;Sakai</label><br/>\n"
 				+ "<label><input type=radio name=lms required value=schoology " + ((lms!=null && lms.equals("schoology"))?"checked":"") + "  />&nbsp;Schoology</label><br/>\n"
 				+ "<label><input type=radio name=lms required id=other value=other " + ((lms!=null && lms.equals("other"))?"checked":"") + "  />&nbsp;Other:</label>\n"
@@ -449,15 +450,27 @@ public class LTIRegistration extends HttpServlet {
 		buf.append("Organization: " + rc.org + (rc.url.isEmpty()?"":" (" + rc.url + ")") + "<br/>");
 		buf.append("LMS: " + rc.lms + "<br/><br/>");
 		
-		
-		if (rc.lms.equals("other")) {
-			buf.append("ChemVantage is committed to working with all LMS platforms that support LTI Advantage. We will review your registration information and contact you within 1-2 business days to discuss next steps.<br/><br/>");
-		} else {
-			buf.append("If everything above looks OK, you may proceed with registration. Your registration code is:<p>"
-				+ "<span style='font-weight:bold;font-size:1.2em;'>" + rc.code + "</span><p>"
-				+ "The code is valid for 3 days.<br/><br/>");
+		switch (rc.lms) {
+			case "blackboard":
+			case "canvas":
+			case "moodle":
+			case "sakai":
+			case "schoology":
+			case "brightspace":
+			case "open_edx":
+			case "LTI Certification":
+			case "IMS Certification":
+			case "1EdTech Certification":
+				buf.append("If everything above looks OK, you may proceed with registration. Your registration code is "
+					+ "<span style='font-weight:bold;font-size:1.2em;'>" + rc.code + "</span><p>"
+					+ "Enter this on the registration page to continue the process and receive your LTI credentials. Or, you can use the button below to enter the code directly.<p>"
+					+ "The code is valid for 3 days.<br/><br/>"
+					+ "<a href='" + Subject.getServerUrl() + "/lti/registration?reg_code=" + rc.code + "' class='btn btn-primary' >Continue Registration</a><br/><br/>");
+				break;
+			default: 
+				buf.append("ChemVantage is committed to working with all LMS platforms that support LTI Advantage. We will review your registration information and contact you within 1-2 business days to discuss next steps.<br/><br/>");
 		}
-		
+
 		buf.append("If you have questions or require assistance, please contact us at admin@chemvantage.org.<p>"
 			+ "Thank you,<br/>Chuck Wight<br/>ChemVantage LLC"
 		);
@@ -517,6 +530,12 @@ public class LTIRegistration extends HttpServlet {
 						+ "The Deployment ID can be found in Settings | Apps | App Configurations by opening the "
 						+ "settings menu for ChemVantage. It is a compound value that consists of a number and a hex string "
 						+ "separated by a colon and looks something like 10408:7db438070728c02373713c12c73869b3af470b68.<p>");
+				break;
+			case "open_edx":
+				platform_id = "https://master.openedx.io";
+				oidc_auth_url = "https://master.openedx.io/api/lti_consumer/v1/launch/";
+				well_known_jwks_url = "https://master.openedx.io/api/lti_consumer/v1/public_keysets/02587f0b-811f-4fa4-91d7-a96eaf2b3906";
+				oauth_access_token_url = "https://master.openedx.io/api/lti_consumer/v1/token/02587f0b-811f-4fa4-91d7-a96eaf2b3906";
 				break;
 			case "IMS Certification":
 			case "LTI Certification":
@@ -583,11 +602,11 @@ public class LTIRegistration extends HttpServlet {
 			else msg += "Note: This platform deployment was registered previously. The client_id and registration data have now been updated. If this is not correct, you should contact admin@chemvantage.org immediately.<p>";
 		} else {
 			if (Subject.getProjectId().equals("dev-vantage-hrd") || rc.email.equals("admin@chemvantage.org")) {
-				d.status = "approved";
+				d.status = "pending";
 				msg += "Your deployment is now active.<br/><br/>";
 			} else {
 				d.status = "blocked";
-				msg += "You will receive an email within 1-2 business days when the registration is approved and your deployment is active.<br/><br/>";
+				msg += "The deployment is currently BLOCKED while we review the registration details. We will contact you within 1-2 business days when the deployment is set to ACTIVE.<br/><br/>";
 			}
 		}
 
