@@ -636,10 +636,12 @@ public class LTIv1p3Launch extends HttpServlet {
 				String role = roles_iterator.next().getAsString();
 				user.setIsTeachingAssistant(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership/Instructor#TeachingAssistant"));
 				user.setIsInstructor(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor"));
+				user.setIsInstructor(role.contains("Instructor")); // bulletproofing for non-standard role values that contain "Instructor"
 				user.setIsAdministrator(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Administrator"));
 				user.setIsAdministrator(role.equals("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator"));
 				user.setIsAdministrator(role.equals("http://purl.imsglobal.org/vocab/lis/v2/system/person#Administrator"));
 				if (role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Learner")) isLearner = true;
+				if (role.contains("Learniner")) isLearner = true;  // bulletproofing for non-standard role values that contain "Learner"
 				if (role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Mentor")) isMentor = true;
 			}
 			if (!user.isInstructor() && (!isLearner || isMentor)) {  // unusual login; send a message to ChemVantage administrator
