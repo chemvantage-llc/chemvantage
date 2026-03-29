@@ -131,11 +131,12 @@ public class LTIRegistration extends HttpServlet {
 
 		boolean dynamicRegistration = request.getParameter("openid_configuration")!=null;
 		String reg_code = request.getParameter("reg_code");
-		RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
+		RegistrationCode rc = null;
+		if (reg_code != null) rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 				
 		try {
 			if ("finalize".contentEquals(userRequest)) {
-				if (rc==null) throw new Exception("The registration code provided with this link could not be validated.");
+				if (rc==null) throw new Exception("The registration code could not be validated.");
 				out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner + "<h1>Registration Success</h1>" + createDeployment(request, rc) + Subject.footer);			
 			} else {
 				if (rc==null) rc = validateApplicationFormContents(request);
@@ -157,13 +158,28 @@ public class LTIRegistration extends HttpServlet {
 					} else {
 						ofy().save().entity(rc).now();			
 						sendRegistrationEmail(rc);
-						out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner 
-							+ "<h1>Success</h1>Thank you. A registration code has been sent to your email address.<p>"
-							+ "If you don't receive the email within a few minutes, please check your spam folder or contact us at admin@chemvantage.org<br/><br/>"
-							+ "<form method=get action=/lti/registration>"
-							+ "<label>Enter the registration code here: <input type=text name=reg_code /></label><input type=submit value=Submit />"
-							+ "</form><br/>"
-							+ Subject.footer);
+						out.println(Subject.header("ChemVantage LTI Registration") + Subject.banner + "<h1>Success</h1>");
+						switch (rc.lms) {
+							case "blackboard":
+							case "canvas":
+							case "moodle":
+							case "sakai":
+							case "schoology":
+							case "brightspace":
+							case "open_edx":
+							case "LTI Certification":
+							case "IMS Certification":
+							case "1EdTech Certification":
+								out.println("Thank you. A registration code has been sent to your email address. It is valid for 3 days.<p>"
+									+ "If you don't receive the email within a few minutes, please check your spam folder or contact us at admin@chemvantage.org<br/><br/>"
+									+ "<form method=get action=/lti/registration>"
+									+ "<label>Enter the registration code here: <input type=text name=reg_code /></label><input type=submit value=Submit />"
+									+ "</form><br/>");
+								break;
+							default:
+								out.println("Thank you. We will review your registration request and contact you within 1-2 business days when it is approved.<br/><br/>");
+						}
+						out.println(Subject.footer);
 					}			
 				}
 			}
@@ -195,6 +211,8 @@ public class LTIRegistration extends HttpServlet {
 		String registration_token = request.getParameter("registration_token");
 		boolean dynamic = openid_configuration != null;
 		boolean dev = Subject.getProjectId().equals("dev-vantage-hrd");
+		String reg_code = request.getParameter("reg_code");
+		boolean submit_reg_code = dev || (reg_code!=null && !reg_code.isEmpty());
 
 		StringBuffer buf = new StringBuffer(Subject.banner);
 		
@@ -204,7 +222,7 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<h1>LTI Advantage " + (dynamic?"Dynamic ":"Manual ") + "Registration</h1>");
 		
-		buf.append("<div id=reg_code style='display:" + (dev || (message==null && !dynamic)?"block":"none") + "'>"
+		buf.append("<div id=reg_code style='display:" + (submit_reg_code?"block":"none") + "'>"
 			+ "<form method=" + (dynamic?"post":"get") + " action=/lti/registration><br/>");
 		if (dynamic) {
 			buf.append("<input type=hidden name=openid_configuration value='" + (openid_configuration==null?"":openid_configuration) + "' />"
@@ -220,9 +238,10 @@ public class LTIRegistration extends HttpServlet {
 		}
 		buf.append("</div>");
 
-		buf.append("<div id=reg_form style='display:" + (!dev && (message!=null || dynamic)?"block":"none") + "'>"
+		buf.append("<div id=reg_form style='display:" + (!submit_reg_code?"block":"none") + "'>"
+				+ "If you already have a ChemVantage registration code, please <a href=# onClick=document.getElementById('reg_code').style.display='block';document.getElementById('reg_form').style.display='none';>enter it here</a>.<br/><br/>"
 				+ "<form id=regform method=post action=/lti/registration>"
-				+ "Please complete the form below to create a trusted LTI Advantage connection between your LMS and ChemVantage "
+				+ "Otherwise, please complete the form below to create a trusted LTI Advantage connection between your LMS and ChemVantage "
 				+ "that is convenient, secure and <a href=https://site.imsglobal.org/certifications/chemvantage/chemvantage>certified by 1EdTech</a>. "
 				+ "When you submit the form, ChemVantage will send "
 				+ (dynamic?"a back-end registration request to your LMS. If successful, you must activate the deployment in your LMS.":"a registration code to complete the registration process.")
@@ -240,7 +259,6 @@ public class LTIRegistration extends HttpServlet {
 			if (registration_token!=null) buf.append("<input type=hidden name=registration_token value='" + registration_token + "' />");
 			buf.append("<input type=hidden name=openid_configuration value='" + openid_configuration + "' />");
 			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
-				String reg_code = request.getParameter("reg_code");
 				buf.append("Registration Code: <input type=text name=reg_code value='" + (reg_code==null?"":reg_code) + "' /> (contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a>)<br/><br/>");
 			} 
 		} else {
@@ -461,14 +479,15 @@ public class LTIRegistration extends HttpServlet {
 			case "LTI Certification":
 			case "IMS Certification":
 			case "1EdTech Certification":
+				String url = Subject.getServerUrl() + "/lti/registration?reg_code=" + rc.code;
 				buf.append("If everything above looks OK, you may proceed with registration. Your registration code is "
 					+ "<span style='font-weight:bold;font-size:1.2em;'>" + rc.code + "</span><p>"
-					+ "Enter this on the registration page to continue the process and receive your LTI credentials. Or, you can use the button below to enter the code directly.<p>"
-					+ "The code is valid for 3 days.<br/><br/>"
-					+ "<a href='" + Subject.getServerUrl() + "/lti/registration?reg_code=" + rc.code + "' class='btn btn-primary' >Continue Registration</a><br/><br/>");
+					+ "Enter this on the registration page to continue the process and receive your LTI credentials. Or, you can use the link below to enter the code directly.<p>"
+					+ "<a href='" + url + "' class='btn btn-primary' >" + url + "</a><br/><br/>"
+					+ "The code and link are valid for 3 days.<br/><br/>");
 				break;
 			default: 
-				buf.append("ChemVantage is committed to working with all LMS platforms that support LTI Advantage. We will review your registration information and contact you within 1-2 business days to discuss next steps.<br/><br/>");
+				buf.append("ChemVantage is committed to working with all LMS platforms that support LTI Advantage. We will review your registration information and contact you within 1-2 business days when your registration has been approved.<br/><br/>");
 		}
 
 		buf.append("If you have questions or require assistance, please contact us at admin@chemvantage.org.<p>"
@@ -530,12 +549,6 @@ public class LTIRegistration extends HttpServlet {
 						+ "The Deployment ID can be found in Settings | Apps | App Configurations by opening the "
 						+ "settings menu for ChemVantage. It is a compound value that consists of a number and a hex string "
 						+ "separated by a colon and looks something like 10408:7db438070728c02373713c12c73869b3af470b68.<p>");
-				break;
-			case "open_edx":
-				platform_id = "https://master.openedx.io";
-				oidc_auth_url = "https://master.openedx.io/api/lti_consumer/v1/launch/";
-				well_known_jwks_url = "https://master.openedx.io/api/lti_consumer/v1/public_keysets/02587f0b-811f-4fa4-91d7-a96eaf2b3906";
-				oauth_access_token_url = "https://master.openedx.io/api/lti_consumer/v1/token/02587f0b-811f-4fa4-91d7-a96eaf2b3906";
 				break;
 			case "IMS Certification":
 			case "LTI Certification":
