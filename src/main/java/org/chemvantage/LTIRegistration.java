@@ -107,7 +107,7 @@ public class LTIRegistration extends HttpServlet {
 				RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 				if (rc==null || rc.expires.before(new Date())) {
 					throw new Exception("The registration code is invalid or has expired. "
-					+ (Subject.getProjectId().equals("dev-vantage-hrd")?"Please contact admin@chemvantage.org for a new code.":"Please request a new code."));
+					+ (Subject.getProjectId().equals("dev-vantage-hrd")?"Please contact admin@chemvantage.org for a new code.":"Please <a href='/lti/registration'>request a new code</a>."));
 				}
 				if (dynamicRegistration) doPost(request, response);
 				else out.println(Subject.header("LTI Registration") + clientIdForm(rc) + Subject.footer);
@@ -132,7 +132,7 @@ public class LTIRegistration extends HttpServlet {
 		boolean dynamicRegistration = request.getParameter("openid_configuration")!=null;
 		String reg_code = request.getParameter("reg_code");
 		RegistrationCode rc = null;
-		if (reg_code != null) rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
+		if (reg_code != null && !reg_code.isEmpty()) rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 				
 		try {
 			if ("finalize".contentEquals(userRequest)) {
@@ -209,48 +209,52 @@ public class LTIRegistration extends HttpServlet {
 		String AcceptChemVantageTOS = request.getParameter("AcceptChemVantageTOS");
 		String openid_configuration = request.getParameter("openid_configuration");
 		String registration_token = request.getParameter("registration_token");
+		String reg_code = request.getParameter("reg_code");
 		boolean dynamic = openid_configuration != null;
 		boolean dev = Subject.getProjectId().equals("dev-vantage-hrd");
-		String reg_code = request.getParameter("reg_code");
-		boolean submit_reg_code = dev || (reg_code!=null && !reg_code.isEmpty());
-
+		
 		StringBuffer buf = new StringBuffer(Subject.banner);
 		
 		if (message != null) {
 			buf.append("<span style='color: #EE0000; border: 2px solid red'>&nbsp;" + message + " &nbsp;</span>");
 		}
 		
-		buf.append("<h1>LTI Advantage " + (dynamic?"Dynamic ":"Manual ") + "Registration</h1>");
+		buf.append("<h1>LTI Advantage " + (dynamic?"Dynamic ":"Manual ") + "Registration</h1><br/>");
 		
-		buf.append("<div id=reg_code style='display:" + (submit_reg_code?"block":"none") + "'>"
-			+ "<form method=" + (dynamic?"post":"get") + " action=/lti/registration><br/>");
-		if (dynamic) {
-			buf.append("<input type=hidden name=openid_configuration value='" + (openid_configuration==null?"":openid_configuration) + "' />"
-				+ "<input type=hidden name=registration_token value='" + (registration_token==null?"":registration_token) + "' />");
+		if (dev && !dynamic) {
+			buf.append("<div id=reg_code style='display:" + (dev?"block":"none") + "'>"
+			+ "<form method=" + (dynamic?"post":"get") + " action=/lti/registration><br/>"
+			+ "If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text required name=reg_code /><input type=submit value=Submit />"
+			+ "</form><br/><br/>"
+			+ "In this development environment, registration codes are not automatically generated or emailed.<br/>"
+			+ "Please contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a> for additional information.<br/><br/>"
+			+ "</div>");
+		return buf.toString();
 		}
-		buf.append("If you already have a ChemVantage registration code,<br/>please enter it here: <input type=text name=reg_code /><input type=submit value=Submit />"
-				+ "</form><br/><br/>");
-		if (Subject.getProjectId().equals("dev-vantage-hrd")) {
-			buf.append("In this development environment, registration codes are not automatically generated or emailed.<br/>"
-				+ "Please contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a> for additional information.<br/><br/>");
-		} else {
-			buf.append("Otherwise, you may <a href=# onClick=document.getElementById('reg_code').style.display='none';document.getElementById('reg_form').style.display='block';>request a new code here</a>.<br/>");
-		}
-		buf.append("</div>");
 
-		buf.append("<div id=reg_form style='display:" + (!submit_reg_code?"block":"none") + "'>"
-				+ "If you already have a ChemVantage registration code, please <a href=# onClick=document.getElementById('reg_code').style.display='block';document.getElementById('reg_form').style.display='none';>enter it here</a>.<br/><br/>"
-				+ "<form id=regform method=post action=/lti/registration>"
-				+ "Otherwise, please complete the form below to create a trusted LTI Advantage connection between your LMS and ChemVantage "
-				+ "that is convenient, secure and <a href=https://site.imsglobal.org/certifications/chemvantage/chemvantage>certified by 1EdTech</a>. "
-				+ "When you submit the form, ChemVantage will send "
-				+ (dynamic?"a back-end registration request to your LMS. If successful, you must activate the deployment in your LMS.":"a registration code to complete the registration process.")
-				+ "<br/><br/>\n");
+		// Begin the main registration form for the production server
+
+		buf.append("<div>");
+		if (dynamic) {
+			buf.append("Please ");
+		} else {
+			buf.append("<form method=get action=/lti/registration>"
+				+ "If you already have a ChemVantage registration code,<br/>please enter it here: "
+				+ "<input type=text required name=reg_code /><input type=submit value=Submit />"
+				+ "</form><br/><br/>--<br/>"
+				+ "Otherwise, please ");
+		}
+		buf.append("complete the form below to create a trusted LTI Advantage connection between your LMS and ChemVantage "
+			+ "that is convenient, secure and <a href=https://site.imsglobal.org/certifications/chemvantage/chemvantage>certified by 1EdTech</a>. "
+			+ "When you submit the form, ChemVantage will send "
+			+ (dynamic?"a back-end registration request to your LMS. If successful, you must activate the deployment in your LMS.":"a registration code to complete the registration process.")
+			+ "<br/><br/>\n");
 		
-		buf.append("Contact information for the LMS administrator or office responsible for LMS administration:<br/>"
-				+ "<label>Name: <input type=text required name=name size=40 value='" + (name==null?"":name) + "' /> </label><br/>"
-				+ "<label>Email: <input type=text required name=email size=40 value='" + (email==null?"":email) + "' /> </label><br/><br/>\n");
-		
+		buf.append("<form id=regform method=post action=/lti/registration>"
+			+"Contact information for the LMS administrator or office responsible for LMS administration:<br/>"
+			+ "<label>Name: <input type=text required name=name size=40 value='" + (name==null?"":name) + "' /> </label><br/>"
+			+ "<label>Email: <input type=text required name=email size=40 value='" + (email==null?"":email) + "' /> </label><br/><br/>\n");
+	
 		buf.append("Your school, business or organization:<br/>"
 				+ "<label>Org Name: <input type=text required name=org size=30 value='" + (org==null?"":org) + "' /> </label><br/>\n"
 				+ "<label>Home Page: <input type=text required name=url size=30 placeholder='https://myschool.edu' value='" + (url==null?"":url) + "' /></label><br/><br/>\n");
@@ -258,8 +262,8 @@ public class LTIRegistration extends HttpServlet {
 		if (dynamic) {
 			if (registration_token!=null) buf.append("<input type=hidden name=registration_token value='" + registration_token + "' />");
 			buf.append("<input type=hidden name=openid_configuration value='" + openid_configuration + "' />");
-			if (Subject.getProjectId().equals("dev-vantage-hrd")) {
-				buf.append("Registration Code: <input type=text name=reg_code value='" + (reg_code==null?"":reg_code) + "' /> (contact Chuck Wight at <a href='mailto:admin@chemvantage.org'>admin@chemvantage.org</a>)<br/><br/>");
+			if (dev) {
+				buf.append("Registration Code: <input type=text name=reg_code required value='" + (reg_code==null?"":reg_code) + "' /><br/><br/>");
 			} 
 		} else {
 			buf.append("<fieldset style='width:400px'><legend>Type of LMS:<br/></legend>"
@@ -317,18 +321,41 @@ public class LTIRegistration extends HttpServlet {
 				+ "<script src='https://www.google.com/recaptcha/enterprise.js?render=" + Subject.getReCaptchaKey() + "'></script>\n"
 				+ "<script>"
 				+ "  function onSubmit(token) { "
+				+ "    var form = document.getElementById('regform');"
 				+ "    document.getElementById('g-recaptcha-response').value = token; "
-				+ "    document.getElementById('regform').submit(); "
+				+ "    var submitBtn = document.getElementById('request_code');"
+				+ "    submitBtn.disabled = true;"
+				+ "    submitBtn.textContent = 'Submitting...';"
+				+ "    form.submit(); "
 				+ "  }"
 				+ "</script>"
 				+ "<input type='hidden' id='g-recaptcha-response' name='g-recaptcha-response' />"
-				+ "<button class='btn btn-primary g-recaptcha' data-sitekey='" + Subject.getReCaptchaKey() + "' data-callback='onSubmit' data-action='submitRegistration'>"
+				+ "<button type='button' id='request_code' class='btn btn-primary'>"
 				+ "Request Registration Code"
-				+ "</button>");
+				+ "</button>"
+				+ "<script>"
+				+ "  document.getElementById('request_code').addEventListener('click', function(e) {"
+				+ "    var form = document.getElementById('regform');"
+				+ "    if (!form.checkValidity()) {"
+				+ "      form.reportValidity();"
+				+ "      return false;"
+				+ "    }"
+				+ "    grecaptcha.enterprise.ready(function() {"
+				+ "      grecaptcha.enterprise.execute('" + Subject.getReCaptchaKey() + "', {action: 'submitRegistration'}).then(function(token) {"
+				+ "        onSubmit(token);"
+				+ "      });"
+				+ "    });"
+				+ "  });"
+				+ "</script>");
 		} else {
-			buf.append("<input type=submit class='btn btn-primary' "
-				+ "onclick=this.disabled=true;this.value='Submitting...';this.form.submit(); "
-				+ "value='" + (dynamic?"Register":"Request Registration Code") + "' />");
+			buf.append("<input type=submit class='btn btn-primary' value='" + (dynamic?"Register":"Request Registration Code") + "' />"
+				+ "<script>"
+				+ "document.getElementById('regform').addEventListener('submit', function() {"
+				+ "  var submitBtn = this.querySelector('input[type=submit]');"
+				+ "  submitBtn.disabled = true;"
+				+ "  submitBtn.value = 'Submitting...';"
+				+ "});"
+				+ "</script>");
 		}
 		buf.append("</FORM></div><br/>"); // end of reg_form
 		return buf.toString();
@@ -343,15 +370,15 @@ public class LTIRegistration extends HttpServlet {
 		String lms_other = request.getParameter("lms_other");
 		String reg_code = request.getParameter("reg_code");
 		String openid_configuration = request.getParameter("openid_configuration");
+		boolean dev = Subject.getProjectId().equals("dev-vantage-hrd");
 		boolean dynamic = openid_configuration != null;
 		
-		if (Subject.getProjectId().equals("dev-vantage-hrd")) {
+		if (dev) {
 			if (reg_code==null || reg_code.isEmpty()) throw new Exception("Registration code is required in the development environment. Please contact admin@chemvantage.org for assistance.");
 			RegistrationCode rc = ofy().load().type(RegistrationCode.class).id(reg_code).now();
 			if (rc==null || rc.expires.before(new Date())) {
 				throw new Exception("The registration code is invalid or has expired. Please contact admin@chemvantage.org for assistance.");
 			}
-			return rc;
 		}
 	
 		if (name==null) name = "";
