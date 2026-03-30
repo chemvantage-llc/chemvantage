@@ -645,8 +645,18 @@ public class LTIRegistration extends HttpServlet {
 				d.status = "pending";
 				msg += "Your deployment is now active.<br/><br/>";
 			} else {
-				d.status = "blocked";
-				msg += "The deployment is currently BLOCKED while we review the registration details. We will contact you within 1-2 business days when the deployment is set to ACTIVE.<br/><br/>";
+				switch (rc.lms) {
+				case "blackboard":
+				case "canvas":
+				case "schoology":
+				case "brightspace":
+					d.status = "pending";
+					msg = "Congratulations. Your deployment has been approved and is now active.<br/><br/>";
+					break;
+				default:
+					d.status = "blocked";
+					msg += "Your deployment is currently under review. We will contact you within 1-2 business days when it is approved.<br/><br/>";
+				}
 			}
 		}
 

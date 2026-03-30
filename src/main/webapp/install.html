@@ -155,34 +155,28 @@
                         <h3>
                             The institution's account administrator should perform the following steps:
                         </h3>
-                        <ul>
+                        <ol>
                             <li>
-                                Browse to <a href="https://www.chemvantage.org/lti/registration" target="_blank" aria-label="Opens new tab">the ChemVantage registration page</a> and complete a brief form to provide your contact information. We will send an email confirmation with a tokenized registration link.
-                            </li>
-                            <li>
-                                In Blackboard, go to System Admin | Integrations: LTI Tool Providers | Register LTI 1.3 Tool
+                                In Blackboard, go to System Admin | Integrations: LTI Tool Providers | Register LTI 1.3/Advantage Tool
                             </li>
                             <li>
                                 Enter the Client ID: be1004de-6f8e-45b9-aae4-2c1370c24e1e
                             </li>
                             <li>
-                                Make a copy of the deployment_id and set Tool status: Approved
+                                Make a copy of the Default Deployment ID and set Tool status: Approved
                             </li>
                             <li>
-                                Institution Policies: Send Role, Name, Email; Allow Grade Service and Membership Service
+                                Institution Policies: Send Usder Role, Name, Email; Allow Grade Service and Membership Service
                             </li>
                             <li>
                                 Submit
                             </li>
                             <li>
-                                Use the tokenized link from the email in step 1 to register your deployment_id with ChemVantage. If the link expired, you can simply repeat step 1 to get another one.
-                            </li>
-                            <li>
-                                Go back to the LTI Tool Providers page, and from the dropdown menu on the ChemVantage app select Manage Placements
+                                Find ChemVantage in the list of Tool Providers, and from the dropdown menu select Manage Placements
                             </li>
                             <li>
                                 Click Create Placement
-                                <ol>
+                                <ul>
                                     <li>Label: ChemVantage</li>
                                     <li>Description: ChemVantage is an Open Educational Resource for General Chemistry</li>
                                     <li>Handle: (any unique string)</li>
@@ -191,17 +185,29 @@
                                     <li>Target Link URI: https://www.chemvantage.org/lti/deeplinks</li>
                                     <li>Custom Parameters (leave blank)</li>
                                     <li>Submit</li>
-                                </ol>
+                                </ul>
                             </li>
-                        </ul>
+                            <li>
+                                Browse to the <a href="/lti/registration?req=reg_code" target="_blank" aria-label="Opens new tab">ChemVantage registration page</a> 
+                                and complete a brief form to provide your contact information. We will send an email with a registration code and a link to 
+                                enter the Deployment ID from step 3. Click the link and:
+                                <ul>
+                                    <li>Enter the Deployment ID.</li>
+                                    <li>Verify that the other Blackboard endpoint URLs are correct.</li>
+                                 </ul>
+                                Then submit the form to complete the registration request.
+                            </li>
+                        </ol>
                         <div class="mt">
-                            <p>The course instructor can then create any ChemVantage assignment:</p>
-                            <ul>
+                            The course instructor can then create any ChemVantage assignment:
+                            <ol>
                                 <li>
                                     Go to the course | Content | Build Content | ChemVantage
                                 </li>
-                                <li>Select the ChemVantage assignment type and topic</li>
-                            </ul>
+                                <li>
+                                    Select the ChemVantage assignment type and topic
+                                </li>
+                            </ol>
                         </div>
                       </div>
                       <!-- blackboard tab-content end -->
@@ -455,7 +461,7 @@
                                 </ul>
                             </li>
                             <li>
-                                Browse to <a href="/lti/registration?req=reg_code" target="_blank" aria-label="Opens new tab">the ChemVantage registration page</a> 
+                                Browse to the <a href="/lti/registration?req=reg_code" target="_blank" aria-label="Opens new tab">ChemVantage registration page</a> 
                                 and complete a brief form to provide your contact information. We will send an email with a registration code. Click the link in the email to open a form to 
                                 enter the Open edX platform values from the previous step:
                                 <ul>
