@@ -50,7 +50,7 @@
   <header>
     <div class="container">
       <a class="navbar-brand d-flex align-items-center gap-2" href="/" aria-label="ChemVantage Home Page">
-        <img src="/images/CVLogo_thumb.png" alt="ChemVantage logo" height="35px" />
+        <img src="images/CVLogo_thumb.png" alt="ChemVantage logo" height="35px" />
         <span class="fw-bold">ChemVantage</span>
       </a>
     </div>
@@ -90,9 +90,9 @@
 				  <br/><br/>
                       <div id="canvas" class="lms-instructions">
                         <h2>Installation instructions for Instructure Canvas</h2>
-                        <h3>
-                           See the <a href=https://community.canvaslms.com/t5/Admin-Guide/How-do-I-add-a-developer-LTI-Registration-key-for-an-account/ta-p/601370>detailed Canvas documentation</a>. The institution's account administrator should perform the following steps:
-                        </h3>
+                        <p class="lead text-muted mb-3">
+                           See the <a href="https://community.canvaslms.com/t5/Admin-Guide/How-do-I-configure-an-LTI-key-for-an-account/ta-p/140" target="_blank" aria-label="Opens new tab">detailed Canvas documentation</a>. The institution's account administrator should perform the following steps:
+                        </p>
                         <ul>
                         	<li>In Global Navigation, click the Admin link, then click the name of the account.</li>
                         	<li>In Account Navigation, click the Apps link.</li>
@@ -152,9 +152,9 @@
                       
                       <div id="blackboard" class="lms-instructions">
                         <h2>Installation instructions for Blackboard Learn</h2>
-                        <h3>
-                            The institution's account administrator should perform the following steps:
-                        </h3>
+                        <p class="lead text-muted mb-3">
+                            See the <a href="https://help.blackboard.com/Learn/Administrator/Hosting/Integrations/LTI_Tool_Providers" target="_blank" aria-label="Opens new tab">detailed Blackboard documentation</a>. The institution's account administrator should perform the following steps:
+                        </p>
                         <ol>
                             <li>
                                 In Blackboard, go to System Admin | Integrations: LTI Tool Providers | Register LTI 1.3/Advantage Tool
@@ -214,9 +214,9 @@
                       
                       <div id="brightspace" class="lms-instructions">
                         <h2>Installation instructions for D2L Brightspace</h2>
-                        <h3>
+                        <p class="lead text-muted mb-3">
                             See the <a href="https://community.d2l.com/brightspace/kb/articles/23662-tool-registration-deployment-and-links" target="_blank" aria-label="Opens new tab">detailed Brightspace documentation</a>. The institution's account administrator should perform the following steps:
-                        </h3>
+                        </p>
                         <ul>
                             <li>
                                 Go to Admin Tools | Manage Extensibility
@@ -329,9 +329,9 @@
 
                       <div id="moodle" class="lms-instructions">
                         <h2>Installation instructions for Moodle</h2>
-                        <h3>
-                            See the <a href="https://community.d2l.com/brightspace/kb/articles/18081-tool-registration-deployment-and-links" target="_blank" aria-label="Opens new tab">detailed Moodle documentation</a>. The institution's account administrator should perform the following steps:
-                        </h3>
+                        <p class="lead text-muted mb-3">
+                            See the <a href="https://docs.moodle.org/501/en/LTI_External_tools" target="_blank" aria-label="Opens new tab">detailed Moodle documentation</a>. The institution's account administrator should perform the following steps:
+                        </p>
                         <ul>
                             <li>
                                 Go to Site Administration and select the Plugins tab
@@ -420,9 +420,9 @@
 
                       <div id="open_edx" class="lms-instructions">
                         <h2>Installation instructions for Open edX</h2>
-                        <h3>
-                            The instructor or LMS administrator should perform the following steps:
-                        </h3>
+                        <p class="lead text-muted mb-3">
+                            See the <a href="https://docs.openedx.org/en/latest/educators/how-tos/course_development/exercise_tools/use_lti_advantage_features.html" target="_blank" aria-label="Opens new tab">detailed Open edX documentation</a>. The instructor or LMS administrator should perform the following steps:
+                        </p>
                         <ol>
                             <li>In Studio, navigate to Settings > Advanced Settings.
                                 <ul>
@@ -492,29 +492,38 @@
                       
                       <div id="sakai" class="lms-instructions">
                         <h2>Installation instructions for Sakai</h2>
-                        <p>
-                            First of all, Sakai supports LTI Advantage Dynamic Registration! See the <a href="https://sakai.screenstepslive.com/s/sakai_help/m/108646/l/1502032-how-do-i-set-up-an-lti-advantage-tool-using-auto-configuration" target="_blank" aria-label="Opens new tab">detailed Sakai documentation</a>. We strongly encourage you to try that first (see above). The institution's account administrator still has the option of manual registration, but we don't have detailed instructions for this.
+                        <p class="lead text-muted mb-3">
+                            See the <a href="https://sakai.screenstepslive.com/s/sakai_help/m/108646/l/1502032-how-do-i-set-up-an-lti-advantage-tool-using-auto-configuration" target="_blank" aria-label="Opens new tab">detailed Sakai documentation</a>. The Sakai account administrator should perform the following steps:
                         </p>
-                        <ul>
+                        <ol>
                             <li>
-                                Browse to <a href="https://www.chemvantage.org/lti/registration" target="_blank" aria-label="Opens new tab">the ChemVantage registration page</a> and complete a brief form to provide your contact information. We will send an email confirmation with a tokenized registration link.
+                                Go to External Tools > View Installed Tools > Select LTI Advantage Auto Provision
                             </li>
                             <li>
-                                Use the following information to configure your LMS to connect to ChemVantage:
-                                <ol>
-                                    <li>Name: ChemVantage</li>
-                                    <li>Description: ChemVantage is an Open Educational Resource for General Chemistry</li>
-                                    <li>Tool Domain URL: https://www.chemvantage.org</li>
-                                    <li>Tool Redirect URL: https://www.chemvantage.org/lti/launch</li>
-                                    <li>Tool Deep Linking URL: https://www.chemvantage.org/lti/deeplinks</li>
-                                    <li>OIDC Login Initiation URL: https://www.chemvantage.org/auth/token</li>
-                                    <li>JSON Web Key Set URL: https://www.chemvantage.org/jwks</li>
-                                </ol>
+                                Enter the tool title "ChemVantage" and then click the Auto-Provision button
                             </li>
                             <li>
-                                When you have finished the configuration, activate the ChemVantage tool in your LMS and open a window to view the configuration details. When you have these details in hand, including the client_id and deployment_id, click the tokenized link in the email confirmation from step 1 to register the configuration details with ChemVantage. If the link expired, you can simply repeat step 1 to get another one.
+                                Select the Use LTI Advantage Auto Configuration button.
                             </li>
-                        </ul>
+                            <li>
+                                Paste in the auto-configuration URL: https://www.chemvantage.org/lti/registration and then click Begin Configuration..
+                            </li>
+                            <li>
+                                Complete the ChemVantage registration form and submit.
+                            </li>
+                            <li>
+                                Select Continue Registration in the LMS.
+                            </li>
+                            <li>
+                                Follow the prompts to confirm the tool auto-configuration.
+                            </li>
+                            <li>
+                                Save.
+                            </li>
+                            <li>
+                                When the registration is approved (usually within 1-2 business days), return to the Installed Tools page and activate the ChemVantage tool.
+                            </li>
+                        </ol>
                       </div>
                       <!-- sakai tab-content end -->
 
@@ -629,7 +638,7 @@
       <div class="row g-3 align-items-center">
         <div class="col-md-6">
           <a class="d-inline-flex align-items-center gap-2 mb-2 text-decoration-none text-body" href="/" aria-label="ChemVantage home">
-            <img src="/images/CVLogo_thumb.png" alt="ChemVantage logo" height="35px" />
+            <img src="images/CVLogo_thumb.png" alt="ChemVantage logo" height="35px" />
             <span class="fw-bold">ChemVantage</span>
           </a>
           <p class="mb-0 small text-muted">© <span id="year">2025</span> ChemVantage LLC.</p>
