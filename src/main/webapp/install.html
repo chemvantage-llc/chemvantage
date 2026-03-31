@@ -424,20 +424,13 @@
                             See the <a href="https://docs.openedx.org/en/latest/educators/how-tos/course_development/exercise_tools/use_lti_advantage_features.html" target="_blank" aria-label="Opens new tab">detailed Open edX documentation</a>. The instructor or LMS administrator should perform the following steps:
                         </p>
                         <ol>
-                            <li>In Studio, navigate to Settings > Advanced Settings.
-                                <ul>
-                                    <li>Locate the Advanced Module List field.</li>
-                                    <li>Add "lti_consumer" to the list (inside the brackets, ensuring it is in double quotes).</li>
-                                    <li>Click Save Changes.</li>
-                                </ul>
-                            </li>
                             <li>
                                 Go to the Unit where you want the ChemVantage content. Under Add New Component, click Advanced and select LTI Consumer.
                                 Click Edit on the new block and set the following:
                                 <ul>
                                     <li>Display Name: ChemVantage</li>
                                     <li>LTI Application Information: ChemVantage is an Open Educational Resource for General Chemistry.</li>
-                                    <li>Configuration Type: (default)</li>
+                                    <li>Configuration Type: Configuration on block</li>
                                     <li>LTI Version: LTI 1.3</li>
                                     <li>LTI Reusable Configuration ID: (leave blank)</li>
                                     <li>Tool Launch URL: https://www.chemvantage.org/lti/launch</li>
@@ -484,7 +477,7 @@
                                 </ul>
                             </li>
                             <li>
-                                Pro-Tip: If you plan to use ChemVantage across many units, check if your Open edX instance supports Reusable LTI Configurations to avoid repeating the registration process for every single block.
+                                Pro-Tip: If you plan to use ChemVantage across many units, use Open edX’s LTI store (https://docs.openedx.org/en/latest/site_ops/how-tos/setup_lti_store.html) to avoid repeating the registration process for every single block.
                             </li>
                         </ol>
                       </div>
