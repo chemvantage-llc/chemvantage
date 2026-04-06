@@ -309,8 +309,24 @@ public class Edit extends HttpServlet {
 				out.println(error);
 				return;
 			}
+			// Log detailed error information
+			System.err.println("ERROR in Edit servlet doPost:");
+			e.printStackTrace();
+			
+			// Build comprehensive error message for email
+			StringBuilder errorDetails = new StringBuilder("An error occurred in the Edit servlet:\n\n");
+			errorDetails.append("Error Type: ").append(e.getClass().getName()).append("\n");
+			errorDetails.append("Error Message: ").append(e.getMessage() == null ? e.toString() : e.getMessage()).append("\n");
+			errorDetails.append("Request Parameter - UserRequest: ").append(request.getParameter("UserRequest")).append("\n");
+			errorDetails.append("\nStack Trace:\n");
+			
+			StackTraceElement[] stackTrace = e.getStackTrace();
+			for (StackTraceElement element : stackTrace) {
+				errorDetails.append("  at ").append(element.toString()).append("\n");
+			}
+			
 			out.println("Error: " + (e.getMessage()==null?e.toString():e.getMessage()));
-			Utilities.sendEmail("ChemVantage Administrator", "admin@chemvantage.org", "Error in Edit servlet", "An error occurred in the Edit servlet:\n\n" + (e.getMessage()==null?e.toString():e.getMessage()));
+			Utilities.sendEmail("ChemVantage Administrator", "admin@chemvantage.org", "Error in Edit servlet", errorDetails.toString());
 		}
 		if (!isJsonRequest) out.println(Subject.footer);
 	}
@@ -2089,7 +2105,24 @@ void assignToConcept(User user, HttpServletRequest request) {
 		// This method performs a remote task to validate all of the question items in a new Assignment
 		if (Subject.getProjectId().equals("dev-vantage-hrd")) return "Validation skipped for dev server.";  // skip validation for dev environment
 		
-		Assignment a = ofy().load().type(Assignment.class).id(Long.parseLong(request.getParameter("AssignmentId"))).safe();
+		// Validate and parse AssignmentId parameter with detailed error reporting
+		String assignmentIdParam = request.getParameter("AssignmentId");
+		if (assignmentIdParam == null || assignmentIdParam.trim().isEmpty()) {
+			String errorMsg = "ERROR: AssignmentId parameter is missing or empty. Received: " + assignmentIdParam;
+			System.err.println("validateAssignmentWithAI - " + errorMsg);
+			throw new IllegalArgumentException(errorMsg);
+		}
+		
+		long assignmentId;
+		try {
+			assignmentId = Long.parseLong(assignmentIdParam.trim());
+		} catch (NumberFormatException e) {
+			String errorMsg = "ERROR: AssignmentId parameter is not a valid number. Received: '" + assignmentIdParam + "'";
+			System.err.println("validateAssignmentWithAI - " + errorMsg);
+			throw new NumberFormatException(errorMsg);
+		}
+		
+		Assignment a = ofy().load().type(Assignment.class).id(assignmentId).safe();
 		String subject = "ChemVantage AI Validation Report for Assignment " + a.id;
 		StringBuilder buf = new StringBuilder("<h1>" + subject + "</h1>");
 		

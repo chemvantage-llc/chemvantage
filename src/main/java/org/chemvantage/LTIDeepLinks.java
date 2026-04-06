@@ -630,7 +630,6 @@ public class LTIDeepLinks extends HttpServlet {
 									if (!conceptQuestionKeys.isEmpty()) a.questionKeys.addAll(conceptQuestionKeys);
 								}
 							}
-							if (a.assignmentType.equals("Homework")) a.validateQuestionItemsWithAI();
 							break;
 						}
 					}
@@ -651,8 +650,11 @@ public class LTIDeepLinks extends HttpServlet {
 				}
 				break;
 			}
-				
+			
 			ofy().save().entities(assignments).now();
+			for (Assignment a1 : assignments) {  // start asynchronous processes to validate the question items for each new Homework assignment
+				if (a1 != null && a1.assignmentType.equals("Homework")) a1.validateQuestionItemsWithAI();
+			}
 				
 			String serverUrl = "https://" + request.getServerName();
 			String launchUrl = serverUrl + "/lti/launch";
