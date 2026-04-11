@@ -32,19 +32,23 @@ public class KeyStore extends HttpServlet {
 	private static Map<String,RSAKeyPair> rsaKeys = new HashMap<String,RSAKeyPair>();
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		response.setContentType("text/html;charset=UTF-8");
 		PrintWriter out = response.getWriter();
 		
 		if (jwks == null) buildJwks();
 		String kid = request.getParameter("kid");
 		String fmt = request.getParameter("fmt");
-		if (fmt != null && kid != null) out.println(getRSAPublicKeyX509(kid));
-		else if (kid != null) {
+		if (fmt != null && kid != null) {
+			response.setContentType("text/html");
+			out.println(getRSAPublicKeyX509(kid));
+		} else if (kid != null) {
+			response.setContentType("application/jwk-set+json");
 			if ("public".equals(kid)) kid = getAKeyId(null); // get a random valid key_id
 			JsonObject jwk = getJwk(kid);
 			out.println(jwk==null?"Key not found.":jwk.toString());
+		} else {
+			response.setContentType("application/jwk-set+json");
+			out.println(jwks);
 		}
-		else out.println(jwks);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
