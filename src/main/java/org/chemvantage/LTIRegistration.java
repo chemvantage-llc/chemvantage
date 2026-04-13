@@ -109,7 +109,7 @@ public class LTIRegistration extends HttpServlet {
 					throw new Exception("The registration code is invalid or has expired. "
 					+ (Subject.getProjectId().equals("dev-vantage-hrd")?"Please contact admin@chemvantage.org for a new code.":"Please <a href='/lti/registration'>request a new code</a>."));
 				}
-				if (dynamicRegistration) doPost(request, response);
+				if (dynamicRegistration) out.println(Subject.header() + registrationForm(request,null) + Subject.footer);
 				else out.println(Subject.header("LTI Registration") + clientIdForm(rc) + Subject.footer);
 			} else {
 				out.println(Subject.header() + registrationForm(request,null) + Subject.footer);
