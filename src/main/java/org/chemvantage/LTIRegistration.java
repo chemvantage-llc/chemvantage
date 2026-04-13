@@ -146,8 +146,7 @@ public class LTIRegistration extends HttpServlet {
 					validateOpenIdConfigurationURL(request.getParameter("openid_configuration"),openIdConfiguration);  // LTIDRSv1p0 section 3.5.1
 					JsonObject registrationResponse = postRegistrationRequest(openIdConfiguration, registration_token);  // LTIDRSv1p0 section 3.5.2 & 3.6
 			        Deployment d = createNewDeployment(openIdConfiguration,registrationResponse,rc); // LTIDRSv1p0 section 3.7
-					sendApprovalEmail(d);
-					response.setContentType("text/html");
+					if (!d.platform_deployment_id.contains("test-vantage.appspot.com")) sendApprovalEmail(d); // don't send approval emails for test registrations
 					out.println(successfulRegistrationRequestPage(d));
 				} else { // manual registration
 					if (Subject.getProjectId().equals("dev-vantage-hrd") && !rc.email.equals("admin@chemvantage.org")) {

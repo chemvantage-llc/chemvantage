@@ -20,8 +20,11 @@ package org.chemvantage;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serial;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -37,6 +40,10 @@ import org.openpdf.pdf.ITextRenderer;
 
 import com.google.cloud.datastore.Cursor;
 import com.google.cloud.datastore.QueryResults;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.googlecode.objectify.cmd.Query;
 
 import jakarta.servlet.ServletException;
@@ -326,7 +333,7 @@ public class Admin extends HttpServlet {
 			buf.append("<h2>Quarterly OpenStax Ally Partner Report</h2>"
 					+ "<a href=/Admin?UserRequest=OpenStaxReport>Preview</a> or <a href=/Admin?UserRequest=OpenStaxCSVReport>Download CSV File</a><p>");
 			
-			// Create subscription vouchers
+			// Subscription vouchers
 			buf.append("<h2>Subscription Vouchers</h2>");
 			List<Voucher> vouchers = ofy().load().type(Voucher.class).filter("activated =",null).order("-purchased").list();
 
@@ -354,6 +361,7 @@ public class Admin extends HttpServlet {
 					+ "$<input type=text size=2 name=Price value=16 /> each. "
 					+ "<input type=submit value='Show Codes' />");
 			buf.append("</form></div><p>");
+			
 			// Signature Code
 			buf.append("<h2>Anonymous Signature Codes</h2>"
 					+ "1 week: " + Long.toHexString(User.encode(new Date(new Date().getTime() + 604800000L).getTime())) + "<br/>"
@@ -362,11 +370,99 @@ public class Admin extends HttpServlet {
 			buf.append("<h2>Search Questions for Text</h2><"
 					+ "form method=get>"
 					+ "Search for: <input type=text name=searchFor /><input type=submit name=UserRequest value='Find text' />"
-					+ "</form>");
+					+ "</form><p>");
+			
+			// Regression Tester
+			buf.append("<h2>Regression Tester</h2>");
+			buf.append("<a href='https://test-vantage.appspot.com/' target='_blank'>Run regression tests interactively</a><br/>");
+			buf.append(getRegressionTestStatusReport());
+
+			
 		} catch (Exception e) {
 			buf.append("<p>" + e.toString());
 		}
 		return buf.toString();
+	}
+
+	String getRegressionTestStatusReport() {
+		String endpoint = System.getenv("TEST_VANTAGE_STATUS_URL");
+		if (endpoint == null || endpoint.isBlank()) endpoint = "https://test-vantage.appspot.com/api/status";
+		StringBuilder buf = new StringBuilder();
+
+		try {
+			HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+			conn.setConnectTimeout(5000);
+			conn.setReadTimeout(5000);
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+
+			if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+				return "<p>Regression status unavailable (HTTP " + conn.getResponseCode() + ").</p>";
+			}
+
+			JsonObject status;
+			try (InputStreamReader reader = new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)) {
+				status = JsonParser.parseReader(reader).getAsJsonObject();
+			}
+
+			String overall = status.has("overallStatus") && !status.get("overallStatus").isJsonNull()
+					? status.get("overallStatus").getAsString() : "UNKNOWN";
+
+			if ("PASSED".equalsIgnoreCase(overall)) {
+				String message = status.has("message") && !status.get("message").isJsonNull()
+						? status.get("message").getAsString() : "All tests passed.";
+				buf.append("<p>&#x2705; ")
+					.append(escapeHtml(message))
+					.append("</p>");
+				return buf.toString();
+			}
+
+			if ("FAILED".equalsIgnoreCase(overall)) {
+				buf.append("<p><b>Regression tests failed:</b></p><ul>");
+				JsonArray tests = status.has("tests") && status.get("tests").isJsonArray()
+						? status.getAsJsonArray("tests") : new JsonArray();
+				for (JsonElement t : tests) {
+					if (!t.isJsonObject()) continue;
+					JsonObject test = t.getAsJsonObject();
+					String testStatus = test.has("status") && !test.get("status").isJsonNull()
+							? test.get("status").getAsString() : "UNKNOWN";
+					if (!"FAILED".equalsIgnoreCase(testStatus)) continue;
+					String title = test.has("title") && !test.get("title").isJsonNull()
+							? test.get("title").getAsString() : "Unnamed test";
+					String msg = test.has("message") && !test.get("message").isJsonNull()
+							? test.get("message").getAsString() : "";
+					buf.append("<li>&#x26A0;&#xFE0F; ")
+						.append(escapeHtml(title));
+					if (!msg.isBlank()) {
+						buf.append(" - ").append(escapeHtml(msg));
+					}
+					buf.append("</li>");
+				}
+				buf.append("</ul>");
+				return buf.toString();
+			}
+
+			String message = status.has("message") && !status.get("message").isJsonNull()
+					? status.get("message").getAsString() : "No details available.";
+			buf.append("<p>Regression status: ")
+				.append(escapeHtml(overall))
+				.append(". ")
+				.append(escapeHtml(message))
+				.append("</p>");
+			return buf.toString();
+		} catch (Exception e) {
+			return "<p>Regression status unavailable: " + escapeHtml(e.getMessage() == null ? e.toString() : e.getMessage()) + "</p>";
+		}
+	}
+
+	private String escapeHtml(String input) {
+		if (input == null) return "";
+		return input
+				.replace("&", "&amp;")
+				.replace("<", "&lt;")
+				.replace(">", "&gt;")
+				.replace("\"", "&quot;")
+				.replace("'", "&#39;");
 	}
 	
 	String viewCodes(String org) {
