@@ -687,13 +687,16 @@ public class LTIRegistration extends HttpServlet {
 			String org_url = rc.url;
 			
 			String deploymentId = "";  // Most LMS platforms send the deployment_id in the registration response, but it's not required. Thanks, Brightspace and Canvas.
+			Deployment prior = null;
 			try {
 				deploymentId = registrationResponse.get("https://purl.imsglobal.org/spec/lti-tool-configuration").getAsJsonObject().get("deployment_id").getAsString();
+				prior = Deployment.getInstance(platformId + "/" + deploymentId);
 			} catch (Exception e) {}
 			
 			Deployment d = new Deployment(platformId,deploymentId,clientId,oidc_auth_url,oauth_access_token_url,well_known_jwks_url,contact_name,contact_email,organization,org_url,lms);
 			
 			if (d.email.equals("admin@chemvantage.org")) d.status = "approved";
+			else if (prior != null) d.status = prior.status;  // if the deployment already exists, the new version inherits the old status (e.g. if the client_id changed but the deployment_id is the same, we want to preserve the existing status)
 			else if (Subject.getProjectId().equals("dev-vantage-hrd")) d.status = "pending";
 			else if (d.lms_type.equals("canvas") || d.lms_type.equals("brightspace") || d.lms_type.equals("desire2learn")) d.status = "pending";
 			else d.status = "blocked";
