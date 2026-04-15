@@ -259,6 +259,10 @@ public class ManageMessages extends HttpServlet {
 		int count = 0;
 		for (Contact c : contacts) {
 			try {
+				if (m.text.contains("##a##")) {
+					String code = Integer.toHexString(c.email.hashCode()).toUpperCase();
+					m.text = m.text.replaceAll("##a##",code);
+				}
 				Utilities.sendEmail(c.getFullName(),c.email,m.subjectLine,salutationText(c) + m.text + unsubscribeText(c));
 			} catch (Exception e) {
 				c.role = "failed message";
