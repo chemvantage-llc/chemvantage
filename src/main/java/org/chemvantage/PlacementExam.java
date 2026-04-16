@@ -186,6 +186,8 @@ public class PlacementExam extends HttpServlet {
 	static String instructorPage(User user,Assignment a) {
 		StringBuffer buf = new StringBuffer();		
 		try {
+			buf.append(Subject.privacyPolicyBanner());
+			
 			if (a.conceptIds.isEmpty()) {  // legacy assignment with topicIds
 				List<Topic> topics = new ArrayList<Topic>(ofy().load().type(Topic.class).ids(a.topicIds).values());
 				for (Topic t : topics) a.conceptIds.add(t.conceptIds.get(0));

@@ -132,6 +132,8 @@ public class SmartText extends HttpServlet {
 
         StringBuilder buf = new StringBuilder();
         try {
+            buf.append(Subject.privacyPolicyBanner());
+            
             if (a==null) return "Sorry, we were unable to find the assignment.";
             Text text = ofy().load().type(Text.class).id(a.textId).now();
             Chapter chapter = null;

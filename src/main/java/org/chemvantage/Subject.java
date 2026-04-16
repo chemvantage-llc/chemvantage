@@ -35,6 +35,7 @@ public class Subject {
 	private static final Logger logger = Logger.getLogger(Subject.class.getName());
 	private static final int REFRESH_RETRY_LIMIT = 5;
 	private static final long REFRESH_RETRY_DELAY_MS = 200L;
+	private static final String PRIVACY_BANNER_EXPIRY_DATE = "2026-05-16"; // 30 days from policy update
 
 	@Id Long id;
 	private static Subject s;
@@ -331,6 +332,39 @@ public class Subject {
 	}
 	
 	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	
+	static String privacyPolicyBanner() {
+		try {
+			java.time.LocalDate today = java.time.LocalDate.now();
+			java.time.LocalDate expiryDate = java.time.LocalDate.parse(PRIVACY_BANNER_EXPIRY_DATE);
+			if (today.isAfter(expiryDate) || today.isEqual(expiryDate)) {
+				return ""; // Campaign expired, don't send banner HTML
+			}
+		} catch (Exception e) {
+			return ""; // If date parsing fails, don't show banner
+		}
+		
+		return """
+			<div id='privacyBanner' style='display:none;background-color:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:15px;margin:10px 0;position:relative;'>
+				<button onclick='dismissPrivacyBanner()' style='position:absolute;top:10px;right:10px;background:none;border:none;font-size:24px;cursor:pointer;color:#856404;' aria-label='Close'>&times;</button>
+				<div style='margin-right:30px;'>
+					<strong>Privacy Policy Update:</strong> We've updated our <a href='/privacy.html' target='_blank' style='color:#856404;text-decoration:underline;'>Privacy Policy</a> to provide greater transparency about how we handle educator contact information. Student privacy protections remain unchanged—we never store student PII.
+				</div>
+			</div>
+			<script>
+			(function() {
+				var dismissed = localStorage.getItem('privacyBannerDismissed');
+				if (!dismissed) {
+					document.getElementById('privacyBanner').style.display = 'block';
+				}
+			})();
+			function dismissPrivacyBanner() {
+				document.getElementById('privacyBanner').style.display = 'none';
+				localStorage.setItem('privacyBannerDismissed', new Date().toISOString());
+			}
+			</script>
+			""";
+	}
 			
 	public static String footer = """
 			

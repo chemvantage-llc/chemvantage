@@ -172,6 +172,7 @@ public class PracticeExam extends HttpServlet {
 	static String instructorPage(User user,Assignment a) {
 		StringBuffer buf = new StringBuffer();		
 		try {
+			buf.append(Subject.privacyPolicyBanner());
 			buf.append("<h1>General Chemistry Exam</h1><h2>Instructor Page</h2>");
 			
 			if (a.conceptIds.isEmpty()) { // legacy assignment uses topicIds

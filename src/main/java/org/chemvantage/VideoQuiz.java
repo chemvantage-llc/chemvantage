@@ -150,6 +150,8 @@ public class VideoQuiz extends HttpServlet {
 		
 		StringBuffer buf = new StringBuffer();		
 		try {
+			buf.append(Subject.privacyPolicyBanner());
+			
 			Video v = ofy().load().type(Video.class).id(a.videoId).safe();
 			
 			boolean supportsMembership = a.lti_nrps_context_memberships_url != null;

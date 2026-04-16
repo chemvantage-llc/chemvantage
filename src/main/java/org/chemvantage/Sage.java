@@ -563,6 +563,8 @@ public class Sage extends HttpServlet {
 		
 		StringBuffer buf = new StringBuffer();		
 		try {
+			buf.append(Subject.privacyPolicyBanner());
+			
 			if (a.title==null) {  // legacy assignment only provided topicId
 				Topic t = ofy().load().type(Topic.class).id(a.topicId).now();
 				a.title = t.title;

@@ -184,6 +184,7 @@ public class Quiz extends HttpServlet {
 		
 		StringBuffer buf = new StringBuffer();		
 		try {
+			buf.append(Subject.privacyPolicyBanner());
 			buf.append("<h1>Quiz</h1>"
 					+ "<h2>" + a.title + "</h2>"
 					+ "<h3>Instructor Page</h3>"
