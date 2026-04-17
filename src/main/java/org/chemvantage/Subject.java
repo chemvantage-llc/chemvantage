@@ -348,7 +348,7 @@ public class Subject {
 			<div id='privacyBanner' style='display:none;background-color:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:15px;margin:10px 0;position:relative;'>
 				<button onclick='dismissPrivacyBanner()' style='position:absolute;top:10px;right:10px;background:none;border:none;font-size:24px;cursor:pointer;color:#856404;' aria-label='Close'>&times;</button>
 				<div style='margin-right:30px;'>
-					<strong>Privacy Policy Update:</strong> We've updated our <a href='/privacy.html' target='_blank' style='color:#856404;text-decoration:underline;'>Privacy Policy</a> to provide greater transparency about how we handle educator contact information. Student privacy protections remain unchanged—we never store student PII.
+					<strong>Privacy Policy Update:</strong> We've updated our <a href='/privacy.html' target='_blank' style='color:#856404;text-decoration:underline;'>Privacy Policy</a> to provide greater transparency about how we handle educator contact information. Student privacy protections remain unchanged. We never store student PII.
 				</div>
 			</div>
 			<script>
