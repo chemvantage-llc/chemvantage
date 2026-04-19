@@ -331,7 +331,7 @@ public class Subject {
 		+ "<main id='main-content'>");
 	}
 	
-	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
 	
 	static String privacyPolicyBanner() {
 		try {
@@ -370,7 +370,7 @@ public class Subject {
 			
 			</main>
 			<footer id=footer style='max-width: 600px;'><hr/>\
-			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=/images/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
+			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=https://images.chemvantage.org/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
 			<a href=/terms_and_conditions.html>Terms and Conditions</a> | \
 			<a href=/privacy.html>Privacy</a> | \
 			<a href=/copyright.html>Copyright</a></footer>\

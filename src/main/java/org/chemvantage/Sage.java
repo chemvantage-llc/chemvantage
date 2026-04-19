@@ -333,12 +333,12 @@ public class Sage extends HttpServlet {
 		buf.append("<h1>Sage Response</h1>");
 
 		buf.append("<div style='width:800px;' >");
-		buf.append("<img src=/images/sage.png alt='Confucius Parrot' style='margin-left:20px;float:right;' />" + sage_answer);	
+		buf.append("<img src=https://images.chemvantage.org/sage.png alt='Confucius Parrot' style='margin-left:20px;float:right;' />" + sage_answer);	
 		buf.append("</div>");
 		buf.append("<div id=helpful>"
 				+ "<span><b>Was this answer helpful?</b></span> " 
-				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
-				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
+				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=https://images.chemvantage.org/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
+				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=https://images.chemvantage.org/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
 				+ "</div><p>");
 		// include some javascript to process the response
 		buf.append("<script>"
@@ -661,13 +661,13 @@ public class Sage extends HttpServlet {
 				buf.append("<div>"
 						+ getHelp(q)
 						+ "</div>"
-						+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right'>"
+						+ "<img src=https://images.chemvantage.org/sage.png alt='Confucius Parrot' style='float:right'>"
 						+ "</div>");
 				
 				buf.append("<div id=helpful>"
 						+ "<span><b>Is this helpful?</b></span> " 
-						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
-						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
+						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=https://images.chemvantage.org/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
+						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=https://images.chemvantage.org/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
 						+ "</div><p>");
 				// include some javascript to process the response
 				buf.append("<script>"
@@ -687,7 +687,7 @@ public class Sage extends HttpServlet {
 						+ "If you get stuck, I am here to help you, but your score will be higher if you do it by yourself.<p>"
 						+ "<a id=help class='btn btn-primary' role=button href=/Sage?sig=" + user.getTokenSignature() + "&Help=true&ConceptId=" + concept.id + "&p=" + st.random + " onclick=waitForHelp(); >Please help me with this question</a>"
 						+ "</div>"
-						+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right'>"
+						+ "<img src=https://images.chemvantage.org/sage.png alt='Confucius Parrot' style='float:right'>"
 						+ "</div>");
 				// include some javascript to change the submit button
 				buf.append("<script>"
@@ -741,7 +741,7 @@ public class Sage extends HttpServlet {
 					</script>""");
 			buf.append("<h1>" + concept.title + "</h1>"
 					+ "<div style='max-width:800px'>"
-					+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right;margin:20px;'>"
+					+ "<img src=https://images.chemvantage.org/sage.png alt='Confucius Parrot' style='float:right;margin:20px;'>"
 					+ concept.getSummary() + "<p>"
 					+ "<a class='btn btn-primary' id=continueButton onclick=wait(); href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + concept.id + "'>Continue</a>"
 					+ "</div>");
@@ -871,11 +871,11 @@ public class Sage extends HttpServlet {
 				switch (rawScore) {  // 0, 1 or 2
 				case 2:  // correct answer
 					buf.append("<h1>Congratulations!</h1>\n"
-							+ "<b>Your answer is correct. </b><IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom /><p>\n"
+							+ "<b>Your answer is correct. </b><IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom /><p>\n"
 							+ "<div style='width:800px;display:flex;align-items:center;'>\n"
 							
 							+ showMeLink
-							+ "<img id=polly src='/images/parrot.png' alt='Parrot character' style='margin-left:20px;'>\n"
+							+ "<img id=polly src='https://images.chemvantage.org/parrot.png' alt='Parrot character' style='margin-left:20px;'>\n"
 							+ "</div>\n");
 					break;
 				case 1: // partial credit			
@@ -883,14 +883,14 @@ public class Sage extends HttpServlet {
 							+ "<b>You received half credit.</b><p>\n"
 							+ "<div style='width:800px;display:flex; align-items:center;'>\n"
 							+ showMeLink
-							+ "<img id=polly src='/images/parrot1.png' alt='Parrot character' style='margin-left:20px;'>\n"
+							+ "<img id=polly src='https://images.chemvantage.org/parrot1.png' alt='Parrot character' style='margin-left:20px;'>\n"
 							+ "</div>\n");
 					break;
 				case 0: // wrong answer
-					buf.append("<h1>Sorry, your answer is not correct.<IMG SRC=/images/xmark.png ALT='X mark' align=middle></h1>\n"
+					buf.append("<h1>Sorry, your answer is not correct.<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle></h1>\n"
 							+ "<div style='width:800px;display:flex; align-items:center;'>\n"
 							+ showMeLink
-							+ "<img id=polly src='/images/parrot0.png' alt='Parrot character' style='margin-left:20px;'>\n"
+							+ "<img id=polly src='https://images.chemvantage.org/parrot0.png' alt='Parrot character' style='margin-left:20px;'>\n"
 							+ "</div>\n");
 					break;
 				}
@@ -1201,7 +1201,7 @@ public class Sage extends HttpServlet {
 		buf.append("<h1>Welcome to Sage</h1>"
 				+ "<h2>Sage is an intelligent tutor for General Chemistry.</h2>"
 				+ "<div style='max-width:800px;'>"
-				+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right'>"
+				+ "<img src=https://images.chemvantage.org/sage.png alt='Confucius Parrot' style='float:right'>"
 				+ "This assignment covers one or more key concepts that have been assigned by your "
 				+ "instructor. For each concept you will be guided through a series of questions and problems, "
 				+ "with the Sage at your side, ready to provide help whenever you need it. "

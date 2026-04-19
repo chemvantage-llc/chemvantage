@@ -605,7 +605,7 @@ public class Homework extends HttpServlet {
 					if (attemptsRemaining < 0) attemptsRemaining = 0;
 				}
 
-				if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
+				if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=top>&nbsp;");
 				
 				buf.append("</div>");
 
@@ -647,7 +647,7 @@ public class Homework extends HttpServlet {
 						if (attemptsRemaining < 0) attemptsRemaining = 0;
 					}
 
-					if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
+					if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=top>&nbsp;");
 					
 					buf.append("</div>");
 
@@ -1033,7 +1033,7 @@ public class Homework extends HttpServlet {
 			case 10: badgeName="Turbo-Racoon-Overlord";break;
 			}
 			buf.append("<div class='badge-container'>"
-					+ "<img src='/images/badges/" + badgeName + ".png' height=260px width=260px alt='Fun cartoon character'>"
+					+ "<img src='https://images.chemvantage.org/badges/" + badgeName + ".png' height=260px width=260px alt='Fun cartoon character'>"
 					+ "<span style='font-weight: bold;'>Your score is " + s.getPctScore() + "%<br/>" + badgeName + "</span>"
 					+ "</div>");
 		}
@@ -1134,9 +1134,9 @@ public class Homework extends HttpServlet {
 						if (t.studentAnswer==null) buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td colspan=2 style='padding-right:20px'>(response detail is unavailable)</td>");
 						else buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td style='padding-right:20px'>" + t.studentAnswer + "</td><td style='padding-right:20px'>" + t.correctAnswer + "</td>");
 						
-						if (t.score==1) buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
-						else if (q.agreesToRequiredPrecision(t.studentAnswer)) buf.append("<td><img src=/images/partCredit.png alt='partial credit' height=25 width=25></td>");
-						else buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+						if (t.score==1) buf.append("<td><img src=https://images.chemvantage.org/checkmark.png alt='checkmark' height=24 width=17></td>");
+						else if (q.agreesToRequiredPrecision(t.studentAnswer)) buf.append("<td><img src=https://images.chemvantage.org/partCredit.png alt='partial credit' height=25 width=25></td>");
+						else buf.append("<td><img src=https://images.chemvantage.org/xmark.png alt='x-mark' height=24 width=24></td>");
 						buf.append("</tr>");
 					}
 					buf.append("</table><br/>");

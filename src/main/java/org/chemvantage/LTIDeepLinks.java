@@ -658,7 +658,7 @@ public class LTIDeepLinks extends HttpServlet {
 				
 			String serverUrl = "https://" + request.getServerName();
 			String launchUrl = serverUrl + "/lti/launch";
-			String iconUrl = serverUrl + "/images/CVLogo_thumb.png";
+			String iconUrl = "https://images.chemvantage.org/CVLogo_thumb.png";
 			String client_id = d.client_id;
 			String subject = request.getParameter("Subject");
 			String nonce = Nonce.generateNonce();

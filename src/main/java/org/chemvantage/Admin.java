@@ -229,7 +229,7 @@ public class Admin extends HttpServlet {
 					+ "This voucher code is unique and can only be used to activate one subscription. Once your code "
 					+ "is validated, you will be able to proceed to your assignment. Your subscription will "
 					+ "be active for a period of " + v.months + " months from the date it is activated.<br/><br/>");
-			buf.append("<div><img width=600px src='" + Subject.getServerUrl() + "/images/subscription.png' /></div>");
+			buf.append("<div><img width=600px src='" + Subject.getServerUrl() + "https://images.chemvantage.org/subscription.png' /></div>");
 			buf.append("</div>");
 		}
 		buf.append("</main></body></html>");

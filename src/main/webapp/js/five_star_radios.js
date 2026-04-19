@@ -1,7 +1,7 @@
 var star1 = new Image();
 var star2 = new Image();
-star1.src = '/images/star1.gif';
-star2.src = '/images/star2.gif';
+star1.src = 'https://images.chemvantage.org/star1.gif';
+star2.src = 'https://images.chemvantage.org/star2.gif';
 var starRadioButtons = document.querySelectorAll("input[name='StarSelection']");
 var voteSpan = document.getElementById('vote');
 function showStars(n) {

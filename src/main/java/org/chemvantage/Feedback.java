@@ -215,7 +215,7 @@ public class Feedback extends HttpServlet {
 					+ " onblur=showStars(0); "
 					+ " onkeydown=submitStars(event,'" + sig + "'); />"
 					+ "<label for='radio" + istar + "' class='star-label'>"
-					+ " <img id=" + istar + " src='/images/star1.gif' alt='star" + istar + "' "
+					+ " <img id=" + istar + " src='https://images.chemvantage.org/star1.gif' alt='star" + istar + "' "
 					+ " onmouseover=showStars(this.id); "
 					+ " onmouseout=showStars(0); "
 					+ " onclick=document.getElementById('radio'+this.id).checked=true;submitStars(event,'" + sig + "'); />\n"
