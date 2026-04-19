@@ -32,6 +32,7 @@ public class Contact {
 		String institution;   // ucsb.edu
 	@Index	String role;          // faculty,chair
 	@Index	boolean vetted;   // verified instructor
+	@Index	String referralCode;  // for rewards program
 	@Index	boolean unsubscribed = false;		
 			
 	Contact() {}

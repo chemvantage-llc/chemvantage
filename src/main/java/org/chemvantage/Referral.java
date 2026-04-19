@@ -17,6 +17,8 @@
 
 package org.chemvantage;
 
+import static com.googlecode.objectify.ObjectifyService.ofy;
+
 import java.util.Date;
 
 import com.googlecode.objectify.annotation.Entity;
@@ -25,13 +27,16 @@ import com.googlecode.objectify.annotation.Index;
 
 @Entity
 public class Referral {
-	@Id String referralCode;        // 8-character hex code
+	@Id Long id;
+	@Index String referralCode;        // 8-character hex code
 	@Index Date created;
-	@Index String email;            // user's email address
-	String name;                    // user's name
+	@Index String email;            // client email address
+	String name;                    // client name
 	String orgName;                 // organization name
 	String orgHomePage;             // organization home page URL
-	@Index boolean isValidated;     // email validation status
+	String referrerEmail;           // email address of the person who referred this client
+	@Index boolean isVerified;      // email validation status
+	
 	
 	Referral() {}
 	
@@ -42,7 +47,11 @@ public class Referral {
 		this.email = email;
 		this.orgName = orgName;
 		this.orgHomePage = orgHomePage;
-		this.isValidated = false;
+		this.isVerified = false;
+		Contact contact = ofy().load().type(Contact.class).filter("referralCode",referralCode).first().now();
+		if (contact != null) {
+			this.referrerEmail = contact.getEmail();
+		}
 	}
 	
 	String getReferralCode() {
@@ -65,11 +74,19 @@ public class Referral {
 		return this.orgHomePage;
 	}
 	
-	boolean getIsValidated() {
-		return this.isValidated;
+	boolean getIsVerified() {
+		return this.isVerified;
 	}
 	
-	void setIsValidated(boolean validated) {
-		this.isValidated = validated;
+	void setReferrerEmail(String referrerEmail) {
+		this.referrerEmail = referrerEmail;
+	}
+	
+	String getReferrerEmail() {
+		return this.referrerEmail;
+	}
+	
+	void setIsVerified(boolean verified) {
+		this.isVerified = verified;
 	}
 }

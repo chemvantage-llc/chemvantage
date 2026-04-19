@@ -22,7 +22,6 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serial;
-import java.util.Random;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -31,7 +30,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet("/rewards/*")
-public class Rewards extends HttpServlet {
+public class ManageReferrals extends HttpServlet {
 
 	@Serial
 	private static final long serialVersionUID = 137L;
@@ -66,9 +65,26 @@ public class Rewards extends HttpServlet {
 				return;
 			}
 			
-			out.println(Subject.header("ChemVantage Adoption Rewards Program") 
-					+ rewardForm(referralCode) 
-					+ Subject.footer);
+			try {  // Check if this is a verification request (has referral id parameter)
+				String referralIdParam = request.getParameter("id");
+				Long referralId = Long.parseLong(referralIdParam);
+				Referral referral = ofy().load().type(Referral.class).id(referralId).safe();
+				if (!referral.getReferralCode().equals(referralCode)) throw new Exception("Referral code does not match.");
+				referral.setIsVerified(true);
+				ofy().save().entity(referral).now();
+			
+				out.println(Subject.header("Email Verified") 
+				+ Subject.banner
+				+ thankYouSection(referral.getName())
+				+ Subject.footer);
+				return;
+			} catch (Exception e) {  //Show the referral form
+				out.println(Subject.header("ChemVantage Adoption")
+				+ Subject.banner
+				+ rewardForm(referralCode) 
+				+ Subject.footer);
+				return;
+			}
 		} catch (Exception e) {
 			response.getWriter().println(Subject.header("Error") 
 					+ "<p>An error occurred: " + e.getMessage() + "</p>" 
@@ -82,7 +98,7 @@ public class Rewards extends HttpServlet {
 			response.setContentType("text/html");
 			PrintWriter out = response.getWriter();
 			
-			String referralCode = request.getParameter("ReferralCode");
+			String referralCode = request.getParameter("ReferralCode").toLowerCase();
 			String name = request.getParameter("Name");
 			String email = request.getParameter("Email");
 			String orgName = request.getParameter("OrgName");
@@ -102,7 +118,7 @@ public class Rewards extends HttpServlet {
 			}
 			
 			// Validate referral code format
-			if (!referralCode.matches("[0-9a-fA-F]{8}")) {
+			if (!referralCode.matches("[0-9a-f]{8}")) {
 				out.println(Subject.header("Invalid Referral Code") 
 						+ "<p>The referral code is invalid.</p>" 
 						+ Subject.footer);
@@ -111,19 +127,25 @@ public class Rewards extends HttpServlet {
 			
 			// Create and store the Referral entity
 			Referral referral = new Referral(referralCode, name, email, orgName, orgHomePage);
-			ofy().save().entity(referral);
+			ofy().save().entity(referral).now();
 			
-			// Generate a validation token
-			String validationToken = generateValidationToken();
-			
-			// Send validation email
-			sendValidationEmail(name, email, referralCode, validationToken);
+			// Send verification email
+			sendVerificationEmail(name, email, referralCode, referral.id);
 			
 			out.println(Subject.header("Thank You") 
-					+ "<p>Thank you for your interest in ChemVantage! "
-					+ "We have sent a validation email to " + email + ". "
-					+ "Please check your email and click the link to validate your email address.</p>" 
-					+ Subject.footer);
+				+ Subject.banner
+				+ "<section class='bg-gradient-primary text-white' style='max-width:600px'>"
+				+ "  <div class='container py-5'>"
+				+ "    <div class='col-lg-7'>"
+				+ "      <h1 class='display-5 fw-semibold mb-3'>Email Verification</h1>"
+				+ "    </div>"
+				+ "  </div>"
+				+ "</section>"
+				+ "<p>We sent a verification email to " + email + "<br/>"
+				+ "Please check your email and click the link to verify your email address.<br/>"
+				+ "If it doesn't come within a few minutes, please check your spam or junk folder, or try resubmitting the form."
+				+ "If THAT doesn't resolve the issue, just contact us at admin@chemvantage.org and we'll get it sorted out.</p>" 
+				+ Subject.footer);
 		} catch (Exception e) {
 			response.getWriter().println(Subject.header("Error") 
 					+ "<p>An error occurred while processing your request: " + e.getMessage() + "</p>" 
@@ -134,22 +156,23 @@ public class Rewards extends HttpServlet {
 	String rewardForm(String referralCode) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("<section class='bg-gradient-primary text-white' style='max-width:600px'>"
-				+ "      <div class='container py-5'>"
-				+ "          <div class='col-lg-7'>"
-				+ "            <h1 class='display-5 fw-semibold mb-3'>ChemVantage Adoption Rewards</h1>"
-				+ "            <p>Thank you for your interest in adopting ChemVantage for your General Chemistry class. "
-				+ "            Please provide your contact information to verify your email and institutional affiliation.</p>"
-				+ "          </div>"
-				+ "        </div>"
-				+ "    </section><p>");
+				+ "   <div class='container py-5'>"
+				+ "     <div class='col-lg-7'>"
+				+ "       <h1 class='display-5 fw-semibold mb-3'>Welcome</h1>"
+				+ "       <p>Thank you for your interest in adopting ChemVantage for your General Chemistry class. "
+				+ "         Please provide your contact information below to verify your email and institutional affiliation."
+				+ "         This will also help us to recognize and reward the person who referred you to us.</p>"
+				+ "     </div>"
+				+ "   </div>"
+				+ " </section><p>");
 		
-		buf.append("<form method='post' action='/rewards/" + referralCode + "' style='max-width:500px'>"
+		buf.append("<form method='post' action='/rewards' style='max-width:500px'>"
 				+ "  <div class='mb-3'>"
-				+ "    <label for='Name' class='form-label'>Name:</label>"
+				+ "    <label for='Name' class='form-label'>Your Name:</label>"
 				+ "    <input type='text' class='form-control' id='Name' name='Name' required>"
 				+ "  </div>"
 				+ "  <div class='mb-3'>"
-				+ "    <label for='Email' class='form-label'>Email:</label>"
+				+ "    <label for='Email' class='form-label'>Your Email:</label>"
 				+ "    <input type='email' class='form-control' id='Email' name='Email' required>"
 				+ "  </div>"
 				+ "  <div class='mb-3'>"
@@ -158,7 +181,7 @@ public class Rewards extends HttpServlet {
 				+ "  </div>"
 				+ "  <div class='mb-3'>"
 				+ "    <label for='OrgHomePage' class='form-label'>Home Page:</label>"
-				+ "    <input type='url' class='form-control' id='OrgHomePage' name='OrgHomePage' required>"
+				+ "    <input type='url' class='form-control' id='OrgHomePage' name='OrgHomePage' placeholder='https://myschool.edu' required>"
 				+ "  </div>"
 				+ "  <input type='hidden' name='ReferralCode' value='" + referralCode + "'>"
 				+ "  <button type='submit' class='btn btn-primary'>Submit</button>"
@@ -167,33 +190,44 @@ public class Rewards extends HttpServlet {
 		return buf.toString();
 	}
 
-	private String generateValidationToken() {
-		// Generate a random token (could use UUID or random string)
-		Random random = new Random();
-		StringBuilder token = new StringBuilder();
-		String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-		for (int i = 0; i < 32; i++) {
-			token.append(characters.charAt(random.nextInt(characters.length())));
-		}
-		return token.toString();
+	String thankYouSection(String name) {
+		return "<section class='bg-gradient-primary text-white' style='max-width:600px'>"
+				+ "  <div class='container py-5'>"
+				+ "    <div class='row'>"
+				+ "      <div class='col-lg-7'>"
+				+ "        <h1 class='display-5 fw-semibold mb-3'>Success</h1>"
+				+ "        Thank you, " + name + "! Your email address has been verified."
+				+ "      </div>"
+				+ "    </div>"
+				+ "  </div>"
+				+ "</section><p>"
+				+ "<p>We appreciate your interest in adopting ChemVantage for your General Chemistry class.</p>"
+				+ "<p>When your school or institution activates a new ChemVantagre account, all students will be eligible for a one-semester free trial subscription (regular price: $8). "
+				+ "Hurry! Offer ends September 30, 2026. See the official <a href='https://www.chemvantage.org/rewards_terms.html'>Referral Program Terms and Conditions.</a></p>"
+				+ "<p>Next steps:<ul>"
+				+ "  <li>Schedule a live demo of ChemVantage with our team by visiting <a href='https://calendly.com/chemvantage'>our Calendly calendar</a>.</li>"
+				+ "  <li>Ask your instiutution's LMS account administrator to <a href='https://www.chemvantage.org/install.html'>install ChemVantage in your LMS</a> as an LTI Advantage tool</a>.</li>"
+				+ "  <li>Learn more about ChemVantage by visiting our home page at <a href='https://www.chemvantage.org'>www.chemvantage.org</a>.</li>"
+				+ "</ul></p>";
 	}
+	
 
-	private void sendValidationEmail(String name, String email, String referralCode, String validationToken) {
+private void sendVerificationEmail(String name, String email, String referralCode, Long referralId) {
 		try {
 			String baseURL = Subject.getProjectId().equals("dev-vantage-hrd") ? "https://dev-vantage-hrd.appspot.com" : "https://www.chemvantage.org";
-			String validationLink = baseURL + "/ValidateReferral?code=" + referralCode 
-					+ "&token=" + validationToken;
+			String verificationLURL = baseURL + "/rewards/" + referralCode + "?id=" + referralId;
 			
 			String emailBody = "<h2>Verify Your Email</h2>"
 					+ "<p>Dear " + name + ",</p>"
 					+ "<p>Thank you for your interest in ChemVantage. Please click the link below to verify your email address:</p>"
-					+ "<p><a href='" + validationLink + "'>Validate Email</a></p>"
+					+ "<p><a href='" + verificationLURL + "'>Verify Email</a></p>"
 					+ "<p>If you did not initiate this request, please disregard this email.</p>"
+					+ "<span style='display:none'>unsubscribe</span>"  // prevents copy to admin@chemvantage.org
 					+ "<p>Best regards,<br/>The ChemVantage Team</p>";
 			
-			Utilities.sendEmail(name, email, "ChemVantage Email Validation", emailBody);
+			Utilities.sendEmail(name, email, "ChemVantage Email Verification", emailBody);
 		} catch (IOException e) {
-			System.err.println("Error sending validation email: " + e.getMessage());
+			System.err.println("Error sending verification email: " + e.getMessage());
 		}
 	}
 }
