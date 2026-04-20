@@ -143,7 +143,7 @@ public class ManageReferrals extends HttpServlet {
 				+ "</section>"
 				+ "<p>We sent a verification email to " + email + "<br/>"
 				+ "Please check your email and click the link to verify your email address.<br/>"
-				+ "If it doesn't come within a few minutes, please check your spam or junk folder, or try resubmitting the form."
+				+ "If it doesn't come within a few minutes, please check your spam or junk folder, or try resubmitting the form.<br/>"
 				+ "If THAT doesn't resolve the issue, just contact us at admin@chemvantage.org and we'll get it sorted out.</p>" 
 				+ Subject.footer);
 		} catch (Exception e) {
@@ -202,7 +202,7 @@ public class ManageReferrals extends HttpServlet {
 				+ "  </div>"
 				+ "</section><p>"
 				+ "<p>We appreciate your interest in adopting ChemVantage for your General Chemistry class.</p>"
-				+ "<p>When your school or institution activates a new ChemVantagre account, all students will be eligible for a one-semester free trial subscription (regular price: $8). "
+				+ "<p>When your school or institution activates a new ChemVantage account, all students will be eligible for a one-semester free trial subscription (regular price: $8). "
 				+ "Hurry! Offer ends September 30, 2026. See the official <a href='https://www.chemvantage.org/rewards_terms.html'>Referral Program Terms and Conditions.</a></p>"
 				+ "<p>Next steps:<ul>"
 				+ "  <li>Schedule a live demo of ChemVantage with our team by visiting <a href='https://calendly.com/chemvantage'>our Calendly calendar</a>.</li>"
