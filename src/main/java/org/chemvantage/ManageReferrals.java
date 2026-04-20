@@ -99,14 +99,16 @@ public class ManageReferrals extends HttpServlet {
 			PrintWriter out = response.getWriter();
 			
 			String referralCode = request.getParameter("ReferralCode").toLowerCase();
-			String name = request.getParameter("Name");
+			String firstName = request.getParameter("FirstName");
+			String lastName = request.getParameter("LastName");
 			String email = request.getParameter("Email");
 			String orgName = request.getParameter("OrgName");
 			String orgHomePage = request.getParameter("OrgHomePage");
 			
 			// Validate input fields
 			if (referralCode == null || referralCode.isEmpty() ||
-				name == null || name.isEmpty() ||
+				firstName == null || firstName.isEmpty() ||
+				lastName == null || lastName.isEmpty() ||
 				email == null || email.isEmpty() ||
 				orgName == null || orgName.isEmpty() ||
 				orgHomePage == null || orgHomePage.isEmpty()) {
@@ -125,7 +127,15 @@ public class ManageReferrals extends HttpServlet {
 				return;
 			}
 			
+			// Query for existing Contact or create new one
+			Contact contact = ofy().load().type(Contact.class).id(email).now();
+			if (contact == null) {
+				contact = new Contact(firstName, lastName, email);
+				ofy().save().entity(contact).now();
+			}
+			
 			// Create and store the Referral entity
+			String name = firstName + " " + lastName;
 			Referral referral = new Referral(referralCode, name, email, orgName, orgHomePage);
 			ofy().save().entity(referral).now();
 			
@@ -168,8 +178,12 @@ public class ManageReferrals extends HttpServlet {
 		
 		buf.append("<form method='post' action='/rewards' style='max-width:500px'>"
 				+ "  <div class='mb-3'>"
-				+ "    <label for='Name' class='form-label'>Your Name:</label>"
-				+ "    <input type='text' class='form-control' id='Name' name='Name' required>"
+				+ "    <label for='FirstName' class='form-label'>First Name:</label>"
+				+ "    <input type='text' class='form-control' id='FirstName' name='FirstName' required>"
+				+ "  </div>"
+				+ "  <div class='mb-3'>"
+				+ "    <label for='LastName' class='form-label'>Last Name:</label>"
+				+ "    <input type='text' class='form-control' id='LastName' name='LastName' required>"
 				+ "  </div>"
 				+ "  <div class='mb-3'>"
 				+ "    <label for='Email' class='form-label'>Your Email:</label>"
@@ -203,10 +217,10 @@ public class ManageReferrals extends HttpServlet {
 				+ "</section><p>"
 				+ "<p>We appreciate your interest in adopting ChemVantage for your General Chemistry class.</p>"
 				+ "<p>When your school or institution activates a new ChemVantage account, all students will be eligible for a one-semester free trial subscription (regular price: $8). "
-				+ "Hurry! Offer ends September 30, 2026. See the official <a href='https://www.chemvantage.org/rewards_terms.html'>Referral Program Terms and Conditions.</a></p>"
+				+ "Hurry! Offer ends September 30, 2026. See the official <a href='/rewards_terms.html'>Referral Program Terms and Conditions.</a></p>"
 				+ "<p>Next steps:<ul>"
 				+ "  <li>Schedule a live demo of ChemVantage with our team by visiting <a href='https://calendly.com/chemvantage'>our Calendly calendar</a>.</li>"
-				+ "  <li>Ask your instiutution's LMS account administrator to <a href='https://www.chemvantage.org/install.html'>install ChemVantage in your LMS</a> as an LTI Advantage tool</a>.</li>"
+				+ "  <li>Ask your instiutution's LMS account administrator to <a href='/install.html'>install ChemVantage in your LMS</a> as an LTI Advantage tool</a>.</li>"
 				+ "  <li>Learn more about ChemVantage by visiting our home page at <a href='https://www.chemvantage.org'>www.chemvantage.org</a>.</li>"
 				+ "</ul></p>";
 	}
