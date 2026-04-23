@@ -24,7 +24,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serial;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -333,6 +333,12 @@ public class Admin extends HttpServlet {
 			buf.append("<h2>Quarterly OpenStax Ally Partner Report</h2>"
 					+ "<a href=/Admin?UserRequest=OpenStaxReport>Preview</a> or <a href=/Admin?UserRequest=OpenStaxCSVReport>Download CSV File</a><p>");
 			
+			// Referrals Rewards Program
+			int nReferrals = ofy().load().type(Referral.class).count();
+			buf.append("<h2>Referral Rewards Program</h2>"
+					+ "There are currently " + nReferrals + " referrals in the system. "
+					+ "<a href='https://console.cloud.google.com/datastore/databases/-default-/entities;kind=Referral;ns=__$DEFAULT$__/query/kind?project=" + Subject.getProjectId() + "'>View</a><p>");
+
 			// Subscription vouchers
 			buf.append("<h2>Subscription Vouchers</h2>");
 			List<Voucher> vouchers = ofy().load().type(Voucher.class).filter("activated =",null).order("-purchased").list();
@@ -390,7 +396,7 @@ public class Admin extends HttpServlet {
 		StringBuilder buf = new StringBuilder();
 
 		try {
-			HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
+			HttpURLConnection conn = (HttpURLConnection) URI.create(endpoint).toURL().openConnection();
 			conn.setConnectTimeout(5000);
 			conn.setReadTimeout(5000);
 			conn.setRequestMethod("GET");
