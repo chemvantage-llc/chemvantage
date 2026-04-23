@@ -54,14 +54,14 @@ public class ManageReferrals extends HttpServlet {
 				// Validate that it's an 8-character hex string
 				if (!referralCode.matches("[0-9a-fA-F]{8}")) {
 					out.println(Subject.header("Invalid Referral Code") 
-							+ "<p>The referral code is invalid.</p>" 
-							+ Subject.footer);
+						+ "<p>The referral code is invalid.</p>" 
+						+ Subject.footer);
 					return;
 				}
 			} else {
 				out.println(Subject.header("Missing Referral Code") 
-						+ "<p>A valid referral code is required.</p>" 
-						+ Subject.footer);
+					+ "<p>A valid referral code is required.</p>" 
+					+ Subject.footer);
 				return;
 			}
 			
@@ -70,19 +70,25 @@ public class ManageReferrals extends HttpServlet {
 				Long referralId = Long.parseLong(referralIdParam);
 				Referral referral = ofy().load().type(Referral.class).id(referralId).safe();
 				if (!referral.getReferralCode().equals(referralCode)) throw new Exception("Referral code does not match.");
+			
+				// Only send thank you email if this is the first verification
+				boolean wasAlreadyVerified = referral.getIsVerified();
 				referral.setIsVerified(true);
 				ofy().save().entity(referral).now();
-			
+				
+				if (!wasAlreadyVerified) {
+					thankReferrerSection(referral);
+				}
 				out.println(Subject.header("Email Verified") 
-				+ Subject.banner
-				+ thankYouSection(referral.getName())
-				+ Subject.footer);
+					+ Subject.banner
+					+ thankYouSection(referral.getName())
+					+ Subject.footer);
 				return;
 			} catch (Exception e) {  //Show the referral form
 				out.println(Subject.header("ChemVantage Adoption")
-				+ Subject.banner
-				+ rewardForm(referralCode) 
-				+ Subject.footer);
+					+ Subject.banner
+					+ rewardForm(referralCode) 
+					+ Subject.footer);
 				return;
 			}
 		} catch (Exception e) {
@@ -134,21 +140,31 @@ public class ManageReferrals extends HttpServlet {
 				ofy().save().entity(contact).now();
 			}
 			
-			// Create and store the Referral entity
+			// Check if a Referral already exists for this email to prevent duplicates
+			Referral existingReferral = ofy().load().type(Referral.class)
+				.filter("email", email)
+				.filter("referralCode", referralCode)
+				.first().now();
+			
+			Referral referral;
+			if (existingReferral != null) {
+				// Referral already exists, resend verification email
+				referral = existingReferral;
+		} else {
+			// Create and store a new Referral entity
 			String name = firstName + " " + lastName;
-			Referral referral = new Referral(referralCode, name, email, orgName, orgHomePage);
+			referral = new Referral(referralCode, name, email, orgName, orgHomePage);
 			ofy().save().entity(referral).now();
-			
-			// Send verification email
-			sendVerificationEmail(name, email, referralCode, referral.id);
-			
-			out.println(Subject.header("Thank You") 
-				+ Subject.banner
-				+ "<section class='bg-gradient-primary text-white' style='max-width:600px'>"
-				+ "  <div class='container py-5'>"
-				+ "    <div class='col-lg-7'>"
-				+ "      <h1 class='display-5 fw-semibold mb-3'>Email Verification</h1>"
-				+ "    </div>"
+		}
+		
+		// Send (or resend) verification email
+		sendVerificationEmail(firstName + " " + lastName, email, referralCode, referral.id);		
+		out.println(Subject.header("Thank You") 
+			+ Subject.banner
+			+ "<section class='bg-gradient-primary text-white' style='max-width:600px'>"
+			+ "  <div class='container py-5'>"
+			+ "    <div class='col-lg-7'>"
+			+ "      <h1 class='display-5 fw-semibold mb-3'>Email Verification</h1>"				+ "    </div>"
 				+ "  </div>"
 				+ "</section>"
 				+ "<p>We sent a verification email to " + email + "<br/>"
@@ -244,4 +260,51 @@ private void sendVerificationEmail(String name, String email, String referralCod
 			System.err.println("Error sending verification email: " + e.getMessage());
 		}
 	}
-}
+
+	private void thankReferrerSection(Referral referral) {
+		if (referral.getReferrerEmail() == null || referral.getReferrerEmail().isEmpty()) {
+			return; // No referrer to thank
+		}
+		
+		try {
+			String referrerName = "";
+			Contact referrerContact = ofy().load().type(Contact.class).id(referral.getReferrerEmail()).now();
+			if (referrerContact != null) {
+			referrerName = referrerContact.getFullName();
+			}
+			
+			String emailBody;
+			String subject;
+			
+			if (referral.getEmail().equals(referral.getReferrerEmail())) {
+				// Same person - thanking for their own interest
+				subject = "Thank You for Your Interest in ChemVantage";
+				emailBody = "<h2>Thank You!</h2>"
+						+ "<p>Dear " + referrerName + ",</p>"
+						+ "<p>Thank you for your interest in establishing a new ChemVantage account at your institution, " 
+						+ referral.getOrgName() + ".</p>"
+						+ "<p>We appreciate your commitment to providing quality educational resources for your chemistry students.</p>"
+						+ "<p>Our team will be in touch soon to help you get started. "
+						+ "When your account is active, you may be eligible for a $50 Amazon gift certificate.</p>"
+						+ "<span style='display:none'>unsubscribe</span>"
+						+ "<p>Best regards,<br/>The ChemVantage Team</p>";
+			} else {
+				// Different person - thanking for referring a friend
+				subject = "Thank You for Referring a Friend to ChemVantage";
+				emailBody = "<h2>Thank You!</h2>"
+						+ "<p>Dear " + referrerName + ",</p>"
+						+ "<p>Thank you for referring a friend to establish a new ChemVantage account for their chemistry class at " 
+						+ referral.getOrgName() + ".</p>"
+						+ "<p>Your recommendation helps us grow and bring quality educational resources to more students.</p>"
+						+ "<p>Our team will be in touch with your friend soon to help them get started. "
+						+ "When their account is active, you may be eligible for a $50 Amazon gift certificate.</p>"
+						+ "<p>We truly appreciate your support!</p>"
+						+ "<span style='display:none'>unsubscribe</span>"
+						+ "<p>Best regards,<br/>The ChemVantage Team</p>";
+			}
+			
+			Utilities.sendEmail(referrerName, referral.getReferrerEmail(), subject, emailBody);
+		} catch (IOException e) {
+			System.err.println("Error sending referrer thank you email: " + e.getMessage());
+		}
+	}}
