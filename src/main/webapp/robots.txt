@@ -6,6 +6,7 @@ Disallow: /Edit/
 Disallow: /EraseEntity/
 Disallow: /contacts/
 Disallow: /messages/
+Disallow: /examples/
 Disallow: /ReportScore/
 Disallow: /lti/
 Disallow: /Homework
@@ -14,7 +15,7 @@ Disallow: /PracticeExam
 Disallow: /PlacementExam
 Disallow: /Poll
 Disallow: /Sage
-Disallow: /Video
+Disallow: /VideoQuiz
 Disallow: /SmartText
 
 # Specify the location of the sitemap
