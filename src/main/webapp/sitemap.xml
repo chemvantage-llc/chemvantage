@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?> 
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"> 
 <url>
-  <loc>http://chemvantage.org/</loc>
+  <loc>https://www.chemvantage.org/</loc>
 </url>
 <url>
-  <loc>http://chemvantage.org/copyright.html</loc>
+  <loc>https://www.chemvantage.org/copyright.html</loc>
 </url>
 <url>
-  <loc>http://chemvantage.org/index.html</loc>
+  <loc>https://www.chemvantage.org/install.html</loc>
 </url>
 <url>
-  <loc>http://chemvantage.org/install.html</loc>
+  <loc>https://www.chemvantage.org/privacy.html</loc>
 </url>
 <url>
-  <loc>http://chemvantage.org/privacy.html</loc>
+  <loc>https://www.chemvantage.org/terms_and_conditions.html</loc>
 </url>
 <url>
-  <loc>http://chemvantage.org/terms_and_conditions.html</loc>
+  <loc>https://www.chemvantage.org/rewards_terms.html</loc>
 </url>
 </urlset>
