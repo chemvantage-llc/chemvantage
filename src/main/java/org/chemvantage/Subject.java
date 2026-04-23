@@ -238,8 +238,14 @@ public class Subject {
 		+ "  <meta name='description' content='ChemVantage provides standards-aligned homework, quizzes, and exams for General Chemistry with automatic grading and seamless LMS integration using LTI 1.3 Advantage.'>\n"
 		+ "  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />\n"
 		+ "  <meta http-equiv='Pragma' content='no-cache' />\n"
-		+ "  <meta http-equiv='Expires' content='0' />\n"
-		+ "  <link rel='icon' href='images/logo_sq.png'>\n"
+		+ "  <meta http-equiv='Expires' content='0' />\n");
+		
+		// Prevent dev site indexing
+		if ("dev-vantage-hrd".equals(getProjectId())) {
+			buf.append("  <meta name='robots' content='noindex, nofollow' />\n");
+		}
+		
+		buf.append("  <link rel='icon' href='images/logo_sq.png'>\n"
 		+ "  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>\n"
 		+ "  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>\n"
 		+ "  <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;900&family=Shantell+Sans:wght@300;400;500;600;700;800&display=swap'>\n"
@@ -283,6 +289,7 @@ public class Subject {
 	public static String getHeader(User user) {
 		String announcement = Subject.getAnnouncement();
 		String sig = user.getTokenSignature();
+		String noindexMeta = "dev-vantage-hrd".equals(getProjectId()) ? "  <meta name='robots' content='noindex, nofollow' />\n" : "";
 		return "<!DOCTYPE html>\n"
 		+ "<html lang='en'>\n"
 		+ "<head>\n"
@@ -291,6 +298,7 @@ public class Subject {
 		+ "  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />\n"
 		+ "  <meta http-equiv='Pragma' content='no-cache' />\n"
 		+ "  <meta http-equiv='Expires' content='0' />\n"
+		+ noindexMeta
 		+ "  <link rel='icon' href='images/logo_sq.png'>\n"
 		+ "  <title>ChemVantage</title>\n"
 		+ "  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>\n"

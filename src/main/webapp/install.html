@@ -24,6 +24,17 @@
   
   <link rel="canonical" href="https://www.chemvantage.org/install.html">
   <link rel="icon" href="https://images.chemvantage.org/logo_sq.png">
+  
+  <!-- Prevent dev site indexing -->
+  <script>
+    if (window.location.hostname.includes('appspot.com') || window.location.hostname === 'localhost') {
+      var meta = document.createElement('meta');
+      meta.name = 'robots';
+      meta.content = 'noindex, nofollow';
+      document.head.appendChild(meta);
+    }
+  </script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
