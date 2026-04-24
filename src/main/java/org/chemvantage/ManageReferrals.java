@@ -303,7 +303,8 @@ private void sendVerificationEmail(String name, String email, String referralCod
 						+ "<p>Best regards,<br/>The ChemVantage Team</p>";
 			}
 			
-			Utilities.sendEmail(referrerName, referral.getReferrerEmail(), subject, emailBody);
+			//Utilities.sendEmail(referrerName, referral.getReferrerEmail(), subject, emailBody);
+			Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org", subject, emailBody);
 		} catch (IOException e) {
 			System.err.println("Error sending referrer thank you email: " + e.getMessage());
 		}
