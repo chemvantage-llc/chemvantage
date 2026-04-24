@@ -257,20 +257,18 @@ public class ManageMessages extends HttpServlet {
 	
 	int sendNMessages(EmailMessage m,boolean testOnly,List<Contact> contacts) throws Exception {
 		int count = 0;
-		EmailMessage message = null;
+		String code = "";
 		List<Contact> amendedContacts = new ArrayList<Contact>();
 		for (Contact c : contacts) {
-			message = m;
 			try {
-				if (message.text.contains("##a##")) {
-					String code = Integer.toHexString(c.email.hashCode()).toLowerCase();
-					message.text = message.text.replaceAll("##a##",code);
+				if (m.text.contains("##a##")) {
+					code = Integer.toHexString(c.email.hashCode()).toLowerCase();
 					if (c.referralCode == null || c.referralCode.isEmpty()) {
 						c.referralCode = code;
 						amendedContacts.add(c);
 					}
 				}
-				Utilities.sendEmail(c.getFullName(),c.email,message.subjectLine,salutationText(c) + message.text + unsubscribeText(c));
+				Utilities.sendEmail(c.getFullName(),c.email,m.subjectLine,salutationText(c) + m.text.replaceAll("##a##",code) + unsubscribeText(c));
 			} catch (Exception e) {
 				c.role = "failed message";
 				ofy().save().entity(c);
