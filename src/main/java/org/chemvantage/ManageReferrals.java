@@ -76,7 +76,8 @@ public class ManageReferrals extends HttpServlet {
 				referral.setIsVerified(true);
 				ofy().save().entity(referral).now();
 				
-				if (!wasAlreadyVerified) {
+				// Temporary workaround for incorrect referralCodes sent in email links - only thank referrer if this is the first verification and the referral code in the URL matches the referral code in the database
+				if (!wasAlreadyVerified && referral.getEmail().equals(referral.getReferrerEmail())) {
 					thankReferrerSection(referral);
 				}
 				out.println(Subject.header("Email Verified") 
