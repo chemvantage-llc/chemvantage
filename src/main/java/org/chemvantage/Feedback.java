@@ -165,7 +165,9 @@ public class Feedback extends HttpServlet {
  		
 		// If the user is anonymous, insert the Google reCaptcha tool on the page
 		if (user.isAnonymous()) {
-			buf.append("Note: This page is protected by reCAPTCHA to prevent abuse. The reCAPTCHA service is provided by Google and is subject to Google's <a href=https://policies.google.com/privacy>Privacy Policy</a> and <a href=https://policies.google.com/terms>Terms of Service</a>.<br/><br/>"
+			buf.append("Note: This page is protected by reCAPTCHA to prevent abuse.<br/>"
+				+ "The reCAPTCHA service is provided by Google and is subject to Google's<br/>"
+				+ "<a href=https://policies.google.com/privacy>Privacy Policy</a> and <a href=https://policies.google.com/terms>Terms of Service</a>.<br/><br/>"
 				+ "<script src='https://www.google.com/recaptcha/enterprise.js?render=" + Subject.getReCaptchaKey() + "'></script>\n"
 				+ "<script>"
 				+ "  function onSubmit(token) { "
