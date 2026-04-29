@@ -202,8 +202,10 @@ public class Poll extends HttpServlet {
 	static String instructorPage(User user,Assignment a) {
 		StringBuffer buf = new StringBuffer();
 		
-		buf.append("<h1>Class Poll</h1><h2>Instructor Page</h2>");
 		if (!user.isInstructor()) return "You must be an instructor to view this page.";
+		
+		buf.append(Subject.privacyPolicyBanner());
+		buf.append("<h1>Class Poll</h1><h2>Instructor Page</h2>");
 		
 		if (a.questionKeys.size()==0) return editPage(user,a,0);
 		else {

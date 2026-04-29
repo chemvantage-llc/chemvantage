@@ -27,11 +27,10 @@ handlers:
   require_matching_file: True
   secure: always
 
-# Map everything in the images directory to static copies  
-- url: /images
-  static_dir: classes/META-INF/resources/images
-  require_matching_file: True
+# Redirect old /images URLs to new GCP Storage Bucket (301 permanent redirect)
+- url: /images/.*
   secure: always
+  script: auto
   
 # Map everything in the error directory to static copies  
 - url: /error

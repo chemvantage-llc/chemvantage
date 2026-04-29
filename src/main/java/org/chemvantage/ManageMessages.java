@@ -257,13 +257,18 @@ public class ManageMessages extends HttpServlet {
 	
 	int sendNMessages(EmailMessage m,boolean testOnly,List<Contact> contacts) throws Exception {
 		int count = 0;
+		String code = "";
+		List<Contact> amendedContacts = new ArrayList<Contact>();
 		for (Contact c : contacts) {
 			try {
 				if (m.text.contains("##a##")) {
-					String code = Integer.toHexString(c.email.hashCode()).toUpperCase();
-					m.text = m.text.replaceAll("##a##",code);
+					code = Integer.toHexString(c.email.hashCode()).toLowerCase();
+					if (c.referralCode == null || c.referralCode.isEmpty()) {
+						c.referralCode = code;
+						amendedContacts.add(c);
+					}
 				}
-				Utilities.sendEmail(c.getFullName(),c.email,m.subjectLine,salutationText(c) + m.text + unsubscribeText(c));
+				Utilities.sendEmail(c.getFullName(),c.email,m.subjectLine,salutationText(c) + m.text.replaceAll("##a##",code) + unsubscribeText(c));
 			} catch (Exception e) {
 				c.role = "failed message";
 				ofy().save().entity(c);
@@ -272,6 +277,7 @@ public class ManageMessages extends HttpServlet {
 			if (!testOnly && c.created.after(m.lastRecipientCreated)) m.lastRecipientCreated = c.created;
 			count++;
 		}
+		if (amendedContacts.size() > 0) ofy().save().entities(amendedContacts).now();
 		if (!testOnly && count > 0) ofy().save().entity(m).now();
 		return count;
 	}

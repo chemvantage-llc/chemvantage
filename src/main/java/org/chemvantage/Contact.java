@@ -32,6 +32,7 @@ public class Contact {
 		String institution;   // ucsb.edu
 	@Index	String role;          // faculty,chair
 	@Index	boolean vetted;   // verified instructor
+	@Index	String referralCode;  // for rewards program
 	@Index	boolean unsubscribed = false;		
 			
 	Contact() {}
@@ -40,8 +41,9 @@ public class Contact {
 		this.created = new Date();
 		this.firstName = firstName;
 		this.lastName = lastName;
-		this.email = email;
+		this.email = email.toLowerCase();
 		this.institution = email.substring(email.indexOf("@")+1);
+		this.referralCode = Integer.toHexString(email.hashCode());
 	}
 	
 	String getFullName() {

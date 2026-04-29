@@ -35,6 +35,7 @@ public class Subject {
 	private static final Logger logger = Logger.getLogger(Subject.class.getName());
 	private static final int REFRESH_RETRY_LIMIT = 5;
 	private static final long REFRESH_RETRY_DELAY_MS = 200L;
+	private static final String PRIVACY_BANNER_EXPIRY_DATE = "2026-05-16"; // 30 days from policy update
 
 	@Id Long id;
 	private static Subject s;
@@ -237,8 +238,14 @@ public class Subject {
 		+ "  <meta name='description' content='ChemVantage provides standards-aligned homework, quizzes, and exams for General Chemistry with automatic grading and seamless LMS integration using LTI 1.3 Advantage.'>\n"
 		+ "  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />\n"
 		+ "  <meta http-equiv='Pragma' content='no-cache' />\n"
-		+ "  <meta http-equiv='Expires' content='0' />\n"
-		+ "  <link rel='icon' href='images/logo_sq.png'>\n"
+		+ "  <meta http-equiv='Expires' content='0' />\n");
+		
+		// Prevent dev site indexing
+		if ("dev-vantage-hrd".equals(getProjectId())) {
+			buf.append("  <meta name='robots' content='noindex, nofollow' />\n");
+		}
+		
+		buf.append("  <link rel='icon' href='images/logo_sq.png'>\n"
 		+ "  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>\n"
 		+ "  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>\n"
 		+ "  <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;900&family=Shantell+Sans:wght@300;400;500;600;700;800&display=swap'>\n"
@@ -282,6 +289,7 @@ public class Subject {
 	public static String getHeader(User user) {
 		String announcement = Subject.getAnnouncement();
 		String sig = user.getTokenSignature();
+		String noindexMeta = "dev-vantage-hrd".equals(getProjectId()) ? "  <meta name='robots' content='noindex, nofollow' />\n" : "";
 		return "<!DOCTYPE html>\n"
 		+ "<html lang='en'>\n"
 		+ "<head>\n"
@@ -290,6 +298,7 @@ public class Subject {
 		+ "  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />\n"
 		+ "  <meta http-equiv='Pragma' content='no-cache' />\n"
 		+ "  <meta http-equiv='Expires' content='0' />\n"
+		+ noindexMeta
 		+ "  <link rel='icon' href='images/logo_sq.png'>\n"
 		+ "  <title>ChemVantage</title>\n"
 		+ "  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>\n"
@@ -330,13 +339,46 @@ public class Subject {
 		+ "<main id='main-content'>");
 	}
 	
-	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	
+	static String privacyPolicyBanner() {
+		try {
+			java.time.LocalDate today = java.time.LocalDate.now();
+			java.time.LocalDate expiryDate = java.time.LocalDate.parse(PRIVACY_BANNER_EXPIRY_DATE);
+			if (today.isAfter(expiryDate) || today.isEqual(expiryDate)) {
+				return ""; // Campaign expired, don't send banner HTML
+			}
+		} catch (Exception e) {
+			return ""; // If date parsing fails, don't show banner
+		}
+		
+		return """
+			<div id='privacyBanner' style='display:none;background-color:#fff3cd;border:1px solid #ffc107;border-radius:5px;padding:15px;margin:10px 0;position:relative;'>
+				<button onclick='dismissPrivacyBanner()' style='position:absolute;top:10px;right:10px;background:none;border:none;font-size:24px;cursor:pointer;color:#856404;' aria-label='Close'>&times;</button>
+				<div style='margin-right:30px;'>
+					<strong>Privacy Policy Update:</strong> We've updated our <a href='/privacy.html' target='_blank' style='color:#856404;text-decoration:underline;'>Privacy Policy</a> to provide greater transparency about how we handle educator contact information. Student privacy protections remain unchanged. We never store student PII.
+				</div>
+			</div>
+			<script>
+			(function() {
+				var dismissed = localStorage.getItem('privacyBannerDismissed');
+				if (!dismissed) {
+					document.getElementById('privacyBanner').style.display = 'block';
+				}
+			})();
+			function dismissPrivacyBanner() {
+				document.getElementById('privacyBanner').style.display = 'none';
+				localStorage.setItem('privacyBannerDismissed', new Date().toISOString());
+			}
+			</script>
+			""";
+	}
 			
 	public static String footer = """
 			
 			</main>
 			<footer id=footer style='max-width: 600px;'><hr/>\
-			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=/images/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
+			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=https://images.chemvantage.org/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
 			<a href=/terms_and_conditions.html>Terms and Conditions</a> | \
 			<a href=/privacy.html>Privacy</a> | \
 			<a href=/copyright.html>Copyright</a></footer>\

@@ -6,7 +6,17 @@ Disallow: /Edit/
 Disallow: /EraseEntity/
 Disallow: /contacts/
 Disallow: /messages/
+Disallow: /examples/
 Disallow: /ReportScore/
+Disallow: /lti/
+Disallow: /Homework
+Disallow: /Quiz
+Disallow: /PracticeExam
+Disallow: /PlacementExam
+Disallow: /Poll
+Disallow: /Sage
+Disallow: /VideoQuiz
+Disallow: /SmartText
 
 # Specify the location of the sitemap
 Sitemap: https://www.chemvantage.org/sitemap.xml

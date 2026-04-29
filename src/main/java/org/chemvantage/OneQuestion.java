@@ -61,7 +61,7 @@ public class OneQuestion extends HttpServlet {
 				q.setParameters(parameter);
 
 				buf.append("<br/><br/><div style='max-width:700px'>"
-						+ "<img src=https://www.chemvantage.org/images/thoughtful_parrot.png alt='thoughtful parrot' style='float:right;padding:10px;height:200px;vertical-align:text-top;' />"
+						+ "<img src=https://images.chemvantage.org/thoughtful_parrot.png alt='thoughtful parrot' style='float:right;padding:10px;height:200px;vertical-align:text-top;' />"
 						+ "<form method=post action=/item onsubmit=waitForScore(); >"
 						+ "<input type=hidden name=p value=" + parameter + " />"
 						+ q.print() + "<input id=SubmitButton type=submit value='Grade This Exercise' class='btn btn-primary'/>" 
