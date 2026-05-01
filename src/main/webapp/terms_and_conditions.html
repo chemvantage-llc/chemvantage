@@ -26,14 +26,7 @@
   <link rel="icon" href="https://images.chemvantage.org/logo_sq.png">
   
   <!-- Prevent dev site indexing -->
-  <script>
-    if (window.location.hostname.includes('appspot.com') || window.location.hostname === 'localhost') {
-      var meta = document.createElement('meta');
-      meta.name = 'robots';
-      meta.content = 'noindex, nofollow';
-      document.head.appendChild(meta);
-    }
-  </script>
+  <script src='/js/noindex-dev.js'></script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -141,14 +134,7 @@
     </div>
   </footer>
 
-  <script>
-    // Minimal progressive enhancement for current year without affecting functionality
-    (function () {
-      var y = new Date().getFullYear();
-      var el = document.getElementById('year');
-      if (el) el.textContent = y;
-    })();
-  </script>
+  <script src='/js/year-footer.js'></script>
 
 </body>
 </html>

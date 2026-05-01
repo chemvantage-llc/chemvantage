@@ -26,14 +26,7 @@
   <link rel="icon" href="https://images.chemvantage.org/logo_sq.png">
   
   <!-- Prevent dev site indexing -->
-  <script>
-    if (window.location.hostname.includes('appspot.com') || window.location.hostname === 'localhost') {
-      var meta = document.createElement('meta');
-      meta.name = 'robots';
-      meta.content = 'noindex, nofollow';
-      document.head.appendChild(meta);
-    }
-  </script>
+  <script src='/js/noindex-dev.js'></script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -164,9 +157,9 @@
               <img src="https://images.chemvantage.org/marketing/5stars.png" alt="ChemVantage rating" />&nbsp;4.3 out of 5 stars (12463 ratings)<br/>
             </div>
             <div class="p-4 bg-white border rounded-3 h-100 d-flex" style="margin-top:20px;justify-content:space-evenly;">
-              <button class="btn btn-primary" onclick="launch('/Homework');">Sample Homework</button> 
-              <button class="btn btn-primary" onclick="launch('/Quiz');">Sample Quiz</button> 
-              <button class="btn btn-primary" onclick="launch('/VideoQuiz');">Sample Video</button>
+              <button class="btn btn-primary" id="launch-homework">Sample Homework</button> 
+              <button class="btn btn-primary" id="launch-quiz">Sample Quiz</button> 
+              <button class="btn btn-primary" id="launch-video">Sample Video</button>
             </div>
           </div>
           <div class="col-lg-6">
@@ -547,24 +540,8 @@
     </div>
   </footer>
 
-  <script>
-    // Minimal progressive enhancement for current year without affecting functionality
-    (function () {
-      var y = new Date().getFullYear();
-      var el = document.getElementById('year');
-      if (el) el.textContent = y;
-    })();
-    
-    function launch(myLink) {
-      fetch('/examples')
-        .then(response => response.json())
-        .then(data => {
-          myLink += '?sig=' + data.sig;
-          window.open(myLink, '_blank');
-        })
-        .catch(error => console.error('Error fetching data:', error));
-    }
-  </script>
+  <script src='/js/year-footer.js'></script>
+  <script src='/js/launch-example.js'></script>
   
   <!-- Structured Data: Organization -->
   <script type="application/ld+json">

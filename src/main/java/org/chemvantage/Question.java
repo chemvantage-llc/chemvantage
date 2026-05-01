@@ -505,24 +505,15 @@ public class Question implements Serializable, Cloneable {
 			buf.append(text);
 			buf.append("<br/>");
 			buf.append("<label for=" + this.id + "><span id='vote" + this.id + "' style='color:#990000;font-size:small;'>(click a star):</span></label><br/>");
+			buf.append("<script src='/js/star-rating.js'></script>\n");
 						
 			for (int i=1;i<6;i++) {
 				buf.append("<img src='images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
-						+ "onmouseover=showStars" + this.id + "(" + i + ") onmouseout=showStars" + this.id + "(0) onclick=showStars" + this.id + "(" + i + ",true) />" ); // mouse actions
+						+ "onmouseover=\"showStarsRating(" + this.id + "," + i + ")\" onmouseout=\"showStarsRating(" + this.id + ",0)\" onclick=\"showStarsRating(" + this.id + "," + i + ",true)\" />" ); // mouse actions
 			}
 			
-			buf.append("&nbsp;&nbsp;&nbsp;&nbsp;<input id=" + this.id + " name=" + this.id + " type=range min=1 max=5 style='opacity:0' onfocus=this.style='opacity:1';this.value=4;showStars" + this.id + "(4,true); oninput='showStars" + this.id + "(this.value,true);' />");
+			buf.append("&nbsp;&nbsp;&nbsp;&nbsp;<input id=" + this.id + " name=" + this.id + " type=range min=1 max=5 style='opacity:0' onfocus=\"this.style='opacity:1';this.value=4;showStarsRating(" + this.id + ",4,true);\" oninput=\"showStarsRating(" + this.id + ",this.value,true);\" />");
 			buf.append("<br clear='all'><br/>");
-			buf.append("<script>"
-					+ "var fixed" + this.id + " = false;"
-					+ "function showStars" + this.id + "(nStars,clicked=false) {"
-					+ "  if (fixed" + this.id + " && !clicked) return;"
-					+ "  document.getElementById('vote" + this.id + "').innerHTML=(nStars==0?'(click a star)':nStars+(nStars>1?' stars':' star'));"  // unary operator + converts string to int
-					+ "  for (i=1;i<6;i++) document.getElementById('star'+i+'" + this.id + "').src = (nStars<i?'https://images.chemvantage.org/star1.gif':'https://images.chemvantage.org/star2.gif');"
-					+ "  fixed" + this.id + " = clicked;"
-					+ "  if (clicked) document.getElementById('" + this.id + "').value=nStars;"
-					+ "}"
-					+ "</script>\n");
 			break;
 		case 7: // Short ESSAY question
 			buf.append(text);

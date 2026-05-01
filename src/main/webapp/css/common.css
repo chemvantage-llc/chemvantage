@@ -1,0 +1,32 @@
+/* Common inline styles extracted from static HTML pages */
+
+/* Global typography */
+body {
+  font-family: 'Poppins', Arial, sans-serif;
+}
+
+/* Icon bullet styling */
+.icon-bullet {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+/* Primary gradient background */
+.bg-gradient-primary {
+  background: linear-gradient(180deg, #0b5ed7 0%, #0d6efd 100%);
+}
+
+/* Section heading + paragraph layout */
+.section-heading + p.lead {
+  max-width: 56rem;
+}
+
+/* Ensure visible focus for keyboard users on minimal devices */
+:focus-visible {
+  outline: 3px solid #fd7e14;
+  outline-offset: 2px;
+}
