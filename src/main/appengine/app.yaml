@@ -1,5 +1,10 @@
 runtime: java21
 instance_class: F2
+env: standard
+
+# SSL/TLS Security: Enforce HTTPS and minimum TLS 1.2
+env_variables:
+  ENFORCE_HTTPS: "true"
 
 inbound_services:
 - warmup
