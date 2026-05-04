@@ -20,6 +20,9 @@ package org.chemvantage;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.text.Collator;
 import java.text.DecimalFormat;
@@ -30,12 +33,10 @@ import java.util.Random;
 
 import com.bestcode.mathparser.IMathParser;
 import com.bestcode.mathparser.MathParserFactory;
-import com.google.cloud.vertexai.VertexAI;
-import com.google.cloud.vertexai.api.GenerateContentResponse;
-import com.google.cloud.vertexai.generativeai.GenerativeModel;
-import com.google.cloud.vertexai.generativeai.ResponseHandler;
-import com.google.cloud.vertexai.api.Content;
-import com.google.cloud.vertexai.api.Part;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
@@ -45,8 +46,6 @@ import com.googlecode.objectify.annotation.OnLoad;
 public class Question implements Serializable, Cloneable {
 	@Serial
 	private static final long serialVersionUID = 137L;
-	private static final String VERTEX_AI_LOCATION = "us-central1";
-	private static final String VERTEX_AI_DEFAULT_MODEL = "gemini-2.5-flash";
 	@Id 	Long id;
 	@Index	long topicId;
 	@Index	Long conceptId; 
@@ -681,56 +680,80 @@ public class Question implements Serializable, Cloneable {
 	String getExplanation() {
 		// if an explanation was stored previously 
 		if (!this.requiresParser() && this.explanation != null && !this.explanation.isEmpty()) return this.explanation;
-		
-		// Otherwise, compute an explanation using Gemini 2.5 Flash via Vertex AI
+		// Otherwise, compute an explanation
 		StringBuffer buf = new StringBuffer();
-		String text = null;  // Declare outside try block so it's accessible after
+		StringBuffer debug = new StringBuffer("Debug: ");
 		try {
-			String systemInfo = "You are a chemistry professor helping a student in General Chemistry. Format your response in HTML with LaTeX. Do not use Markdown delimiters.";
-			String userInput = "Explain why " + this.getCorrectAnswerForSage() + " is the correct answer to the following question:\n\n" + this.printForSage();
+			BufferedReader reader = null;
+			JsonObject api_request = new JsonObject();
+			api_request.addProperty("model", Subject.getGPTModel());
+			  JsonObject prompt = new JsonObject();
+			  prompt.addProperty("id", "pmpt_68ae17560ce08197a4584964c31e79510acd7153761d1f7b");
+			    JsonObject variables = new JsonObject();
+			    variables.addProperty("question_item", this.printForSage());
+			    variables.addProperty("correct_answer", this.getCorrectAnswerForSage());
+			  prompt.add("variables", variables);
+			api_request.add("prompt", prompt);
+			String response_format = "{'format':{'type':'json_schema','name':'answer_explanation','schema':{'type':'object','properties':{'explanation':{'type':'string'}},'required':['explanation'],'additionalProperties':false},'strict':true}}";
+			api_request.add("text", JsonParser.parseString(response_format).getAsJsonObject());
 			
-			// Validate inputs
-			if (userInput == null || userInput.trim().isEmpty()) {
-				throw new Exception("Question or answer text is empty");
+			URL u = new URI("https://api.openai.com/v1/responses").toURL();
+			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+			uc.setRequestMethod("POST");
+			uc.setDoInput(true);
+			uc.setDoOutput(true);
+			uc.setRequestProperty("Authorization", "Bearer " + Subject.getOpenAIKey());
+			uc.setRequestProperty("Content-Type", "application/json");
+			uc.setRequestProperty("Accept", "application/json");
+			OutputStream os = uc.getOutputStream();
+			byte[] json_bytes = api_request.toString().getBytes("utf-8");
+			os.write(json_bytes, 0, json_bytes.length);           
+			os.close();
+			
+			int response_code = uc.getResponseCode();
+			debug.append("HTTP Response Code: " + response_code);
+			
+			JsonObject api_response = null;
+			if (response_code/100==2) {
+				reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
+				api_response = JsonParser.parseReader(reader).getAsJsonObject();
+				debug.append(api_response.toString());
+				reader.close();
+			} else {
+				reader = new BufferedReader(new InputStreamReader(uc.getErrorStream()));
+				debug.append(JsonParser.parseReader(reader).getAsJsonObject().toString());
+				reader.close();
 			}
 			
-			String projectId = Subject.getProjectId();
-			if (projectId == null || projectId.trim().isEmpty()) {
-				throw new Exception("GCP project ID not configured (Subject.getProjectId() returned: " + projectId + ")");
-			}
-			
-			// Call Vertex AI with natural language response (no structured output required)
-			try (VertexAI vertexAI = new VertexAI(projectId, VERTEX_AI_LOCATION)) {
-				GenerativeModel model = new GenerativeModel.Builder()
-						.setModelName(VERTEX_AI_DEFAULT_MODEL)
-						.setVertexAi(vertexAI)
-						.setSystemInstruction(Content.newBuilder()
-                    		.addParts(Part.newBuilder().setText(systemInfo).build())
-                    		.build())
-						.build();
-				
-				GenerateContentResponse response = model.generateContent(userInput);
-				text = ResponseHandler.getText(response);
-				
-				if (text == null || text.trim().isEmpty()) {
-					throw new Exception("Vertex AI response did not contain answer text.");
+			// Find the output text buried in the response JSON:
+			if (api_response != null) {
+				JsonArray output = api_response.get("output").getAsJsonArray();
+				for (JsonElement o : output) {
+					JsonObject message = o.getAsJsonObject();
+					if (message.get("type").getAsString().equals("message") && message.has("content")) {
+						JsonArray content = message.get("content").getAsJsonArray();
+						for (JsonElement c : content) {
+							JsonObject output_text = c.getAsJsonObject();
+							if (output_text.has("text")) {
+								String textContent = output_text.get("text").getAsString();  // this is the essay score JSON string
+								JsonObject explanation = JsonParser.parseString(textContent).getAsJsonObject();
+								this.explanation = explanation.get("explanation").getAsString();
+								break;
+							} else if (output_text.has("refusal")) {
+								this.explanation = "Sorry, an explanation is not available at this time.";
+								break;
+							}
+						}
+						break;
+					}
 				}
 			}
-			
-			// Store the explanation in the database for future reference
-			// (only for questions that do not require parsing, since parsing changes the correct answer for every student)
-			if (!this.requiresParser()) {
-				this.explanation = text.trim();
-				ofy().save().entity(this);
-			} else {
-				this.explanation = text.trim();  // Still set in memory even if not saved
-			}
-			
+						
+			if (!this.requiresParser()) ofy().save().entity(this);
 			buf.append(this.explanation);
+			//buf.append("<br/>" + (api_response==null?"api_response was null":api_response.toString()));
 		} catch (Exception e) {
-			String errorMsg = e.getMessage() == null ? e.toString() : e.getMessage();
-			e.printStackTrace();  // Log full stack trace for debugging
-			buf.append("<br/>Sorry, an explanation is not available at this time. Error: " + errorMsg);
+			buf.append("<br/>Sorry, an explanation is not available at this time. " + (e.getMessage()==null?e.toString():e.toString()) + "<p>" + debug.toString() + "<p>");
 		}
 		return buf.toString();
 	}
