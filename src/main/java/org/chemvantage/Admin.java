@@ -378,6 +378,14 @@ public class Admin extends HttpServlet {
 					+ "Search for: <input type=text name=searchFor /><input type=submit name=UserRequest value='Find text' />"
 					+ "</form><p>");
 			
+			// AI Review Queue
+			int needsReview = ofy().load().type(Question.class).filter("checkedByAI", false).count();
+			if (needsReview > 0) {
+				buf.append("<h2>AI Review Queue</h2>");
+				buf.append("There are " + needsReview + " questions that failed the AI review. ");
+				buf.append("<a href='/Edit?UserRequest=ReviewAI'>Review Questions</a>.<p>");
+			}
+			
 			// Regression Tester
 			buf.append("<h2>Regression Tester</h2>");
 			buf.append("<a href='https://test-vantage.appspot.com/' target='_blank'>Run regression tests interactively</a><br/>");

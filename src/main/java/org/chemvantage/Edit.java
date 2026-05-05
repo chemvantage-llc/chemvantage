@@ -125,12 +125,15 @@ public class Edit extends HttpServlet {
 			case "NewQuestionForm": 
 				out.println(newQuestionForm(user,request)); 
 				break;
+			case "ReviewAI":
+				out.println(reviewAI());
+				break;
 			case "Review":
 			case "Skip":
 				out.println(reviewProposedQuestion(user,request)); 
 				break;
 			case "Edit": 
-				out.println(editCurrentQuestion(user,request));
+				out.println(editCurrentQuestion(request));
 				break;
 			case "Discard Question":
 				try {
@@ -734,7 +737,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		ofy().delete().key(key(Video.class,Long.parseLong(request.getParameter("VideoId")))).now();
 	}
 
-	String editCurrentQuestion (User user,HttpServletRequest request) {
+	String editCurrentQuestion (HttpServletRequest request) {
 		Long questionId = null;
 		Question q = null;
 		Long assignmentId = null;
@@ -743,10 +746,10 @@ void assignToConcept(User user, HttpServletRequest request) {
 			q = ofy().load().type(Question.class).id(questionId).safe();
 			assignmentId = Long.parseLong(request.getParameter("AssignmentId"));
 		} catch (Exception e) {}
-		return editCurrentQuestion(user,q,assignmentId);
+		return editCurrentQuestion(q,assignmentId);
 	}
 
-	String editCurrentQuestion (User user,Question q, Long assignmentId) {
+	String editCurrentQuestion (Question q, Long assignmentId) {
 		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
 				+ "      <div class='container py-5'>"
 				+ "          <div class='col-lg-7'>"
@@ -1013,7 +1016,9 @@ void assignToConcept(User user, HttpServletRequest request) {
 			conceptId = Long.parseLong(request.getParameter("ConceptId"));
 			questionKeys = loadQuestions(assignmentType,conceptId);
 		} catch (Exception e) {}
-						
+		
+		int needsAttention  = ofy().load().type(Question.class).filter("checkedByAI",false).count();
+
 		if (assignmentId == null) {
 			if (assignmentType == null) {
 				int nPending = ofy().load().type(ProposedQuestion.class).count();
@@ -1023,6 +1028,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				buf.append("<a href=/Edit?UserRequest=ManageVideos>Manage Videos</a><br/>");
 				buf.append("<a href=/Edit?UserRequest=ManageTexts>Manage Texts</a><br/>");
 				buf.append("<a href=/Edit?UserRequest=ManageOrphanQuestions>Manage Orphan Questions</a><br/>");
+				buf.append("<a href=/Edit?UserRequest=ReviewAI>Review AI Questions (" + needsAttention + " need attention)</a><br/>");
 				buf.append("<form><label>Assignment ID: <input type=text name=AssignmentId /></label> <input type=submit value=Select></form>");
 			}
 
@@ -1629,6 +1635,25 @@ void assignToConcept(User user, HttpServletRequest request) {
 			}
 		} catch (Exception e) {
 			throw new Exception("Vertex AI API error: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+		}
+	}
+
+	String reviewAI() {
+		StringBuffer buf = new StringBuffer("""
+			<section class='bg-gradient-primary text-white' style='max-width:500px'>
+				<div class='container py-5'>
+					<div class='col-lg-7'>
+				  		<h1 class='display-5 fw-semibold mb-3'>AI Review</h1>
+				  	</div>
+				</div>
+			 </section><p>
+		 """);
+		List<Key<Question>>questionKeys = ofy().load().type(Question.class).filter("checkedByAI", false).keys().list();
+		if (questionKeys.size()==0) return buf.append("No questions pending AI review.").toString();
+		else {
+			questions = ofy().load().keys(questionKeys);
+			Question q = ofy().load().key(questionKeys.get(0)).safe();
+			return editCurrentQuestion(q,null);
 		}
 	}
 
