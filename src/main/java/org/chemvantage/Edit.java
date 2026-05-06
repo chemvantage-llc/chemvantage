@@ -145,9 +145,12 @@ public class Edit extends HttpServlet {
 			case "ValidateAssignmentWithAI":
 				out.println(validateAssignmentWithAI(request)); // interactive validation that displays results on the page
 				break;
-			case "Refresh":
+			case "Quit":
+				out.println(editorsPage(user,request));
+				break;
+			default: 
 				questions.clear();
-			default: out.println(editorsPage(user,request));
+				out.println(editorsPage(user,request));
 			}
 			
 		} catch (Exception e) {
@@ -300,9 +303,14 @@ public class Edit extends HttpServlet {
 			case "ValidateAssignmentWithAI":
 				validateAssignmentWithAI(request); // initiates a Cloud Task; results are emailed to the administrator and not displayed on the page
 				break;
-			default: out.println(editorsPage(user,request));
+			case "Quit":
+				try {
+					Question q = ofy().load().type(Question.class).id(Long.parseLong(request.getParameter("QuestionId"))).safe();
+					questions.replace(key(q), q);
+				} catch (Exception e) {}
+			default:
+				out.println(editorsPage(user,request));
 			}
-
 		} catch (Exception e) {
 			if (isJsonRequest) {
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -750,13 +758,15 @@ void assignToConcept(User user, HttpServletRequest request) {
 	}
 
 	String editCurrentQuestion (Question q, Long assignmentId) {
-		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
-				+ "      <div class='container py-5'>"
-				+ "          <div class='col-lg-7'>"
-				+ "            <h1 class='display-5 fw-semibold mb-3'>Editors</h1>"
-				+ "          </div>"
-				+ "        </div>"
-				+ "    </section><p>");
+		StringBuffer buf = new StringBuffer("""
+			<section class='bg-gradient-primary text-white' style='max-width:500px'>
+				<div class='container py-5'>
+					<div class='col-lg-7'>
+						<h1 class='display-5 fw-semibold mb-3'>Editors</h1>
+					</div>
+				</div>
+			</section><p>
+		""");
 		try {
 			long questionId = q.id;
 			Concept c = (q.conceptId==null || q.conceptId==0L)?null:ofy().load().type(Concept.class).id(q.conceptId).now();
@@ -777,27 +787,34 @@ void assignToConcept(User user, HttpServletRequest request) {
 				buf.append("<div id='AIAnswerContainer'>" + (q.checkedByAI?"&#x2705; Validated":"&#x26A0;&#xFE0F; Flagged by AI. <a href='#' onClick=\"validateCorrectAnswerWithAI('" + questionId + "','" + parameterSeed + "')\">Recheck</a>") + "</div><br/>");
 			}
 			
-			buf.append("<script>\n"
-					+ "async function validateCorrectAnswerWithAI(questionId,parameterSeed) {\n"
-					+ "  const ai_answer_container = document.getElementById('AIAnswerContainer');\n"
-					+ "  ai_answer_container.textContent = 'Validating...';\n"
-					+ "  var result;\n"
-					+ "  try {\n"
-					+ "    const response = await fetch('/Edit', {\n"
-					+ "      method: 'POST',\n"
-					+ "      headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},\n"
-					+ "      body: new URLSearchParams({UserRequest: 'ValidateCorrectAnswerWithAI', QuestionId: String(questionId), ParameterSeed: String(parameterSeed)})\n"
-					+ "    });\n"
-					+ "    result = await response.json();\n"
-					+ "    console.log(result);\n"
-					+ "    if (!response.ok) throw new Error(result.message || 'Validation failed.');\n"
-					+ "    ai_answer_container.innerHTML = (result.isCorrect ? '&#x2705; Checked by AI.' : '&#x26A0;&#xFE0F; Flagged by AI.') + ' The best answer is: ' + result.best_answer + '<br/>';\n"
-					+ "  } catch (err) {\n"
-					+ "    const details = result ? (' ' + JSON.stringify(result)) : '';\n"
-					+ "    ai_answer_container.textContent = 'Validation failed. ' + details;\n"
-					+ "  }\n"
-					+ "}\n"
-					+ "</script>");
+			buf.append("""
+				<script>
+				async function validateCorrectAnswerWithAI(questionId,parameterSeed) {
+					const ai_answer_container = document.getElementById('AIAnswerContainer');
+					ai_answer_container.textContent = 'Validating...';
+					var result;
+					try {
+						const response = await fetch('/Edit', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+							body: new URLSearchParams({UserRequest: 'ValidateCorrectAnswerWithAI', QuestionId: String(questionId), ParameterSeed: String(parameterSeed)})
+						});
+						result = await response.json();
+						console.log(result);
+						if (!response.ok) throw new Error(result.message || 'Validation failed.');
+						if (result.isCorrect) {
+							ai_answer_container.innerHTML = '&#x2705; Checked by AI. ';
+							document.querySelector('input[name="CheckedByAI"]').checked = true; // check the "Checked by AI" box
+						} else {
+							ai_answer_container.innerHTML = '&#x26A0;&#xFE0F; Flagged by AI. The best answer is: ' + result.best_answer + '<br/>';
+						}
+					} catch (err) {
+						const details = result ? (' ' + JSON.stringify(result)) : '';
+						ai_answer_container.textContent = 'Validation failed. ' + details;
+					}
+				}
+				</script>
+			""");
 			
 			buf.append("<FORM Action=/Edit METHOD=POST>");
 			
@@ -818,7 +835,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			buf.append(("Custom".equals(q.assignmentType)?"":"Concept:" + conceptSelectBox(q.conceptId) + "<br/>"));
 			buf.append("Question Type:" + questionTypeDropDownBox(q.getQuestionType()));
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br/>");
-			buf.append("<label><input type=checkbox name=CheckedByAI value=true /> Approve manually</label><br/><br/>");
+			buf.append("<label><input type=checkbox name=CheckedByAI value=true /> Checked by AI</label><br/><br/>");
 
 			buf.append(q.edit());
 			
@@ -994,146 +1011,157 @@ void assignToConcept(User user, HttpServletRequest request) {
 	}
 */
 	String editorsPage(User user,HttpServletRequest request) {
-		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
-				+ "      <div class='container py-5'>"
-				+ "          <div class='col-lg-7'>"
-				+ "            <h1 class='display-5 fw-semibold mb-3'>Editors</h1>"
-				+ "          </div>"
-				+ "        </div>"
-				+ "    </section><p>");
-		Long assignmentId = null;
-		List<Key<Question>> questionKeys = null;
-		try {
-			assignmentId = Long.parseLong(request.getParameter("AssignmentId"));
-			questionKeys = loadQuestions(assignmentId);
-			buf.append("<h2>Questions for Assignment " + assignmentId + "</h2>");
-		} catch (Exception e) {}
-
-		Long conceptId = null;
-		String assignmentType = request.getParameter("AssignmentType");
-		try {
-			if (assignmentId != null) throw new Exception();  // if AssignmentId is present, ignore ConceptId parameter
-			conceptId = Long.parseLong(request.getParameter("ConceptId"));
-			questionKeys = loadQuestions(assignmentType,conceptId);
-		} catch (Exception e) {}
+		StringBuffer buf = new StringBuffer("""
+			<section class='bg-gradient-primary text-white' style='max-width:500px'>
+				<div class='container py-5'>
+					<div class='col-lg-7'>
+						<h1 class='display-5 fw-semibold mb-3'>Editors</h1>
+					</div>
+				</div>
+			</section><p>
+			""");
 		
-		int needsAttention  = ofy().load().type(Question.class).filter("checkedByAI",false).count();
+		// Load a set of question based on the presence of an AssignmentId, AssignmentType & ConceptId or items needing review
+		String assignmentType = null;
+		Long assignmentId = null;
+		Long conceptId = null;
+		int needsAttention  = 0;
+		int nPending = 0;
+		List<Key<Question>> questionKeys = null;
+		
+		if (questions.size() > 0) questionKeys = new ArrayList<>(questions.keySet());
+		else { // use the parameters to load a relevant set of questions for review/editing
+			try {
+				assignmentId = Long.parseLong(request.getParameter("AssignmentId"));
+				questionKeys = loadQuestions(assignmentId);
+				buf.append("<h2>Questions for Assignment " + assignmentId + "</h2>");
+			} catch (Exception e) {}
 
-		if (assignmentId == null) {
-			if (assignmentType == null) {
-				int nPending = ofy().load().type(ProposedQuestion.class).count();
-				buf.append("<a href=Edit?UserRequest=Review>"
-						+ nPending + " items are currently pending editorial review.</a><br/>");
-				buf.append("<a href=/Edit?UserRequest=ManageConcepts>Manage Concepts</a><br/>");
-				buf.append("<a href=/Edit?UserRequest=ManageVideos>Manage Videos</a><br/>");
-				buf.append("<a href=/Edit?UserRequest=ManageTexts>Manage Texts</a><br/>");
-				buf.append("<a href=/Edit?UserRequest=ManageOrphanQuestions>Manage Orphan Questions</a><br/>");
-				buf.append("<a href=/Edit?UserRequest=ReviewAI>Review AI Questions (" + needsAttention + " need attention)</a><br/>");
-				buf.append("<form><label>Assignment ID: <input type=text name=AssignmentId /></label> <input type=submit value=Select></form>");
-			}
-
-			// display a table to select questions by AssignmentType and Text/Chapter/Concept or directly by Concept:
-			buf.append("<div style=display:table><div style=display:table-row>");
-			buf.append("<form method=get action=/Edit>");
-			
-			Text text = null;
-			Chapter chapter = null;
-			Concept concept = null;
-			
-			// the first cell contains a set of radio buttons to select the AssignmentTypoe
-			buf.append("<div style='display:table-cell;padding-right:25px;'><h4>Select an Assignment Type</h4>");
-			buf.append("<label><input type=radio name=AssignmentType value=Quiz " + ("Quiz".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Quiz</label><br/>");
-			buf.append("<label><input type=radio name=AssignmentType value=Homework " + ("Homework".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Homework</label><br/>");
-			buf.append("<label><input type=radio name=AssignmentType value=Sage " + ("Sage".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Sage</label><br/>");
-			buf.append("<label><input type=radio name=AssignmentType value=Exam " + ("Exam".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Exam</label><br/>");
-			buf.append("</div>");  // end cell1
-			
-			if (assignmentType != null) {  // ask for text or concept
-				// the second cell contains selectors for text and chapter (optional)
-				Long textId = null;
+			assignmentType = request.getParameter("AssignmentType");
+			if (assignmentId==null && assignmentType!=null) {
 				try {
-					textId = Long.parseLong(request.getParameter("TextId"));
+					conceptId = Long.parseLong(request.getParameter("ConceptId"));
+					questionKeys = loadQuestions(assignmentType,conceptId);
 				} catch (Exception e) {}
-				Text allTopics = null;
-				List<Text> texts = ofy().load().type(Text.class).list();
-				buf.append("<div style='display:table-cell;padding-right:25px;'><h4>Select a Text/Chapter</h4>");
-				buf.append("<select id=tsel name=TextId onChange=this.form.submit();>"
-						+ "<option>Select a text</option>");
-				for (Text t : texts) {
-					if (t.chapters.isEmpty()) continue;
-					if (t.id.equals(textId)) text = t;
-					if (t.title.equals("View All Topics")) {
-						allTopics = t;
-						continue;
-					}
-					buf.append("<option value=" + t.id + (t.id.equals(textId)?" selected>":">") + t.title + "</option>");
+			}
+			
+			if (assignmentId == null) {
+				if (assignmentType == null) {
+					needsAttention = ofy().load().type(Question.class).filter("checkedByAI",false).count();
+					nPending = ofy().load().type(ProposedQuestion.class).count();
+					buf.append("<a href=Edit?UserRequest=Review>"
+							+ nPending + " items are currently pending editorial review.</a><br/>");
+					buf.append("<a href=/Edit?UserRequest=ManageConcepts>Manage Concepts</a><br/>");
+					buf.append("<a href=/Edit?UserRequest=ManageVideos>Manage Videos</a><br/>");
+					buf.append("<a href=/Edit?UserRequest=ManageTexts>Manage Texts</a><br/>");
+					buf.append("<a href=/Edit?UserRequest=ManageOrphanQuestions>Manage Orphan Questions</a><br/>");
+					buf.append("<a href=/Edit?UserRequest=ReviewAI>Review AI Questions (" + needsAttention + " need attention)</a><br/>");
+					buf.append("<form><label>Assignment ID: <input type=text name=AssignmentId /></label> <input type=submit value=Select></form>");
 				}
-				if (allTopics != null) buf.append("<option value=" + allTopics.id + (allTopics.id.equals(textId)?" selected>":">") + allTopics.title + "</option>");
-				buf.append("</select>"
-						+ "<button type=button onclick=document.getElementById('tsel').value='null';this.form.submit();>Reset</button>"
-						+ "<br/><br/>");
-				// next, present a selector for a chapter if the text is known
-				Integer chapterNumber = null;
-				if (text != null) {
-					try {
-						chapterNumber = Integer.parseInt(request.getParameter("ChapterNumber"));
-					} catch (Exception e) {}
-					buf.append("<select name=ChapterNumber onChange=this.form.submit();>"
-							+ "<option>Select a chapter</option>");
-					for (Chapter ch : text.chapters) {
-						if (chapterNumber!=null && chapterNumber.equals(ch.chapterNumber)) chapter = ch;
-						buf.append("<option value=" + ch.chapterNumber + (ch.equals(chapter)?" selected>":">") + ch.title + "</option>");
-					}
-					buf.append("</select>");
-				}
-				buf.append("</div>");  // end cell2
 
-				// the third cell contains a selector for a Concept
-				buf.append("<div style='display:table-cell;'><h4>Select a Key Concept</h4>");
-				List<Key<Concept>> conceptKeys = ofy().load().type(Concept.class).order("orderBy").keys().list();
-				Map<Key<Concept>,Concept> concepts = ofy().load().keys(conceptKeys);
-				if (conceptId!=null) concept = concepts.get(key(Concept.class,conceptId));
+				// display a table to select questions by AssignmentType and Text/Chapter/Concept or directly by Concept:
+				buf.append("<div style=display:table><div style=display:table-row>");
+				buf.append("<form method=get action=/Edit>");
 				
-				if (chapter!=null) {  // present a radio-style selector for chapter concepts
-					for (Long cId : chapter.conceptIds) {
-						int nQuestions = ofy().load().type(Question.class).filter("assignmentType",assignmentType).filter("conceptId",cId).count();
-						buf.append("<label><input type=radio name=ConceptId value=" + cId 
-							+ (cId.equals(conceptId)?" checked />":" onClick=this.form.submit(); />") 
-							+ concepts.get(key(Concept.class,cId)).title + " (" + nQuestions + ")</label><br/>");
+				Text text = null;
+				Chapter chapter = null;
+				Concept concept = null;
+				
+				// the first cell contains a set of radio buttons to select the AssignmentTypoe
+				buf.append("<div style='display:table-cell;padding-right:25px;'><h4>Select an Assignment Type</h4>");
+				buf.append("<label><input type=radio name=AssignmentType value=Quiz " + ("Quiz".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Quiz</label><br/>");
+				buf.append("<label><input type=radio name=AssignmentType value=Homework " + ("Homework".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Homework</label><br/>");
+				buf.append("<label><input type=radio name=AssignmentType value=Sage " + ("Sage".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Sage</label><br/>");
+				buf.append("<label><input type=radio name=AssignmentType value=Exam " + ("Exam".equals(assignmentType)?"checked":"onClick=this.form.submit()") + " />Exam</label><br/>");
+				buf.append("</div>");  // end cell1
+				
+				if (assignmentType != null) {  // ask for text or concept
+					// the second cell contains selectors for text and chapter (optional)
+					Long textId = null;
+					try {
+						textId = Long.parseLong(request.getParameter("TextId"));
+					} catch (Exception e) {}
+					Text allTopics = null;
+					List<Text> texts = ofy().load().type(Text.class).list();
+					buf.append("<div style='display:table-cell;padding-right:25px;'><h4>Select a Text/Chapter</h4>");
+					buf.append("<select id=tsel name=TextId onChange=this.form.submit();>"
+							+ "<option>Select a text</option>");
+					for (Text t : texts) {
+						if (t.chapters.isEmpty()) continue;
+						if (t.id.equals(textId)) text = t;
+						if (t.title.equals("View All Topics")) {
+							allTopics = t;
+							continue;
+						}
+						buf.append("<option value=" + t.id + (t.id.equals(textId)?" selected>":">") + t.title + "</option>");
 					}
-				} else if (text==null) {  // otherwise show a drop-down selector for all concepts
-					buf.append("<select id=csel name=ConceptId onchange=document.getElementById('tsel').value='null';this.form.submit()><option>Select a concept</option>");
-					for (Key<Concept> k : conceptKeys) {
-						Concept c = concepts.get(k);
-						buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + c.title + "</option>");
-					}
+					if (allTopics != null) buf.append("<option value=" + allTopics.id + (allTopics.id.equals(textId)?" selected>":">") + allTopics.title + "</option>");
 					buf.append("</select>"
-							+ "<button type=button onclick=document.getElementById('csel').value='null';this.form.submit();>Reset</button>");
-				}
-				buf.append("</div>");  // end cell3
-			}
-			buf.append("</form>");
-			buf.append("</div></div><br/>"); // end row,table
+							+ "<button type=button onclick=document.getElementById('tsel').value='null';this.form.submit();>Reset</button>"
+							+ "<br/><br/>");
+					// next, present a selector for a chapter if the text is known
+					Integer chapterNumber = null;
+					if (text != null) {
+						try {
+							chapterNumber = Integer.parseInt(request.getParameter("ChapterNumber"));
+						} catch (Exception e) {}
+						buf.append("<select name=ChapterNumber onChange=this.form.submit();>"
+								+ "<option>Select a chapter</option>");
+						for (Chapter ch : text.chapters) {
+							if (chapterNumber!=null && chapterNumber.equals(ch.chapterNumber)) chapter = ch;
+							buf.append("<option value=" + ch.chapterNumber + (ch.equals(chapter)?" selected>":">") + ch.title + "</option>");
+						}
+						buf.append("</select>");
+					}
+					buf.append("</div>");  // end cell2
 
-			if (concept != null) {
-				buf.append("<h3>Questions for Concept: " + concept.title + "</h3>");
-				buf.append("<FORM NAME=NewQuestion METHOD=GET ACTION=/Edit>New: "
-						+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE=NewQuestionForm />"
-						+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + concept.id + "'>"
-						+ "<INPUT TYPE=HIDDEN NAME=AssignmentType VALUE='" + assignmentType + "'>"
-						+ "<INPUT TYPE=HIDDEN NAME=QuestionType>"
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=1;submit()\" VALUE='Multiple Choice'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=2;submit()\" VALUE='True/False'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=3;submit()\" VALUE='Select Multiple'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=4;submit()\" VALUE='Fill in Word'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=5;submit()\" VALUE='Numeric'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=6;submit()\" VALUE='Five Star'> "
-						+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=7;submit()\" VALUE='Essay'> "
-						+ "</FORM><br/>");
+					// the third cell contains a selector for a Concept
+					buf.append("<div style='display:table-cell;'><h4>Select a Key Concept</h4>");
+					List<Key<Concept>> conceptKeys = ofy().load().type(Concept.class).order("orderBy").keys().list();
+					Map<Key<Concept>,Concept> concepts = ofy().load().keys(conceptKeys);
+					if (conceptId!=null) concept = concepts.get(key(Concept.class,conceptId));
+					
+					if (chapter!=null) {  // present a radio-style selector for chapter concepts
+						for (Long cId : chapter.conceptIds) {
+							int nQuestions = ofy().load().type(Question.class).filter("assignmentType",assignmentType).filter("conceptId",cId).count();
+							buf.append("<label><input type=radio name=ConceptId value=" + cId 
+								+ (cId.equals(conceptId)?" checked />":" onClick=this.form.submit(); />") 
+								+ concepts.get(key(Concept.class,cId)).title + " (" + nQuestions + ")</label><br/>");
+						}
+					} else if (text==null) {  // otherwise show a drop-down selector for all concepts
+						buf.append("<select id=csel name=ConceptId onchange=document.getElementById('tsel').value='null';this.form.submit()><option>Select a concept</option>");
+						for (Key<Concept> k : conceptKeys) {
+							Concept c = concepts.get(k);
+							buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + c.title + "</option>");
+						}
+						buf.append("</select>"
+								+ "<button type=button onclick=document.getElementById('csel').value='null';this.form.submit();>Reset</button>");
+					}
+					buf.append("</div>");  // end cell3
+				}
+				buf.append("</form>");
+				buf.append("</div></div><br/>"); // end row,table
+
+				if (concept != null) {
+					buf.append("<h2>Questions for Concept: " + concept.title + "</h2>");
+					buf.append("<FORM NAME=NewQuestion METHOD=GET ACTION=/Edit>New: "
+							+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE=NewQuestionForm />"
+							+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + concept.id + "'>"
+							+ "<INPUT TYPE=HIDDEN NAME=AssignmentType VALUE='" + assignmentType + "'>"
+							+ "<INPUT TYPE=HIDDEN NAME=QuestionType>"
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=1;submit()\" VALUE='Multiple Choice'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=2;submit()\" VALUE='True/False'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=3;submit()\" VALUE='Select Multiple'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=4;submit()\" VALUE='Fill in Word'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=5;submit()\" VALUE='Numeric'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=6;submit()\" VALUE='Five Star'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=7;submit()\" VALUE='Essay'> "
+							+ "</FORM><br/>");
+				}
 			}
+			if (questionKeys == null || questions.size() == 0) return buf.toString();
 		}
-		if (questionKeys == null || questions.size() == 0) return buf.toString();
-	
+
 		buf.append("<TABLE BORDER=0 CELLSPACING=3 CELLPADDING=0>");
 		int i=0;
 		int pts = 0;
@@ -1561,7 +1589,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			} else q.pointValue = 1;
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br>");
 			
-			buf.append("<label><input type=checkbox name=CheckedByAI value=true " + (Boolean.TRUE.equals(q.checkedByAI)?" checked":"") + " /> Approve manually</label><br/><br/>");
+			buf.append("<label><input type=checkbox name=CheckedByAI value=true " + (Boolean.TRUE.equals(q.checkedByAI)?" checked":"") + " /> Checked by AI</label><br/><br/>");
 
 			buf.append(q.edit());
 			
@@ -1659,18 +1687,21 @@ void assignToConcept(User user, HttpServletRequest request) {
 
 	String reviewProposedQuestion (User user, HttpServletRequest request) {
 		// identifies a ProposedQuestion item, either from a specific questionId or next in the list
-		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
-				+ "      <div class='container py-5'>"
-				+ "          <div class='col-lg-7'>"
-				+ "            <h1 class='display-5 fw-semibold mb-3'>Editor</h1>"
-				+ "          </div>"
-				+ "        </div>"
-				+ "    </section><p>");
+		StringBuffer buf = new StringBuffer("""
+			<section class='bg-gradient-primary text-white' style='max-width:500px'>
+				<div class='container py-5'>
+					<div class='col-lg-7'>
+						<h1 class='display-5 fw-semibold mb-3'>Editor</h1>
+					</div>
+				</div>
+		 	</section><p>
+		""");
 		buf.append("<h2>Proposed Question</h2>");
 		try {
 			List<Key<ProposedQuestion>> pendingQuestionKeys = ofy().load().type(ProposedQuestion.class).keys().list();
 			if (pendingQuestionKeys.size()==0) return editorsPage(user,request);  // done!
-			
+			questions.clear();
+
 			String questionId = request.getParameter("NextQuestionId");
 			ProposedQuestion q = null;
 			if (questionId==null) { // get the first question in the list
@@ -2011,7 +2042,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			q.editorId = user.getId();
 			q.isActive = true;
 			ofy().save().entity(q).now();
-			questions.remove(key(q));
+			questions.replace(key(q), q);
 		} catch (Exception e) {
 			return;
 		}
@@ -2244,8 +2275,12 @@ void assignToConcept(User user, HttpServletRequest request) {
 			q.setParameters(parameterSeed);
 		} catch (Exception e) {}
 		JsonObject api_response = requestValidationFromGemini(q);
-		q.checkedByAI = api_response.get("isCorrect").getAsBoolean();
-		ofy().save().entity(q);
+		if (api_response.get("isCorrect").getAsBoolean() || q.isCorrect(api_response.get("best_answer").getAsString())) {
+			q.checkedByAI = true;
+		} else {
+			q.checkedByAI = false;
+		}
+		ofy().save().entity(q).now();
 		return api_response;
 	}
 
