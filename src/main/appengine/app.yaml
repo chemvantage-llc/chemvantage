@@ -2,7 +2,15 @@ runtime: java21
 instance_class: F2
 env: standard
 
-# SSL/TLS Security: Enforce HTTPS and minimum TLS 1.2
+# SSL/TLS Security Configuration
+# Google Cloud App Engine provides TLS termination with strong ciphers by default.
+# The application is also configured via TLSSecurityConfiguration.java to:
+# - Enforce minimum TLS 1.2 (disables SSL, TLS 1.0, TLS 1.1)
+# - Use only AEAD cipher suites (GCM, ChaCha20-Poly1305)
+# - Disable weak ciphers: DES, 3DES, Blowfish, RC4, MD5
+# - Disable ciphers with keys < 128-bit
+# - Disable anonymous/null/export-grade ciphers
+# - Disable 64-bit block ciphers
 env_variables:
   ENFORCE_HTTPS: "true"
 
