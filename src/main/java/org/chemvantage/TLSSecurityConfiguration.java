@@ -1,10 +1,5 @@
 package org.chemvantage;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.springframework.boot.web.embedded.tomcat.TomcatConnectorCustomizer;
