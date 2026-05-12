@@ -5,6 +5,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 
 @Component // Registers this filter globally in Spring Boot
 public class DomainRedirectFilter implements Filter {
@@ -17,8 +19,15 @@ public class DomainRedirectFilter implements Filter {
     
         String serverName = req.getServerName();
     
-        // Add security headers to all responses
-        addSecurityHeaders(res);
+        // Add security headers to all responses (detects LTI context automatically)
+        addSecurityHeaders(res, req);
+        
+        // Handle CORS preflight OPTIONS requests for LTI iframe embedding
+        if ("OPTIONS".equalsIgnoreCase(req.getMethod()) && isLtiRequest(req)) {
+            res.setStatus(HttpServletResponse.SC_OK);
+            res.flushBuffer();
+            return;
+        }
         
         // Check for naked domain
         if ("chemvantage.org".equalsIgnoreCase(serverName)) {
@@ -37,32 +46,42 @@ public class DomainRedirectFilter implements Filter {
     }
     
     /**
-     * Add security headers to all HTTP responses.
-     * Implements defense-in-depth security controls.
+     * Add security headers to HTTP responses, conditionally allowing LTI iframe embedding.
+     * 
+     * LTI context is detected by:
+     * 1. Direct LTI endpoints: /lti/launch, /lti/deeplinks
+     * 2. Valid LTI user token (sig parameter) with User.platformId set
+     * 
+     * For LTI requests, frame-ancestors and X-Frame-Options are relaxed to allow LMS embedding.
+     * For other requests, strict SAMEORIGIN policy is enforced to prevent clickjacking.
      */
-    private void addSecurityHeaders(HttpServletResponse response) {
+    private void addSecurityHeaders(HttpServletResponse response, HttpServletRequest request) {
+        boolean isLtiContext = isLtiRequest(request);
+        
         // HSTS (HTTP Strict-Transport-Security)
         // Forces browser to use HTTPS for all future requests for 1 year (31536000 seconds)
         // includeSubDomains ensures all subdomains are covered
         response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
         
         // Content Security Policy (CSP) - prevents XSS and injection attacks
-        // Uses 'self' for scripts/styles, blocks external inline scripts
+        // frame-ancestors is adjusted based on LTI context
+        String frameAncestors = isLtiContext ? "'self' *" : "'self'";
         response.setHeader("Content-Security-Policy", 
             "default-src 'self'; " +
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; " +
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; " +
             "img-src 'self' images.chemvantage.org fonts.gstatic.com; " +
-            "font-src 'self' fonts.gstatic.com fonts.googleapis.com; " +
-            "connect-src 'self'; " +
-            "frame-ancestors 'self'; " +
+            "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdn.jsdelivr.net; " +
+            "connect-src 'self' cdn.jsdelivr.net; " +
+            "frame-ancestors " + frameAncestors + "; " +
             "upgrade-insecure-requests; block-all-mixed-content");
         
         // X-Content-Type-Options - prevents MIME-sniffing attacks
         response.setHeader("X-Content-Type-Options", "nosniff");
         
-        // X-Frame-Options - prevents clickjacking attacks
-        response.setHeader("X-Frame-Options", "SAMEORIGIN");
+        // X-Frame-Options - prevents clickjacking attacks (adjusted for LTI)
+        String frameOptions = isLtiContext ? "ALLOWALL" : "SAMEORIGIN";
+        response.setHeader("X-Frame-Options", frameOptions);
         
         // X-XSS-Protection - legacy XSS protection for older browsers
         response.setHeader("X-XSS-Protection", "1; mode=block");
@@ -80,5 +99,77 @@ public class DomainRedirectFilter implements Filter {
             "magnetometer=(), " +
             "gyroscope=(), " +
             "accelerometer=()");
+        
+        // For LTI iframe embedding: Allow credentials in cross-origin requests
+        if (isLtiContext) {
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+            String origin = request.getHeader("Origin");
+            if (origin != null) {
+                response.setHeader("Access-Control-Allow-Origin", origin);
+                response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD");
+                response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                response.setHeader("Access-Control-Max-Age", "86400");
+            }
+        }
+    }
+    
+    /**
+     * Detect if the current request is from an LTI context.
+     * 
+     * Returns true if:
+     * - Request path contains /lti/launch or /lti/deeplinks
+     * - POST request with id_token parameter (LTI 1.3 launch)
+     * - Valid LTI user token (sig parameter with User.platformId set)
+     * - Cross-origin request (Origin header present) - indicates iframe embedding from LMS
+     */
+    private boolean isLtiRequest(HttpServletRequest request) {
+        String requestPath = request.getRequestURI();
+        
+        // Direct LTI endpoints are always LTI context
+        if (requestPath != null) {
+            String normalizedPath = requestPath.toLowerCase();
+            if (normalizedPath.contains("/lti/launch") || normalizedPath.contains("/lti/deeplinks")) {
+                return true;
+            }
+        }
+        
+        // Check for LTI 1.3 POST request with id_token (primary indicator of LTI launch)
+        if ("POST".equalsIgnoreCase(request.getMethod())) {
+            String idToken = request.getParameter("id_token");
+            if (idToken != null && !idToken.isEmpty()) {
+                return true;  // LTI 1.3 launch request
+            }
+        }
+        
+        // Check if user token indicates an LTI user
+        String token = request.getParameter("sig");
+        if (token != null && !token.isEmpty()) {
+            try {
+                // Validate the token and check if it references an LTI user
+                Algorithm algorithm = Algorithm.HMAC256(Subject.getHMAC256Secret());
+                String sig = JWT.require(algorithm).build().verify(token).getSubject();
+                User user = com.googlecode.objectify.ObjectifyService.ofy()
+                    .load().type(User.class).id(Long.parseLong(sig)).now();
+                
+                // If user exists and has a platformId, it's an LTI user
+                if (user != null && user.platformId != null && !user.platformId.isEmpty()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // Token validation failed, continue to next check
+            }
+        }
+        
+        // Check for cross-origin request (Origin header indicates iframe/CORS request)
+        // This is a strong indicator of LMS iframe embedding
+        String origin = request.getHeader("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            // Verify the origin is HTTPS (security requirement for LTI)
+            if (origin.startsWith("https://")) {
+                return true;  // Cross-origin HTTPS request, likely LMS iframe
+            }
+        }
+        
+        return false;
     }
 }
