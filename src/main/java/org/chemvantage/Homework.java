@@ -666,12 +666,15 @@ public class Homework extends HttpServlet {
 			} else if (!user.isAnonymous()) buf.append("<a href=/Homework?sig=" + user.getTokenSignature() + "&ShowOptional=true >Show Optional Questions</a>");
 			
 			buf.append("""
-					<script>function showWorkBox(qid) {
-						if (qid==0) return;
-					    document.getElementById('showWork'+qid).style.display='';
-					    document.getElementById('answer'+qid).placeholder='Enter your answer here';
-					}</script>""");
-			} catch (Exception e) {
+					<script>
+						function showWorkBox(qid) {
+							if (qid==0) return;
+							document.getElementById('showWork'+qid).style.display='';
+							document.getElementById('answer'+qid).placeholder='Enter your answer here';
+						}
+					</script>
+				""");
+		} catch (Exception e) {
 			Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Error during Homework.printHomework: ", e.getMessage()==null?e.toString():e.getMessage() + "<br/>" + debug.toString() + "<br/>" + user.getId());
 			return Logout.now(user);
 		}

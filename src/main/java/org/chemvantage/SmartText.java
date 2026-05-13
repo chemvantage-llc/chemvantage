@@ -325,6 +325,10 @@ public class SmartText extends HttpServlet {
                 + q.print()
                 + "<input aria-label='submit the answer for scoring' type=submit class='btn btn-primary' onclick=this.style.opacity=0.2; />"
                 + "</form><br/>");
+
+            // Include a null function to handle showWorkBox calls from Question.print() for numeric questions.
+            if (q.type.equals("NUMERIC")) buf.append("<script>function showWorkBox(qid) {}</script>");
+
             st.armed = true;
             ofy().save().entity(st).now();
         } catch (Exception e) {
