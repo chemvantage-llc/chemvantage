@@ -68,10 +68,11 @@ public class DomainRedirectFilter implements Filter {
         String frameAncestors = isLtiContext ? "'self' *" : "'self'";
         response.setHeader("Content-Security-Policy", 
             "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; " +
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net https://www.youtube.com; " +
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; " +
             "img-src 'self' images.chemvantage.org fonts.gstatic.com; " +
             "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdn.jsdelivr.net; " +
+            "frame-src https://www.youtube.com; " +
             "connect-src 'self' cdn.jsdelivr.net; " +
             "frame-ancestors " + frameAncestors + "; " +
             "upgrade-insecure-requests; block-all-mixed-content");
