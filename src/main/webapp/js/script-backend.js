@@ -5,13 +5,19 @@ function toggleTimers() {
 	var ctrl1 = document.getElementById('ctrl1');
 	if (timer0.style.display=='') {
 		timer0.style.display='none';timer1.style.display='none';
-		ctrl0.innerHTML='<a href=javascript:toggleTimers()>show timers</a><p>';
-		ctrl1.innerHTML='<a href=javascript:toggleTimers()>show timers</a><p>';
+		ctrl0.innerHTML='<a href="#" class="toggle-timer-link">show timers</a><p>';
+		ctrl1.innerHTML='<a href="#" class="toggle-timer-link">show timers</a><p>';
+		document.querySelectorAll('.toggle-timer-link').forEach(link => {
+			link.addEventListener('click', function(e) { e.preventDefault(); toggleTimers(); });
+		});
 	} else {
 		timer0.style.display='';
 		timer1.style.display='';
-		ctrl0.innerHTML='<a href=javascript:toggleTimers()>hide timers</a><p>';
-		ctrl1.innerHTML='<a href=javascript:toggleTimers()>hide timers</a><p>';
+		ctrl0.innerHTML='<a href="#" class="toggle-timer-link">hide timers</a><p>';
+		ctrl1.innerHTML='<a href="#" class="toggle-timer-link">hide timers</a><p>';
+		document.querySelectorAll('.toggle-timer-link').forEach(link => {
+			link.addEventListener('click', function(e) { e.preventDefault(); toggleTimers(); });
+		});
 	}
 }
 var endMillis;
@@ -27,7 +33,7 @@ function countdown() {
 		    document.getElementById('timer'+i).innerHTML='Time remaining: ' + (minutes==0?'':minutes + (minutes==1?' minute ':' minutes ')) + oddSeconds + (seconds==0?'':' seconds.');}
 		catch(Exception){}
     if (seconds <= 0) try { timesUp() } catch (Exception) {} // run a custom script function in the parent page
-	else setTimeout('countdown()',1000);
+	else setTimeout(countdown, 1000);
 }
 function startTimers(m) {  // m is the start value of the timer in milliseconds 
 	endMillis = new Date().getTime() + m; // endMillis is the absolute time of the user's System clock at the end of the tie interval
