@@ -32,6 +32,7 @@ handlers:
   static_files: classes/META-INF/resources\1
   upload: classes/META-INF/resources/.*\.html
   require_matching_file: True
+  expiration: 0s
   secure: always
 
 # Map everything in the css directory to static copies  
