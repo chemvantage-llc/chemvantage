@@ -35,6 +35,28 @@ public class ExampleQuestions extends HttpServlet {
 	private static final int DEFAULT_QUESTION_COUNT = 3;
 	private static final int MAX_QUESTION_COUNT = 3;
 	private static final String[] VISITOR_ASSIGNMENT_TYPES = {"Quiz", "Homework"};
+	private static final String[] TOPIC_GROUP_NAMES = {
+			"Essential Ideas",
+			"Atoms, molecules and Ions",
+			"Composition of Matter",
+			"Stoichiometry",
+			"Thermochemistry",
+			"Electronic Structure",
+			"Periodic Properties",
+			"Chemical bonding",
+			"Gases",
+			"Liquids and Solids",
+			"Solutions",
+			"Kinetics",
+			"Equilibrium",
+			"Acid-Base Equilibria",
+			"Solubility",
+			"Electrochemistry",
+			"Representative Metals",
+			"Nonmetals and Metalloids",
+			"Organic Chemistry",
+			"Nuclear Chemistry"
+	};
 
 	@Override
 	public String getServletInfo() {
@@ -53,10 +75,11 @@ public class ExampleQuestions extends HttpServlet {
 			JsonObject library = loadSampleQuestionLibrary();
 			if (library != null) {
 				List<Concept> concepts = sampleConcepts(library);
+				Map<Long, Integer> questionCounts = sampleQuestionCounts(library);
 				Map<Long, Concept> conceptMap = conceptMap(concepts);
-				if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
+				if (conceptId != null && (!conceptMap.containsKey(conceptId) || !hasSampleQuestions(conceptId, questionCounts))) conceptId = null;
 				List<Question> questions = selectSampleQuestions(library, conceptId, nQuestions);
-				out.println(Subject.header("Example Questions") + renderPage(concepts, conceptMap, questions, conceptId, nQuestions, null) + Subject.footer);
+				out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, questionCounts, questions, conceptId, nQuestions, null) + Subject.footer);
 				return;
 			}
 			List<Concept> concepts = loadConcepts();
@@ -65,12 +88,12 @@ public class ExampleQuestions extends HttpServlet {
 			if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
 			List<Question> questions = selectQuestions(conceptId, nQuestions);
 			if (questions.isEmpty()) questions = selectSampleQuestions(conceptId, nQuestions);
-			out.println(Subject.header("Example Questions") + renderPage(concepts, conceptMap, questions, conceptId, nQuestions, null) + Subject.footer);
+			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, conceptId, nQuestions, null) + Subject.footer);
 		} catch (Exception e) {
 			List<Concept> concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			List<Question> questions = selectSampleQuestions(null, nQuestions);
-			out.println(Subject.header("Example Questions") + renderPage(concepts, conceptMap, questions, null, nQuestions,
+			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
 					"Example questions could not be loaded from the datastore in this environment.") + Subject.footer);
 		}
 	}
@@ -87,34 +110,34 @@ public class ExampleQuestions extends HttpServlet {
 			JsonObject library = loadSampleQuestionLibrary();
 			if (library != null) {
 				List<Concept> concepts = sampleConcepts(library);
+				Map<Long, Integer> questionCounts = sampleQuestionCounts(library);
 				Map<Long, Concept> conceptMap = conceptMap(concepts);
-				if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
-				out.println(Subject.header("Example Questions") + renderResults(request, concepts, conceptMap, conceptId, nQuestions) + Subject.footer);
+				if (conceptId != null && (!conceptMap.containsKey(conceptId) || !hasSampleQuestions(conceptId, questionCounts))) conceptId = null;
+				out.println(Subject.header("Sample questions") + renderResults(request, concepts, conceptMap, questionCounts, conceptId, nQuestions) + Subject.footer);
 				return;
 			}
 			List<Concept> concepts = loadConcepts();
 			if (concepts.isEmpty()) concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
-			out.println(Subject.header("Example Questions") + renderResults(request, concepts, conceptMap, conceptId, nQuestions) + Subject.footer);
+			out.println(Subject.header("Sample questions") + renderResults(request, concepts, conceptMap, null, conceptId, nQuestions) + Subject.footer);
 		} catch (Exception e) {
 			List<Concept> concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			List<Question> questions = selectSampleQuestions(null, nQuestions);
-			out.println(Subject.header("Example Questions") + renderPage(concepts, conceptMap, questions, null, nQuestions,
+			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
 					"Submitted answers could not be checked because the datastore is unavailable in this environment.") + Subject.footer);
 		}
 	}
 
-	private String renderPage(List<Concept> concepts,Map<Long,Concept> conceptMap,List<Question> questions,Long selectedConceptId,int nQuestions,String message) {
+	private String renderPage(List<Concept> concepts,Map<Long,Concept> conceptMap,Map<Long,Integer> questionCounts,List<Question> questions,Long selectedConceptId,int nQuestions,String message) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("<main class='container py-4' style='max-width:960px;'>");
 		buf.append("<div class='mb-4'>");
 		buf.append(Subject.banner);
-		buf.append("<h1 class='h2 mt-3'>Example Questions</h1>");
-		buf.append("<p class='lead'>Try three ChemVantage questions. Choose any concept to get a focused sample from that topic.</p>");
+		buf.append("<h1 class='h2 mt-3'>Sample questions</h1>");
 		buf.append("</div>");
-		buf.append(renderChooser(concepts, selectedConceptId, nQuestions));
+		buf.append(renderChooser(concepts, questionCounts, selectedConceptId, nQuestions));
 		if (message != null && !message.isEmpty()) buf.append("<div class='alert alert-warning' role='alert'>" + html(message) + "</div>");
 		if (questions.isEmpty()) {
 			buf.append("<div class='alert alert-info' role='status'>No answerable example questions were found for this selection. Choose another concept or try random questions.</div>");
@@ -126,7 +149,7 @@ public class ExampleQuestions extends HttpServlet {
 		return buf.toString();
 	}
 
-	private String renderChooser(List<Concept> concepts,Long selectedConceptId,int nQuestions) {
+	private String renderChooser(List<Concept> concepts,Map<Long,Integer> questionCounts,Long selectedConceptId,int nQuestions) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("<form class='border rounded-3 p-3 mb-4 bg-light' method='get' action='/example-questions'>");
 		buf.append("<label class='form-label' for='ConceptSearch'>Concept</label>");
@@ -135,20 +158,19 @@ public class ExampleQuestions extends HttpServlet {
 		buf.append("<input id='ConceptId' name='ConceptId' type='hidden' value='").append(selectedConceptId == null?"":selectedConceptId).append("' />");
 		buf.append("<div id='ConceptOptions' class='example-concept-menu position-absolute w-100 shadow-sm' style='display:none;'>");
 		buf.append("<button class='example-concept-chip example-any-concept' type='button' data-concept-id='' data-concept-title='Any concept'>Any concept</button>");
-		buf.append(renderGroupedConceptBrowser(concepts));
+		buf.append(renderGroupedConceptBrowser(concepts, questionCounts));
 		buf.append("</div>");
 		buf.append("</div>");
 		buf.append("</form>");
 		return buf.toString();
 	}
 
-	private String renderGroupedConceptBrowser(List<Concept> concepts) {
+	private String renderGroupedConceptBrowser(List<Concept> concepts,Map<Long,Integer> questionCounts) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("<div id='ConceptGroups' class='example-concept-groups'>");
-		for (int chapter=0;chapter<=25;chapter++) {
-			List<Concept> groupConcepts = conceptsForChapter(concepts, chapter);
+		for (String groupName : TOPIC_GROUP_NAMES) {
+			List<Concept> groupConcepts = conceptsForTopicGroup(concepts, groupName, questionCounts);
 			if (groupConcepts.isEmpty()) continue;
-			String groupName = groupName(chapter);
 			buf.append("<section class='example-concept-group' data-group-title='").append(html(groupName)).append("'>");
 			buf.append("<div class='example-group-title'>").append(html(groupName)).append("</div>");
 			buf.append("<div class='example-group-links'>");
@@ -162,10 +184,49 @@ public class ExampleQuestions extends HttpServlet {
 		return buf.toString();
 	}
 
-	private List<Concept> conceptsForChapter(List<Concept> concepts,int chapter) {
+	private List<Concept> conceptsForTopicGroup(List<Concept> concepts,String groupName,Map<Long,Integer> questionCounts) {
 		List<Concept> groupConcepts = new ArrayList<>();
-		for (Concept c : concepts) if (conceptChapter(c) == chapter) groupConcepts.add(c);
+		for (Concept c : concepts) if (isInTopicGroup(c, groupName) && hasSampleQuestions(c, questionCounts)) groupConcepts.add(c);
 		return groupConcepts;
+	}
+
+	private boolean hasSampleQuestions(Concept c,Map<Long,Integer> questionCounts) {
+		return c != null && c.id != null && hasSampleQuestions(c.id, questionCounts);
+	}
+
+	private boolean hasSampleQuestions(Long conceptId,Map<Long,Integer> questionCounts) {
+		return questionCounts == null || (conceptId != null && questionCounts.getOrDefault(conceptId, 0) > 0);
+	}
+
+	private boolean isInTopicGroup(Concept c,String groupName) {
+		int chapter = conceptChapter(c);
+		return switch (groupName) {
+			case "Essential Ideas" -> chapter == 1;
+			case "Atoms, molecules and Ions" -> chapter == 2;
+			case "Composition of Matter" -> chapter == 3;
+			case "Stoichiometry" -> chapter == 4;
+			case "Thermochemistry" -> chapter == 5;
+			case "Electronic Structure" -> chapter == 6 && !orderByStartsWith(c, "6.5");
+			case "Periodic Properties" -> orderByStartsWith(c, "6.5");
+			case "Chemical bonding" -> chapter == 7 || chapter == 8;
+			case "Gases" -> chapter == 9;
+			case "Liquids and Solids" -> chapter == 10;
+			case "Solutions" -> chapter == 11;
+			case "Kinetics" -> chapter == 12;
+			case "Equilibrium" -> chapter == 13;
+			case "Acid-Base Equilibria" -> chapter == 14;
+			case "Solubility" -> chapter == 15;
+			case "Electrochemistry" -> chapter == 17;
+			case "Representative Metals" -> orderByStartsWith(c, "18.1") || orderByStartsWith(c, "18.2");
+			case "Nonmetals and Metalloids" -> chapter == 18 && !orderByStartsWith(c, "18.1") && !orderByStartsWith(c, "18.2");
+			case "Organic Chemistry" -> chapter == 20;
+			case "Nuclear Chemistry" -> chapter == 21;
+			default -> false;
+		};
+	}
+
+	private boolean orderByStartsWith(Concept c,String prefix) {
+		return c != null && c.orderBy != null && c.orderBy.trim().startsWith(prefix);
 	}
 
 	private int conceptChapter(Concept c) {
@@ -178,38 +239,6 @@ public class ExampleQuestions extends HttpServlet {
 		} catch (Exception e) {
 			return 0;
 		}
-	}
-
-	private String groupName(int chapter) {
-		return switch (chapter) {
-			case 0 -> "Reserved and Internal";
-			case 1 -> "Chapter 1: Foundations and Measurement";
-			case 2 -> "Chapter 2: Atoms, Elements, and Compounds";
-			case 3 -> "Chapter 3: Moles and Concentration";
-			case 4 -> "Chapter 4: Reactions and Stoichiometry";
-			case 5 -> "Chapter 5: Thermochemistry";
-			case 6 -> "Chapter 6: Electronic Structure";
-			case 7 -> "Chapter 7: Bonding and Molecular Structure";
-			case 8 -> "Chapter 8: Advanced Bonding";
-			case 9 -> "Chapter 9: Gases";
-			case 10 -> "Chapter 10: Liquids, Solids, and Intermolecular Forces";
-			case 11 -> "Chapter 11: Solutions";
-			case 12 -> "Chapter 12: Kinetics";
-			case 13 -> "Chapter 13: Equilibrium";
-			case 14 -> "Chapter 14: Acids and Bases";
-			case 15 -> "Chapter 15: Solubility and Complex Ions";
-			case 16 -> "Chapter 16: Thermodynamics";
-			case 17 -> "Chapter 17: Electrochemistry";
-			case 18 -> "Chapter 18: Representative Elements";
-			case 19 -> "Chapter 19: Transition Metals";
-			case 20 -> "Chapter 20: Organic Chemistry";
-			case 21 -> "Chapter 21: Nuclear Chemistry";
-			case 22 -> "Chapter 22: Biochemistry";
-			case 23 -> "Chapter 23: Chemical Separations";
-			case 24 -> "Chapter 24: Environmental Chemistry";
-			case 25 -> "Chapter 25: Molecular Spectroscopy";
-			default -> "Other Concepts";
-		};
 	}
 
 	private String renderQuestionForm(Map<Long,Concept> conceptMap,List<Question> questions,Long selectedConceptId,int nQuestions) {
@@ -238,14 +267,14 @@ public class ExampleQuestions extends HttpServlet {
 		return buf.toString();
 	}
 
-	private String renderResults(HttpServletRequest request,List<Concept> concepts,Map<Long,Concept> conceptMap,Long selectedConceptId,int nQuestions) {
+	private String renderResults(HttpServletRequest request,List<Concept> concepts,Map<Long,Concept> conceptMap,Map<Long,Integer> questionCounts,Long selectedConceptId,int nQuestions) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("<main class='container py-4' style='max-width:960px;'>");
 		buf.append("<div class='mb-4'>");
 		buf.append(Subject.banner);
 		buf.append("<h1 class='h2 mt-3'>Example Question Results</h1>");
 		buf.append("</div>");
-		buf.append(renderChooser(concepts, selectedConceptId, nQuestions));
+		buf.append(renderChooser(concepts, questionCounts, selectedConceptId, nQuestions));
 
 		String[] questionIds = request.getParameterValues("QuestionId");
 		if (questionIds == null || questionIds.length == 0) {
@@ -307,7 +336,7 @@ public class ExampleQuestions extends HttpServlet {
 				+ "function fuzzyConceptMatch(title,query){query=normalizeConceptText(query);title=normalizeConceptText(title);if(!query)return true;if(title.indexOf(query)>=0)return true;var j=0;for(var i=0;i<title.length&&j<query.length;i++)if(title.charAt(i)===query.charAt(j))j++;if(j===query.length)return true;var maxDistance=query.length<5?1:2;if(editDistance(title.substring(0,Math.max(query.length-1,1)),query)<=maxDistance)return true;var words=title.match(/[a-z0-9]+/g)||[];return words.some(function(word){return editDistance(word,query)<=maxDistance||word.indexOf(query)>=0;});}"
 				+ "function groupMatch(group,query){var title=group.dataset.groupTitle||'';return fuzzyConceptMatch(title,query)||normalizeConceptText(title).indexOf(normalizeConceptText(query))>=0;}"
 				+ "function jumpToGroup(query){if(!query||!query.trim())return false;var groups=[].slice.call(document.querySelectorAll('[data-group-title]'));var group=groups.find(function(g){return groupMatch(g,query);});if(!group)return false;group.scrollIntoView({behavior:'smooth',block:'nearest'});group.classList.add('example-group-focus');setTimeout(function(){group.classList.remove('example-group-focus');},1200);return true;}"
-				+ "function wireConceptSearch(){var input=document.getElementById('ConceptSearch'),value=document.getElementById('ConceptId'),menu=document.getElementById('ConceptOptions');if(!input||!value||!menu)return;var items=[].slice.call(menu.querySelectorAll('[data-concept-title]'));var groups=[].slice.call(menu.querySelectorAll('[data-group-title]'));function visibleItem(){return items.find(function(item){return item.offsetParent!==null&&item.style.display!=='none';});}function choose(item,submit){if(!item)return;value.value=item.dataset.conceptId;input.value=item.dataset.conceptTitle==='Any concept'?'':item.dataset.conceptTitle;menu.style.display='none';if(submit)input.form.submit();}function show(){menu.style.display='block';input.setAttribute('aria-expanded','true');filter();}function hide(){setTimeout(function(){menu.style.display='none';input.setAttribute('aria-expanded','false');},150);}function filter(){var q=input.value,shown=0,matchedGroup=false;items.forEach(function(item){var match=fuzzyConceptMatch(item.dataset.conceptTitle,q);item.style.display=match?'inline-block':'none';if(match)shown++;});groups.forEach(function(group){var chips=[].slice.call(group.querySelectorAll('[data-concept-title]'));var groupOnly=q&&groupMatch(group,q);if(groupOnly){matchedGroup=true;chips.forEach(function(chip){chip.style.display='inline-block';});}var hasVisible=chips.some(function(chip){return chip.style.display!=='none';});group.style.display=(hasVisible||groupOnly)?'block':'none';});menu.style.display='block';if(matchedGroup||!shown)jumpToGroup(q);}items.forEach(function(item){item.addEventListener('click',function(){choose(item,true);});});input.addEventListener('focus',show);input.addEventListener('input',function(){value.value='';show();});input.addEventListener('blur',hide);input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var first=visibleItem();if(first)choose(first,true);else if(!jumpToGroup(input.value))input.form.submit();}});input.form.addEventListener('submit',function(e){if(!value.value&&input.value.trim()){filter();var first=visibleItem();if(first)choose(first,false);else{e.preventDefault();jumpToGroup(input.value);}}});}"
+				+ "function wireConceptSearch(){var input=document.getElementById('ConceptSearch'),value=document.getElementById('ConceptId'),menu=document.getElementById('ConceptOptions');if(!input||!value||!menu)return;var items=[].slice.call(menu.querySelectorAll('[data-concept-title]'));var groups=[].slice.call(menu.querySelectorAll('[data-group-title]'));function visibleItem(){return items.find(function(item){return item.offsetParent!==null&&item.style.display!=='none';});}function showAll(){items.forEach(function(item){item.style.display='inline-block';});groups.forEach(function(group){group.style.display='block';});menu.scrollTop=0;}function choose(item,submit){if(!item)return;value.value=item.dataset.conceptId;input.value=item.dataset.conceptTitle==='Any concept'?'':item.dataset.conceptTitle;menu.style.display='none';if(submit)input.form.submit();}function show(){menu.style.display='block';input.setAttribute('aria-expanded','true');showAll();}function hide(){setTimeout(function(){menu.style.display='none';input.setAttribute('aria-expanded','false');},150);}function filter(){var q=input.value,shown=0,matchedGroup=false;items.forEach(function(item){var match=fuzzyConceptMatch(item.dataset.conceptTitle,q);item.style.display=match?'inline-block':'none';if(match)shown++;});groups.forEach(function(group){var chips=[].slice.call(group.querySelectorAll('[data-concept-title]'));var groupOnly=q&&groupMatch(group,q);if(groupOnly){matchedGroup=true;chips.forEach(function(chip){chip.style.display='inline-block';});}var hasVisible=chips.some(function(chip){return chip.style.display!=='none';});group.style.display=(hasVisible||groupOnly)?'block':'none';});menu.style.display='block';if(matchedGroup||!shown)jumpToGroup(q);}items.forEach(function(item){item.addEventListener('click',function(){choose(item,true);});});input.addEventListener('focus',show);input.addEventListener('click',show);input.addEventListener('input',function(){value.value='';menu.style.display='block';input.setAttribute('aria-expanded','true');filter();});input.addEventListener('blur',hide);input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var first=visibleItem();if(first)choose(first,true);else if(!jumpToGroup(input.value))input.form.submit();}});input.form.addEventListener('submit',function(e){if(!value.value&&input.value.trim()){filter();var first=visibleItem();if(first)choose(first,false);else{e.preventDefault();jumpToGroup(input.value);}}});}"
 				+ "function showNextExampleHint(qid,total){var state=document.getElementById('hintState'+qid),button=document.getElementById('hintButton'+qid);if(!state||!button)return;var next=parseInt(state.value||'0',10)+1;var hint=document.getElementById('hint'+qid+'_'+next);if(hint)hint.style.display='block';state.value=next;if(next>=total){button.disabled=true;button.innerText='All hints shown';}else button.innerText='Get hint '+(next+1)+' (of '+total+')';}"
 				+ "document.addEventListener('DOMContentLoaded',wireConceptSearch);"
 				+ "</script>"
@@ -388,6 +417,26 @@ public class ExampleQuestions extends HttpServlet {
 		List<Question> questions = sampleQuestions(library, conceptId);
 		if (questions.size() > count) return new ArrayList<>(questions.subList(0, count));
 		return questions;
+	}
+
+	private Map<Long,Integer> sampleQuestionCounts(JsonObject library) {
+		Map<Long,Integer> questionCounts = new HashMap<>();
+		if (library == null || !library.has("concepts")) return questionCounts;
+		JsonArray conceptsJson = library.getAsJsonArray("concepts");
+		for (JsonElement conceptElement : conceptsJson) {
+			JsonObject conceptJson = conceptElement.getAsJsonObject();
+			long cid = conceptJson.get("id").getAsLong();
+			int count = 0;
+			JsonArray questionsJson = conceptJson.getAsJsonArray("questions");
+			for (JsonElement questionElement : questionsJson) {
+				try {
+					Question q = sampleQuestion(questionElement.getAsJsonObject(), cid);
+					if (isRenderableQuestion(q)) count++;
+				} catch (Exception e) {}
+			}
+			questionCounts.put(cid, count);
+		}
+		return questionCounts;
 	}
 
 	private List<Question> sampleQuestions(JsonObject library,Long conceptId) {
