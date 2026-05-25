@@ -25,11 +25,28 @@ public class Examples extends HttpServlet {
 
 	public void doGet(HttpServletRequest request,HttpServletResponse response)
 	throws ServletException, IOException {
+		String launch = request.getParameter("launch");
+		if (launch != null) {
+			if (!isAllowedLaunchPath(launch)) {
+				response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+				return;
+			}
+			response.sendRedirect(launch + (launch.contains("?") ? "&" : "?") + "sig=" + getSig());
+			return;
+		}
+
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		out.println("{\"sig\":\"" + getSig() + "\"}");
 		out.flush();
 		out.close();
+	}
+
+	private static boolean isAllowedLaunchPath(String launch) {
+		return launch.equals("/Homework")
+				|| launch.equals("/Quiz")
+				|| launch.equals("/VideoQuiz")
+				|| launch.startsWith("/VideoQuiz?");
 	}
 	
 	static String getSig() {

@@ -154,18 +154,20 @@ h1 {
   position: absolute;
   z-index: 2;
   left: 50%;
-  width: 50%;
-  height: 40%;
+  width: 42%;
+  aspect-ratio: 175 / 145;
   transform: translateX(-50%);
   filter: drop-shadow(0 10px 14px rgba(38, 45, 68, 0.2));
 }
 
 .bubble-overlay-a {
-  top: 5%;
+  top: 8%;
 }
 
 .bubble-overlay-b {
-  top: 55%;
+  top: 60%;
+  width: 45%;
+  aspect-ratio: 217 / 122;
 }
 
 .bubble-overlay img {
@@ -188,16 +190,16 @@ h1 {
   justify-content: center;
   color: var(--ink);
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.12;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
   text-align: center;
   overflow-wrap: anywhere;
 }
 
 .bubble-overlay-b p {
-  inset: 12% 16% 18%;
-  font-size: 14.4px;
+  inset: 13% 17% 19%;
+  font-size: 13px;
 }
 
 .question-card {
@@ -345,7 +347,15 @@ h1 {
   }
 
   .bubble-overlay p {
-    font-size: 14px;
+    font-size: 12px;
+  }
+
+  .bubble-overlay {
+    width: 48%;
+  }
+
+  .bubble-overlay-b {
+    width: 52%;
   }
 
   .options {
