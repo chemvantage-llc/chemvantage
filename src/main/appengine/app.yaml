@@ -41,6 +41,12 @@ handlers:
   require_matching_file: True
   secure: always
 
+# Map the new LMS logo assets outside the legacy /images redirect rule
+- url: /lms
+  static_dir: classes/META-INF/resources/lms
+  require_matching_file: True
+  secure: always
+
 # Redirect old /images URLs to new GCP Storage Bucket (301 permanent redirect)
 - url: /images/.*
   secure: always
