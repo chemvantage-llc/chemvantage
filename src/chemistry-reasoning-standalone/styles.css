@@ -1,0 +1,368 @@
+:root {
+  --ink: #1e2430;
+  --muted: #687183;
+  --line: #d9deea;
+  --paper: #ffffff;
+  --soft: #f4f7fb;
+  --brand: #6f4bb6;
+  --brand-dark: #4e327f;
+  --good: #16833a;
+  --bad: #b42318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: #edf1f7;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(980px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+
+h1.page-title {
+  margin: 0;
+  color: var(--brand);
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 42px);
+  line-height: 1.05;
+}
+
+.progress-wrap {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.progress,
+.score {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.score {
+  margin-top: 4px;
+  color: var(--brand-dark);
+}
+
+.session-panel {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.session-panel label {
+  font-weight: 800;
+}
+
+.session-panel select {
+  min-height: 42px;
+  padding: 0 36px 0 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.session-panel button,
+.controls button {
+  min-height: 44px;
+  padding: 0 18px;
+  color: #fff;
+  background: var(--brand);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.stage {
+  position: relative;
+  min-height: 520px;
+  padding: 28px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 18px 45px rgba(38, 45, 68, 0.12);
+}
+
+.character-wrap {
+  position: relative;
+  width: min(900px, 100%);
+  min-height: 480px;
+  margin: 0 auto;
+  --scene-size: min(54%, 430px);
+}
+
+.character {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  width: var(--scene-size);
+  height: auto;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+.comment-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
+  width: var(--scene-size);
+  aspect-ratio: 1 / 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bubble-overlay {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  width: 42%;
+  aspect-ratio: 175 / 145;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 10px 14px rgba(38, 45, 68, 0.2));
+}
+
+.bubble-overlay-a {
+  top: 8%;
+}
+
+.bubble-overlay-b {
+  top: 60%;
+  width: 45%;
+  aspect-ratio: 217 / 122;
+}
+
+.bubble-overlay img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+}
+
+.bubble-overlay-b img {
+  transform: translateY(-4px) rotate(180deg);
+}
+
+.bubble-overlay p {
+  position: absolute;
+  inset: 16% 14% 20%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.bubble-overlay-b p {
+  inset: 13% 17% 19%;
+  font-size: 13px;
+}
+
+.question-card {
+  margin-top: 18px;
+  padding: 22px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.prompt {
+  margin: 0 0 16px;
+  color: var(--brand-dark);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.option {
+  min-height: 62px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.option:hover {
+  transform: translateY(-1px);
+  border-color: #a999d5;
+}
+
+.option[disabled] {
+  cursor: default;
+  transform: none;
+}
+
+.option.correct {
+  border-color: var(--good);
+  background: #ecfdf3;
+}
+
+.option.wrong {
+  border-color: var(--bad);
+  background: #fff1f0;
+}
+
+.marker {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid #b8c0d1;
+  border-radius: 50%;
+}
+
+.correct .marker,
+.wrong .marker {
+  border: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.correct .marker {
+  background-image: url("./assets/feedback/checkmark.svg");
+}
+
+.wrong .marker {
+  background-image: url("./assets/feedback/crossmark.svg");
+}
+
+.feedback {
+  min-height: 24px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.feedback.good {
+  color: var(--good);
+}
+
+.feedback.bad {
+  color: var(--bad);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.session-panel button:hover,
+.controls button:hover {
+  background: var(--brand-dark);
+}
+
+.session-panel button:disabled,
+.controls button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+@media (max-width: 760px) {
+  .topbar,
+  .stage {
+    display: block;
+  }
+
+  .progress-wrap {
+    margin-top: 10px;
+    text-align: left;
+  }
+
+  .session-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stage {
+    padding: 18px;
+    min-height: 430px;
+  }
+
+  .character-wrap {
+    min-height: 390px;
+    --scene-size: min(70%, 300px);
+  }
+
+  .character {
+    width: var(--scene-size);
+  }
+
+  .bubble-overlay p {
+    font-size: 12px;
+  }
+
+  .bubble-overlay {
+    width: 48%;
+  }
+
+  .bubble-overlay-b {
+    width: 52%;
+  }
+
+  .options {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+}

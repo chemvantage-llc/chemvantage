@@ -1,0 +1,512 @@
+[
+  {
+    "conversationParts": [
+      "My bike chain turned reddish and gritty after I left it in the rain all week.",
+      "That damp air let the iron react with oxygen, so the metal started forming rust."
+    ],
+    "options": [
+      "Rust forms when iron reacts with oxygen.",
+      "Rust forms when iron becomes cleaner.",
+      "Rain turns iron into plastic.",
+      "Oxygen prevents iron from reacting."
+    ],
+    "tags": [
+      "chemical reactions",
+      "rust",
+      "oxygen"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The lemonade tasted painfully sour until I stirred in more water and sugar.",
+      "The lemon juice still had acid, but diluting it made each sip less intense."
+    ],
+    "options": [
+      "Dilution lowers the acid concentration.",
+      "Dilution creates more acid particles.",
+      "Sugar turns acid into metal.",
+      "Water makes acids disappear completely."
+    ],
+    "tags": [
+      "acids and bases",
+      "mixtures and solutions",
+      "concentration"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The bathroom mirror fogged up right after the hot shower, then cleared as the room cooled.",
+      "Warm water vapor hit the cooler glass and changed back into tiny liquid droplets."
+    ],
+    "options": [
+      "Condensation changes gas into liquid.",
+      "Condensation changes liquid into solid.",
+      "Glass creates new water molecules.",
+      "Steam removes water from air."
+    ],
+    "tags": [
+      "states of matter",
+      "condensation",
+      "water vapor"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The pancake batter puffed up when the baking soda hit the tangy buttermilk.",
+      "Their reaction released carbon dioxide bubbles that lifted the batter."
+    ],
+    "options": [
+      "A reaction produced carbon dioxide gas.",
+      "Baking soda froze the batter.",
+      "Buttermilk removed all gas bubbles.",
+      "Pancakes rise because atoms vanish."
+    ],
+    "tags": [
+      "chemical reactions",
+      "gas",
+      "carbon dioxide"
+    ]
+  },
+  {
+    "conversationParts": [
+      "My little cousin dropped salt on an icy step and cheered when the slick patch softened.",
+      "The dissolved salt made it harder for the water there to stay frozen."
+    ],
+    "options": [
+      "Salt can lower water's freezing point.",
+      "Salt always makes ice colder and harder.",
+      "Salt turns ice into glass.",
+      "Salt prevents water from dissolving anything."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "freezing point",
+      "salt"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The birthday balloon slowly sagged overnight, even though nobody untied it.",
+      "Tiny gas particles slipped through the stretchy rubber little by little."
+    ],
+    "options": [
+      "Gas particles can diffuse through rubber.",
+      "Balloon gas becomes a solid overnight.",
+      "Rubber creates extra air inside.",
+      "Gas particles stop moving in balloons."
+    ],
+    "tags": [
+      "matter",
+      "gas",
+      "particles"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The copper penny in my pocket looked dull, but lemon juice made it shiny again.",
+      "The acid helped remove the tarnish coating from the copper surface."
+    ],
+    "options": [
+      "Acid can react with surface tarnish.",
+      "Copper becomes gold in lemon juice.",
+      "Tarnish is removed by magnetism.",
+      "Lemon juice adds rust to copper."
+    ],
+    "tags": [
+      "acids and bases",
+      "chemical reactions",
+      "copper"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The soda hissed when I cracked it open, and foam rushed up like it was celebrating.",
+      "Lower pressure let dissolved carbon dioxide escape from the drink."
+    ],
+    "options": [
+      "Dissolved gas escapes when pressure drops.",
+      "Pressure drop creates new sugar.",
+      "Carbon dioxide turns into salt.",
+      "Foam means no gas was dissolved."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "gas",
+      "carbon dioxide"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The metal spoon in my cocoa got hot fast, and I yanked my fingers away.",
+      "Metals let thermal energy move through them easily."
+    ],
+    "options": [
+      "Metals often conduct heat well.",
+      "Metals block all heat transfer.",
+      "Cocoa destroys metal atoms.",
+      "Heat moves only through liquids."
+    ],
+    "tags": [
+      "chemical energy",
+      "metals",
+      "heat"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The muddy puddle water looked hopeless until the dirt settled at the bottom.",
+      "The heavier suspended particles sank, leaving clearer water above them."
+    ],
+    "options": [
+      "Suspended particles can settle out.",
+      "Dirt dissolves completely in water.",
+      "Water turns soil into atoms.",
+      "Settling creates a new compound."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "matter",
+      "particles"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The cut apple slices turned brown before the lunch bell even rang.",
+      "Oxygen in the air reacted with chemicals in the apple's cells."
+    ],
+    "options": [
+      "Air can trigger oxidation in apples.",
+      "Apples brown because water freezes.",
+      "Oxygen prevents apple reactions.",
+      "Browning means atoms disappeared."
+    ],
+    "tags": [
+      "chemical reactions",
+      "oxygen",
+      "oxidation"
+    ]
+  },
+  {
+    "conversationParts": [
+      "My mom's vinegar fizzed like crazy when it hit the baking soda volcano.",
+      "The acid and base reacted and released carbon dioxide gas."
+    ],
+    "options": [
+      "Acid-base reactions can release gas.",
+      "Vinegar freezes baking soda instantly.",
+      "Baking soda removes all acids.",
+      "Fizzing means no reaction occurred."
+    ],
+    "tags": [
+      "acids and bases",
+      "chemical reactions",
+      "carbon dioxide"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The sidewalk chalk washed away, but the oil spot stayed stubborn after the storm.",
+      "Water mixes with chalk dust better than greasy oil molecules."
+    ],
+    "options": [
+      "Different substances dissolve differently in water.",
+      "Water dissolves every substance equally.",
+      "Oil becomes chalk during rain.",
+      "Chalk and oil are identical mixtures."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "solubility",
+      "water"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The freezer pop felt rock-hard, but it dripped purple syrup five minutes later.",
+      "Heat from the room gave its particles enough energy to melt."
+    ],
+    "options": [
+      "Melting happens when particles gain energy.",
+      "Melting removes all particles.",
+      "Cold air melts frozen juice.",
+      "Freezer pops melt by forming gas."
+    ],
+    "tags": [
+      "states of matter",
+      "melting",
+      "energy"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The campfire smelled amazing, but the log turned into ash and smoke.",
+      "Burning rearranged the wood's atoms into new substances."
+    ],
+    "options": [
+      "Burning creates new substances.",
+      "Burning only changes shape.",
+      "Ash is unchanged wood.",
+      "Smoke means atoms were destroyed."
+    ],
+    "tags": [
+      "chemical reactions",
+      "combustion",
+      "conservation of mass"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The beach towel dried faster in the breeze than it did in the still bathroom.",
+      "Moving air carried away water vapor as liquid water evaporated."
+    ],
+    "options": [
+      "Air movement can speed evaporation.",
+      "Breezes turn water into salt.",
+      "Evaporation needs freezing temperatures.",
+      "Water vapor becomes towel fibers."
+    ],
+    "tags": [
+      "states of matter",
+      "evaporation",
+      "water vapor"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The silver necklace left in the drawer looked dark and sad by spring.",
+      "Sulfur compounds in the air reacted with the silver surface."
+    ],
+    "options": [
+      "Tarnish forms through a surface reaction.",
+      "Silver darkens by melting slowly.",
+      "Air turns silver into plastic.",
+      "Tarnish means silver disappeared."
+    ],
+    "tags": [
+      "chemical reactions",
+      "tarnish",
+      "silver"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The spaghetti water boiled over after I forgot it under the lid.",
+      "Heating made water molecules escape as vapor faster than before."
+    ],
+    "options": [
+      "Heating increases water vapor formation.",
+      "Boiling destroys water molecules.",
+      "Lids stop all evaporation.",
+      "Salt makes water become metal."
+    ],
+    "tags": [
+      "states of matter",
+      "boiling",
+      "water vapor"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The sports drink tasted stronger at the bottom after the powder clumped there.",
+      "The solute hadn't spread evenly through the water yet."
+    ],
+    "options": [
+      "Uneven dissolving makes concentration vary.",
+      "Solutes never dissolve in water.",
+      "Powder turns water into gas.",
+      "Concentration ignores solute distribution."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "concentration",
+      "solute"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The helium balloon floated up and bonked the ceiling during the party.",
+      "Helium gas is less dense than the air around it."
+    ],
+    "options": [
+      "Lower-density gases can rise in air.",
+      "Helium is denser than air.",
+      "Balloons float because rubber is magnetic.",
+      "Gas density never affects floating."
+    ],
+    "tags": [
+      "matter",
+      "density",
+      "gas"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The chocolate bar softened in my backpack and made a tragic little mess.",
+      "Body heat and sunshine pushed the cocoa butter past its melting range."
+    ],
+    "options": [
+      "Heat can melt solids into liquids.",
+      "Chocolate melts by losing atoms.",
+      "Sunlight turns chocolate into gas only.",
+      "Solids cannot change state."
+    ],
+    "tags": [
+      "states of matter",
+      "melting",
+      "heat"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The pool test strip turned a different shade after one quick dip.",
+      "Chemicals on the strip changed color when they contacted certain ions."
+    ],
+    "options": [
+      "Test strips can indicate ions chemically.",
+      "Test strips measure only temperature.",
+      "Pool water creates paper atoms.",
+      "Ions cannot affect test chemicals."
+    ],
+    "tags": [
+      "chemical reactions",
+      "ions",
+      "solutions"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The soup tasted flat, then a tiny pinch of salt suddenly woke it up.",
+      "Dissolved salt ions spread through the broth and changed how it tasted."
+    ],
+    "options": [
+      "Dissolved ions can spread through solution.",
+      "Salt stays as one solid chunk.",
+      "Broth becomes a pure element.",
+      "Taste changes prove atoms vanish."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "ions",
+      "dissolving"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The candle flame vanished under the jar, and my little brother looked offended.",
+      "The flame used up available oxygen until combustion could not continue."
+    ],
+    "options": [
+      "Combustion needs oxygen to continue.",
+      "Flames burn without any reactants.",
+      "Jars create extra oxygen.",
+      "Combustion turns oxygen into glass."
+    ],
+    "tags": [
+      "chemical reactions",
+      "oxygen",
+      "combustion"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The wet swimsuit felt icy when the wind hit me after swim practice.",
+      "Evaporating water pulled thermal energy from your skin."
+    ],
+    "options": [
+      "Evaporation can cool a surface.",
+      "Evaporation adds heat to skin.",
+      "Wind freezes water instantly.",
+      "Wet fabric creates cold atoms."
+    ],
+    "tags": [
+      "states of matter",
+      "evaporation",
+      "energy"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The iron skillet stayed hot long after the eggs were gone, which felt unfair.",
+      "Its material stored and transferred thermal energy slowly."
+    ],
+    "options": [
+      "Materials can retain heat differently.",
+      "Iron stops storing energy when empty.",
+      "Eggs create heat inside metal.",
+      "All materials cool at identical rates."
+    ],
+    "tags": [
+      "chemical energy",
+      "heat",
+      "materials"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The aquarium looked cloudy until the filter ran for a while.",
+      "The filter trapped tiny suspended particles that had been floating around."
+    ],
+    "options": [
+      "Filtration can remove suspended particles.",
+      "Filters dissolve water completely.",
+      "Cloudiness means only pure water remains.",
+      "Particles become new fish food atoms."
+    ],
+    "tags": [
+      "mixtures and solutions",
+      "filtration",
+      "particles"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The bread dough rose under the towel and looked weirdly alive.",
+      "Yeast produced carbon dioxide gas that stretched bubbles through the dough."
+    ],
+    "options": [
+      "Gas production can expand dough.",
+      "Yeast removes all air from dough.",
+      "Dough rises because flour melts.",
+      "Carbon dioxide prevents bubbles."
+    ],
+    "tags": [
+      "chemical reactions",
+      "gas",
+      "carbon dioxide"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The hand sanitizer vanished from my palm before I even found a paper towel.",
+      "Its alcohol molecules evaporated quickly into the air."
+    ],
+    "options": [
+      "Volatile liquids evaporate quickly.",
+      "Alcohol becomes solid on skin.",
+      "Sanitizer destroys air molecules.",
+      "Evaporation requires paper towels."
+    ],
+    "tags": [
+      "states of matter",
+      "evaporation",
+      "alcohol"
+    ]
+  },
+  {
+    "conversationParts": [
+      "The old battery leaked crusty white stuff inside the remote control.",
+      "Chemicals inside escaped and reacted around the battery contacts."
+    ],
+    "options": [
+      "Battery leaks can involve chemical reactions.",
+      "Batteries leak harmless pure water only.",
+      "Remote controls create battery chemicals.",
+      "Leaking proves no reaction occurred."
+    ],
+    "tags": [
+      "chemical reactions",
+      "battery",
+      "materials"
+    ]
+  }
+]

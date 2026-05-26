@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Standalone Reasoning Quiz</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Standalone Reasoning Quiz</h1>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress" id="progress">Loading...</div>
+          <div class="score" id="score">Score: 0 / 0</div>
+        </div>
+      </header>
+
+      <section class="session-panel" aria-label="Question set controls">
+        <label for="setSize">Random set size</label>
+        <select id="setSize">
+          <option value="5">5 questions</option>
+          <option value="10" selected>10 questions</option>
+          <option value="15">15 questions</option>
+          <option value="20">20 questions</option>
+        </select>
+        <button id="newSetBtn" type="button">New Random Set</button>
+      </section>
+
+      <section class="stage" aria-live="polite">
+        <div class="character-wrap" aria-label="Two-part conversation">
+          <img id="character" class="character" alt="" />
+          <div id="commentOverlay" class="comment-overlay">
+            <div class="bubble-overlay bubble-overlay-a">
+              <img src="./assets/dictionary/comment_bubble_new.png" alt="" />
+              <p id="lineA"></p>
+            </div>
+            <div class="bubble-overlay bubble-overlay-b">
+              <img src="./assets/dictionary/comment_bubble_old.png" alt="" />
+              <p id="lineB"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="question-card">
+        <p class="prompt">Based on this conversation, what conclusion can we reasonably draw?</p>
+        <div id="options" class="options"></div>
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+      </section>
+
+      <nav class="controls" aria-label="Question controls">
+        <button id="nextBtn" type="button">Next</button>
+      </nav>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
