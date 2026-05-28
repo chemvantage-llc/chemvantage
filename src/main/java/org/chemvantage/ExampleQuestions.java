@@ -79,7 +79,7 @@ public class ExampleQuestions extends HttpServlet {
 				Map<Long, Concept> conceptMap = conceptMap(concepts);
 				if (conceptId != null && (!conceptMap.containsKey(conceptId) || !hasSampleQuestions(conceptId, questionCounts))) conceptId = null;
 				List<Question> questions = selectSampleQuestions(library, conceptId, nQuestions);
-				out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, questionCounts, questions, conceptId, nQuestions, null) + Subject.footer);
+				out.println(Subject.publicHeader("Sample Questions", "Three free General Chemistry questions with instant feedback.", "Samples") + renderPage(concepts, conceptMap, questionCounts, questions, conceptId, nQuestions, null) + Subject.publicFooter());
 				return;
 			}
 			List<Concept> concepts = loadConcepts();
@@ -88,13 +88,13 @@ public class ExampleQuestions extends HttpServlet {
 			if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
 			List<Question> questions = selectQuestions(conceptId, nQuestions);
 			if (questions.isEmpty()) questions = selectSampleQuestions(conceptId, nQuestions);
-			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, conceptId, nQuestions, null) + Subject.footer);
+			out.println(Subject.publicHeader("Sample Questions", "Three free General Chemistry questions with instant feedback.", "Samples") + renderPage(concepts, conceptMap, null, questions, conceptId, nQuestions, null) + Subject.publicFooter());
 		} catch (Exception e) {
 			List<Concept> concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			List<Question> questions = selectSampleQuestions(null, nQuestions);
-			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
-					"Example questions could not be loaded from the datastore in this environment.") + Subject.footer);
+			out.println(Subject.publicHeader("Sample Questions", "Three free General Chemistry questions with instant feedback.", "Samples") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
+					"Example questions could not be loaded from the datastore in this environment.") + Subject.publicFooter());
 		}
 	}
 
@@ -113,29 +113,28 @@ public class ExampleQuestions extends HttpServlet {
 				Map<Long, Integer> questionCounts = sampleQuestionCounts(library);
 				Map<Long, Concept> conceptMap = conceptMap(concepts);
 				if (conceptId != null && (!conceptMap.containsKey(conceptId) || !hasSampleQuestions(conceptId, questionCounts))) conceptId = null;
-				out.println(Subject.header("Sample questions") + renderResults(request, concepts, conceptMap, questionCounts, conceptId, nQuestions) + Subject.footer);
+				out.println(Subject.publicHeader("Sample Question Results", "Check your work and try a fresh set.", "Samples") + renderResults(request, concepts, conceptMap, questionCounts, conceptId, nQuestions) + Subject.publicFooter());
 				return;
 			}
 			List<Concept> concepts = loadConcepts();
 			if (concepts.isEmpty()) concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			if (conceptId != null && !conceptMap.containsKey(conceptId)) conceptId = null;
-			out.println(Subject.header("Sample questions") + renderResults(request, concepts, conceptMap, null, conceptId, nQuestions) + Subject.footer);
+			out.println(Subject.publicHeader("Sample Question Results", "Check your work and try a fresh set.", "Samples") + renderResults(request, concepts, conceptMap, null, conceptId, nQuestions) + Subject.publicFooter());
 		} catch (Exception e) {
 			List<Concept> concepts = sampleConcepts();
 			Map<Long, Concept> conceptMap = conceptMap(concepts);
 			List<Question> questions = selectSampleQuestions(null, nQuestions);
-			out.println(Subject.header("Sample questions") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
-					"Submitted answers could not be checked because the datastore is unavailable in this environment.") + Subject.footer);
+			out.println(Subject.publicHeader("Sample Questions", "Three free General Chemistry questions with instant feedback.", "Samples") + renderPage(concepts, conceptMap, null, questions, null, nQuestions,
+					"Submitted answers could not be checked because the datastore is unavailable in this environment.") + Subject.publicFooter());
 		}
 	}
 
 	private String renderPage(List<Concept> concepts,Map<Long,Concept> conceptMap,Map<Long,Integer> questionCounts,List<Question> questions,Long selectedConceptId,int nQuestions,String message) {
 		StringBuffer buf = new StringBuffer();
-		buf.append("<main class='container py-4' style='max-width:960px;'>");
+		buf.append("<main id='main-content' class='container py-4' style='max-width:960px;'>");
 		buf.append("<div class='mb-4'>");
-		buf.append(Subject.banner);
-		buf.append("<h1 class='h2 mt-3'>Sample questions</h1>");
+		buf.append("<h2 class='h4 mt-3'>Choose a topic</h2>");
 		buf.append("</div>");
 		buf.append(renderChooser(concepts, questionCounts, selectedConceptId, nQuestions));
 		if (message != null && !message.isEmpty()) buf.append("<div class='alert alert-warning' role='alert'>" + html(message) + "</div>");
@@ -269,10 +268,9 @@ public class ExampleQuestions extends HttpServlet {
 
 	private String renderResults(HttpServletRequest request,List<Concept> concepts,Map<Long,Concept> conceptMap,Map<Long,Integer> questionCounts,Long selectedConceptId,int nQuestions) {
 		StringBuffer buf = new StringBuffer();
-		buf.append("<main class='container py-4' style='max-width:960px;'>");
+		buf.append("<main id='main-content' class='container py-4' style='max-width:960px;'>");
 		buf.append("<div class='mb-4'>");
-		buf.append(Subject.banner);
-		buf.append("<h1 class='h2 mt-3'>Example Question Results</h1>");
+		buf.append("<h2 class='h4 mt-3'>Example Question Results</h2>");
 		buf.append("</div>");
 		buf.append(renderChooser(concepts, questionCounts, selectedConceptId, nQuestions));
 

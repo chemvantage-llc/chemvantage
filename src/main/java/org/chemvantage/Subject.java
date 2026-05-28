@@ -285,6 +285,99 @@ public class Subject {
 		
 		return buf.toString();
 	}
+
+	static String publicHeader(String title,String subtitle,String kicker) {
+		String pageTitle = title == null || title.isBlank() ? "ChemVantage" : title;
+		String pageSubtitle = subtitle == null ? "" : subtitle;
+		String pageKicker = kicker == null || kicker.isBlank() ? "ChemVantage" : kicker;
+		String noindexMeta = "dev-vantage-hrd".equals(getProjectId()) ? "  <meta name='robots' content='noindex, nofollow' />\n" : "";
+		return """
+			<!DOCTYPE html>
+			<html lang='en'>
+			<head>
+			  <meta charset='UTF-8'>
+			  <title>ChemVantage | %s</title>
+			  <meta name='viewport' content='width=device-width, initial-scale=1'>
+			  <meta name='description' content='ChemVantage provides standards-aligned homework, quizzes, and exams for General Chemistry with automatic grading and seamless LMS integration using LTI 1.3 Advantage.'>
+			  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
+			  <meta http-equiv='Pragma' content='no-cache' />
+			  <meta http-equiv='Expires' content='0' />
+			%s  <link rel='icon' href='https://images.chemvantage.org/logo_sq.png'>
+			  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>
+			  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+			  <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'>
+			  <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js' integrity='sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz' crossorigin='anonymous'></script>
+			  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' integrity='sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH' crossorigin='anonymous'>
+			  <link rel='stylesheet' href='/css/common.css'>
+			  <script src='/js/script-backend.js?v=2'></script>
+			</head>
+			<body class='cv-page bg-white text-body'>
+			  <a href='#main-content' class='visually-hidden-focusable position-absolute start-0 top-0 m-2 p-2 bg-light rounded text-dark'>Skip to main content</a>
+			  <header>
+			    <nav class='navbar navbar-expand-lg navbar-light bg-white border-bottom cv-navbar' aria-label='Primary'>
+			      <div class='container'>
+			        <a class='navbar-brand d-flex align-items-center gap-2' href='/' aria-label='ChemVantage home'>
+			          <img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
+			          <span class='fw-bold'>ChemVantage</span>
+			        </a>
+			        <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#primaryNav' aria-controls='primaryNav' aria-expanded='false' aria-label='Toggle navigation'>
+			          <span class='navbar-toggler-icon'></span>
+			        </button>
+			        <div class='collapse navbar-collapse' id='primaryNav'>
+			          <ul class='navbar-nav ms-auto mb-2 mb-lg-0'>
+			            <li class='nav-item'><a class='nav-link' href='/example-questions'>Sample Questions</a></li>
+			            <li class='nav-item'><a class='nav-link' href='/chemistry-reasoning/'>Reasoning Practice</a></li>
+			            <li class='nav-item'><a class='nav-link' href='/install.html'>Install</a></li>
+			            <li class='nav-item'><a class='nav-link' href='/#pricing'>Pricing - $8</a></li>
+			            <li class='nav-item'><a class='nav-link' href='https://calendly.com/chemvantage/install-chemvantage?r=0' target='_blank'>Demo Meeting</a></li>
+			          </ul>
+			        </div>
+			      </div>
+			    </nav>
+			    <section id='home' class='cv-subpage-hero'>
+			      <div class='container py-5'>
+			        <div class='col-lg-10'>
+			          <p class='cv-kicker mb-2'>%s</p>
+			          <h1 class='display-5 fw-semibold mb-3'>%s</h1>
+			%s
+			        </div>
+			      </div>
+			    </section>
+			  </header>
+			""".formatted(pageTitle, noindexMeta, pageKicker, pageTitle,
+			pageSubtitle.isEmpty() ? "" : "          <p class='lead mb-0'>" + pageSubtitle + "</p>");
+	}
+
+	static String publicFooter() {
+		return """
+			  <footer class='border-top cv-footer'>
+			    <div class='container py-4'>
+			      <div class='row g-3 align-items-center'>
+			        <div class='col-md-6'>
+			          <a class='d-inline-flex align-items-center gap-2 mb-2 text-decoration-none text-body' href='/' aria-label='ChemVantage home'>
+			            <img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
+			            <span class='fw-bold'>ChemVantage</span>
+			          </a>
+			          <p class='mb-0 small text-muted'>&copy; <span id='year'>2026</span> ChemVantage LLC.</p>
+			        </div>
+			        <div class='col-md-6'>
+			          <nav aria-label='Footer'>
+			            <ul class='nav justify-content-md-end'>
+			              <li class='nav-item'><a class='nav-link px-2' href='/privacy.html'>Privacy</a></li>
+			              <li class='nav-item'><a class='nav-link px-2' href='/#privacy-accessibility'>Accessibility</a></li>
+			              <li class='nav-item'><a class='nav-link px-2' href='/terms_and_conditions.html'>Terms</a></li>
+			              <li class='nav-item'><a class='nav-link px-2' href='/copyright.html'>Copyright</a></li>
+			              <li class='nav-item'><a class='nav-link px-2' href='/#faq'>FAQ</a></li>
+			            </ul>
+			          </nav>
+			        </div>
+			      </div>
+			    </div>
+			  </footer>
+			  <script src='/js/year-footer.js'></script>
+			</body>
+			</html>""";
+	}
 	
 	public static String getHeader(User user) {
 		String announcement = Subject.getAnnouncement();

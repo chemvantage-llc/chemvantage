@@ -43,25 +43,28 @@ public class ManageReferrals extends HttpServlet {
 			throws ServletException, IOException {
 		try {
 			response.setContentType("text/html");
-			PrintWriter out = response.getWriter();
 			
 			// Extract the 8-character hex code from the URL path
 			String pathInfo = request.getPathInfo();
+			if ("/terms.html".equals(pathInfo) || "/terms".equals(pathInfo)) {
+				request.getRequestDispatcher("/rewards_terms.html").forward(request, response);
+				return;
+			}
+
+			PrintWriter out = response.getWriter();
 			String referralCode = null;
 			
 			if (pathInfo != null && pathInfo.length() > 1) {
 				referralCode = pathInfo.substring(1); // Remove leading slash
 				// Validate that it's an 8-character hex string
 				if (!referralCode.matches("[0-9a-fA-F]{8}")) {
-					out.println(Subject.header("Invalid Referral Code") 
-						+ "<p>The referral code is invalid.</p>" 
-						+ Subject.footer);
+					out.println(publicPage("Invalid Referral Code", "That referral link could not be verified.", "Referral Rewards",
+							"<p>The referral code is invalid.</p>"));
 					return;
 				}
 			} else {
-				out.println(Subject.header("Missing Referral Code") 
-					+ "<p>A valid referral code is required.</p>" 
-					+ Subject.footer);
+				out.println(publicPage("Missing Referral Code", "A valid referral code is required to continue.", "Referral Rewards",
+						"<p>A valid referral code is required.</p>"));
 				return;
 			}
 			
@@ -80,22 +83,17 @@ public class ManageReferrals extends HttpServlet {
 				if (!wasAlreadyVerified && referral.getEmail().equals(referral.getReferrerEmail())) {
 					thankReferrerSection(referral);
 				}
-				out.println(Subject.header("Email Verified") 
-					+ Subject.banner
-					+ thankYouSection(referral.getName())
-					+ Subject.footer);
+				out.println(publicPage("Email Verified", "Your ChemVantage referral email is verified.", "Referral Rewards",
+						thankYouSection(referral.getName())));
 				return;
 			} catch (Exception e) {  //Show the referral form
-				out.println(Subject.header("ChemVantage Adoption")
-					+ Subject.banner
-					+ rewardForm(referralCode) 
-					+ Subject.footer);
+				out.println(publicPage("ChemVantage Adoption", "Verify your email and institutional affiliation.", "Referral Rewards",
+						rewardForm(referralCode)));
 				return;
 			}
 		} catch (Exception e) {
-			response.getWriter().println(Subject.header("Error") 
-					+ "<p>An error occurred: " + e.getMessage() + "</p>" 
-					+ Subject.footer);
+			response.getWriter().println(publicPage("Error", "We could not complete this referral request.", "Referral Rewards",
+					"<p>An error occurred: " + e.getMessage() + "</p>"));
 		}
 	}
 
@@ -120,17 +118,15 @@ public class ManageReferrals extends HttpServlet {
 				orgName == null || orgName.isEmpty() ||
 				orgHomePage == null || orgHomePage.isEmpty()) {
 				
-				out.println(Subject.header("Missing Required Fields") 
-						+ "<p>Please fill in all required fields.</p>" 
-						+ Subject.footer);
+				out.println(publicPage("Missing Required Fields", "Please complete the referral form.", "Referral Rewards",
+						"<p>Please fill in all required fields.</p>"));
 				return;
 			}
 			
 			// Validate referral code format
 			if (!referralCode.matches("[0-9a-f]{8}")) {
-				out.println(Subject.header("Invalid Referral Code") 
-						+ "<p>The referral code is invalid.</p>" 
-						+ Subject.footer);
+				out.println(publicPage("Invalid Referral Code", "That referral code could not be verified.", "Referral Rewards",
+						"<p>The referral code is invalid.</p>"));
 				return;
 			}
 			
@@ -160,9 +156,8 @@ public class ManageReferrals extends HttpServlet {
 		
 		// Send (or resend) verification email
 		sendVerificationEmail(firstName + " " + lastName, email, referralCode, referral.id);		
-		out.println(Subject.header("Thank You") 
-			+ Subject.banner
-			+ "<section class='bg-gradient-primary text-white' style='max-width:600px'>"
+		out.println(publicPage("Thank You", "Check your email to finish verifying your address.", "Referral Rewards",
+			"<section class='bg-gradient-primary text-white' style='max-width:600px'>"
 			+ "  <div class='container py-5'>"
 			+ "    <div class='col-lg-7'>"
 			+ "      <h1 class='display-5 fw-semibold mb-3'>Email Verification</h1>"				+ "    </div>"
@@ -172,12 +167,19 @@ public class ManageReferrals extends HttpServlet {
 				+ "Please check your email and click the link to verify your email address.<br/>"
 				+ "If it doesn't come within a few minutes, please check your spam or junk folder, or try resubmitting the form.<br/>"
 				+ "If THAT doesn't resolve the issue, just contact us at admin@chemvantage.org and we'll get it sorted out.</p>" 
-				+ Subject.footer);
+				));
 		} catch (Exception e) {
-			response.getWriter().println(Subject.header("Error") 
-					+ "<p>An error occurred while processing your request: " + e.getMessage() + "</p>" 
-					+ Subject.footer);
+			response.getWriter().println(publicPage("Error", "We could not complete this referral request.", "Referral Rewards",
+					"<p>An error occurred while processing your request: " + e.getMessage() + "</p>"));
 		}
+	}
+
+	private String publicPage(String title,String subtitle,String kicker,String body) {
+		return Subject.publicHeader(title, subtitle, kicker)
+				+ "<main id='main-content' class='container py-4' style='max-width:960px;'>"
+				+ body
+				+ "</main>"
+				+ Subject.publicFooter();
 	}
 
 	String rewardForm(String referralCode) {
