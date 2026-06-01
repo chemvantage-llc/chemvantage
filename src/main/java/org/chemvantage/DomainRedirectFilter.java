@@ -120,6 +120,7 @@ public class DomainRedirectFilter implements Filter {
      * Returns true if:
      * - Request path contains /lti/launch or /lti/deeplinks
      * - POST request with id_token parameter (LTI 1.3 launch)
+     * - Request is being loaded as an iframe (Sec-Fetch-Dest: iframe header) - indicates navigation within LMS iframe
      * - Valid LTI user token (sig parameter with User.platformId set)
      * - Cross-origin request (Origin header present) - indicates iframe embedding from LMS
      */
@@ -140,6 +141,14 @@ public class DomainRedirectFilter implements Filter {
             if (idToken != null && !idToken.isEmpty()) {
                 return true;  // LTI 1.3 launch request
             }
+        }
+        
+        // Check if request is being loaded as an iframe (Sec-Fetch-Dest header)
+        // Browser automatically sends this when loading any page/resource inside an <iframe>
+        // This catches assignment navigation within an LMS iframe after initial LTI launch
+        String secFetchDest = request.getHeader("Sec-Fetch-Dest");
+        if (secFetchDest != null && "iframe".equalsIgnoreCase(secFetchDest)) {
+            return true;  // Request is for iframe content, likely from LMS
         }
         
         // Check if user token indicates an LTI user
