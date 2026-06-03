@@ -68,12 +68,12 @@ public class DomainRedirectFilter implements Filter {
         String frameAncestors = isLtiContext ? "'self' *" : "'self'";
         response.setHeader("Content-Security-Policy", 
             "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net https://www.youtube.com https://www.google.com https://www.gstatic.com; " +
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.paypal.com; " +
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; " +
-            "img-src 'self' images.chemvantage.org fonts.gstatic.com; " +
+            "img-src 'self' data: images.chemvantage.org fonts.gstatic.com https://www.paypalobjects.com; " +
             "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdn.jsdelivr.net; " +
-            "frame-src https://www.youtube.com https://www.google.com https://www.gstatic.com; " +
-            "connect-src 'self' cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; " +
+            "frame-src https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.paypal.com https://www.sandbox.paypal.com; " +
+            "connect-src 'self' cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.paypal.com https://www.sandbox.paypal.com; " +
             "frame-ancestors " + frameAncestors + "; " +
             "upgrade-insecure-requests; block-all-mixed-content");
         
