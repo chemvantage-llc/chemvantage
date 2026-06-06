@@ -175,6 +175,14 @@
               </outputDirectory>
               <resources>
                 <resource><directory>./src/main/webapp</directory></resource>
+                <resource>
+                  <directory>./src/main/webapp/images/lms</directory>
+                  <targetPath>lms</targetPath>
+                </resource>
+                <resource>
+                  <directory>./src/chemistry-reasoning-standalone</directory>
+                  <targetPath>chemistry-reasoning</targetPath>
+                </resource>
               </resources>
             </configuration>
           </execution>
