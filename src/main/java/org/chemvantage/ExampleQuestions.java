@@ -553,12 +553,12 @@ public class ExampleQuestions extends HttpServlet {
 		for (Question q : sampleQuestions()) if (q.id != null && q.id == questionId) return q;
 		return null;
 	}
-
+/* 
 	private boolean useSampleQuestions(HttpServletRequest request) {
 		String serverName = request.getServerName();
 		return "localhost".equals(serverName) || "127.0.0.1".equals(serverName);
 	}
-
+*/
 	private List<Concept> sampleConcepts() {
 		List<Concept> concepts = new ArrayList<>();
 		concepts.add(sampleConcept(-101L, "Atoms and Molecules", " 01"));
