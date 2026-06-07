@@ -486,6 +486,7 @@ public class LTIDeepLinks extends HttpServlet {
 			String role = roles_iterator.next().getAsString();
 			user.setIsTeachingAssistant(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership/Instructor#TeachingAssistant"));
 			user.setIsInstructor(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor"));
+			user.setIsInstructor(role.contains("Instructor")); // bulletproofing for non-standard role values that contain "Instructor"
 			user.setIsAdministrator(role.equals("http://purl.imsglobal.org/vocab/lis/v2/membership#Administrator"));
 			user.setIsAdministrator(role.equals("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator"));
 		}
