@@ -948,7 +948,7 @@ public class Homework extends HttpServlet {
 		/*
 		 * Display the correct solution to the problem, if appropriate
 		 */
-		if (studentScore==q.pointValue || user.isInstructor()) {
+		if (studentScore==q.pointValue || isFinalAttempt(user, hwa, q.id) || user.isInstructor()) {
 			if (user.isInstructor() && studentScore!=q.pointValue) {
 				buf.append("<div id='solution-link'>Instructor Only: "
 						+ "<a href=# onclick=this.style='display:none';document.querySelector('.solution-container').style='display:block';>show the solution.</a></div>"
@@ -1009,7 +1009,7 @@ public class Homework extends HttpServlet {
 		}
 		debug.append("5");
 			
-		boolean offerHint = studentScore==0 && q.hasHint() && user.isEligibleForHints(q.id);
+		boolean offerHint = studentScore==0 && q.hasHint() && user.isEligibleForHints(q.id) && !isFinalAttempt(user, hwa, q.id);
 
 		buf.append("<a class='btn btn-primary' href=/Homework?AssignmentId=" + (hwa==null?0:hwa.id) + "&sig=" + user.getTokenSignature() + (offerHint?"&Q=" + q.id:"") + (qn==null?"":"#q" + qn) + ">"
 				+ (offerHint?"Please give me a hint":"Continue with this assignment") 
@@ -1457,6 +1457,12 @@ public class Homework extends HttpServlet {
 		return true;
 	}
 	
+	boolean isFinalAttempt(User user, Assignment hwa, Long questionId) {
+		if (hwa==null || user.isInstructor() || hwa.attemptsAllowed == null || !hwa.questionKeys.contains(key(Question.class,questionId))) return false;
+		int nAttempts = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).filter("questionId",questionId).count();
+		return nAttempts == hwa.attemptsAllowed;
+	}
+
 	String tooManyAttempts(User user, Assignment hwa, Long questionId) {
 		StringBuffer buf = new StringBuffer();
 		// Return null if anonymous user or instructor or attemptsAllowed==null or this is an optional question
