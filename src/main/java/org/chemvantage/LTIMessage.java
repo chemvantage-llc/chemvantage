@@ -30,6 +30,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.interfaces.RSAPrivateKey;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -80,7 +81,20 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			if (d==null) debug.append("ChemVantage Deployment unknown<br/>");
 			else debug.append("Deployment: " + d.platform_deployment_id + " (" + d.org_url + ")<br/>");
 
-			if (d==null || !d.scope.contains(scope)) return null;  // must be authorized
+			if (d==null || d.scope==null || !d.scope.contains(scope)) return null;  // must be authorized
+
+			// Repair legacy/malformed deployments that are missing a signing key id.
+			if (d.rsa_key_id == null) {
+				d.rsa_key_id = KeyStore.getAKeyId(d.lms_type);
+				ofy().save().entity(d).now();
+			}
+			RSAPrivateKey signingKey = KeyStore.getRSAPrivateKey(d.rsa_key_id);
+			if (signingKey == null) {
+				d.rsa_key_id = KeyStore.getAKeyId(d.lms_type);
+				signingKey = KeyStore.getRSAPrivateKey(d.rsa_key_id);
+				if (signingKey == null) throw new Exception("No RSA private key available for deployment: " + d.platform_deployment_id);
+				ofy().save().entity(d).now();
+			}
 
 			// SECURITY FIX: Retrieve cached token from SecureCredentialManager
 			// Uses 5-minute buffer to ensure token doesn't expire mid-request
@@ -111,7 +125,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 					.withExpiresAt(in15Min)
 					.withIssuedAt(now)
 					.withJWTId(Nonce.generateNonce())
-					.sign(Algorithm.RSA256(null,KeyStore.getRSAPrivateKey(d.rsa_key_id)));
+					.sign(Algorithm.RSA256(null,signingKey));
 
 			String body = "grant_type=client_credentials"
 					+ "&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
