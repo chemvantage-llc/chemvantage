@@ -476,6 +476,7 @@ public class Homework extends HttpServlet {
 		buf.append("<INPUT TYPE=HIDDEN NAME=QuestionType VALUE=" + questionType + ">");
 
 		question.pointValue = 1;
+		question.nChoices = 5;
 		buf.append(question.edit());
 		buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Preview'></FORM>");
 
