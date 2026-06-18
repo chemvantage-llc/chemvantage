@@ -1,5 +1,5 @@
 (function() {
-  var measurementId = 'G-8R72Y3748X';
+  var measurementId = 'G-616V3J3MT4';
   var trackedHosts = ['www.chemvantage.org', 'chemvantage.org'];
 
   if (trackedHosts.indexOf(window.location.hostname) === -1) return;
