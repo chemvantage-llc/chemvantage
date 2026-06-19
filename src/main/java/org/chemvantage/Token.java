@@ -33,6 +33,8 @@ public class Token extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) 
 			throws ServletException, IOException {
 		StringBuffer debug = new StringBuffer("");
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
 		try {
 			// store parameters required by third-party initiated login procedure:
 			String platform_id = request.getParameter("iss");   // this should be the platform_id URL (aud)
@@ -88,8 +90,6 @@ public class Token extends HttpServlet {
 			
 			debug.append("Sending token: " + oidc_auth_url + "<p>");
 			
-			response.setContentType("text/html");
-			PrintWriter out = response.getWriter();
 			StringBuffer buf = new StringBuffer();
 			buf.append(Subject.header());
 			//buf.append("<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;'><img src='https://images.chemvantage.org/logo.png' alt='ChemVantage logo'></div>");
@@ -106,7 +106,7 @@ public class Token extends HttpServlet {
 				String name = parameterNames.nextElement();
 				debug.append(name + ":" + request.getParameter(name) + ";");
 			}
-			response.sendError(401,"Failed Auth Token. " + (e.getMessage()==null?e.toString():e.getMessage()) + "\n" + debug.toString());
+			out.println("Failed Auth Token. " + (e.getMessage()==null?e.toString():e.getMessage()) + "\n" + debug.toString());
 		}
 	}
 	
