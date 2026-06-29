@@ -146,7 +146,7 @@ For tests that require external services, use mocking:
 GitHub Actions workflow is configured at `.github/workflows/maven-test.yml`:
 - ✅ Runs on push to master/main/develop branches
 - ✅ Runs on pull requests
-- ✅ Tests against Java 21
+- ✅ Tests against Java 25
 - ✅ Uploads test results as artifacts
 - ✅ Reports test results on PRs
 

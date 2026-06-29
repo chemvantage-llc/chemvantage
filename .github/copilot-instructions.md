@@ -4,7 +4,7 @@
 
 ## Architecture Overview
 
-ChemVantage is a **Spring Boot servlet-based application** (Java 21) using:
+ChemVantage is a **Spring Boot servlet-based application** (Java 25) using:
 - **Spring Boot 3.1** as the web framework with embedded Tomcat
 - **Objectify** (v6.1.3) as the ORM for Google Cloud Datastore (NoSQL)
 - **LTI v1.3** integration for LMS platform connectivity
@@ -97,7 +97,7 @@ gcloud --project chem-vantage-hrd datastore indexes cleanup index.yaml
 - **Entities**: Same package, annotated with `@Entity` (e.g., `Question.java`, `User.java`)
 - **Web Assets**: `src/main/webapp/` (HTML, CSS, JS served statically via App Engine)
 - **Configuration**: `src/main/appengine/app.yaml` defines routing, scaling, and static file handlers
-- **Build Config**: `pom.xml` specifies Spring Boot 3.1, Java 21, and Maven plugins
+- **Build Config**: `pom.xml` specifies Spring Boot 3.5, Java 25, and Maven plugins
 
 ## Integration Points & Special Handling
 

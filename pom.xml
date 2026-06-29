@@ -12,9 +12,9 @@
     <relativePath/> <!-- lookup parent from repository -->
   </parent> 
   <properties>
-    <!-- App Engine runtime targets Java 21 -->
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
+    <!-- App Engine runtime targets Java 25 -->
+    <maven.compiler.source>25</maven.compiler.source>
+    <maven.compiler.target>25</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     
     <!-- Project-specific properties -->
