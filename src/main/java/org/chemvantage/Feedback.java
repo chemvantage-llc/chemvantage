@@ -277,18 +277,18 @@ public class Feedback extends HttpServlet {
 			if (!request.getServerName().equals("localhost") && user.isAnonymous()) {
 				String token = request.getParameter("g-recaptcha-response");
 				if (token == null || token.isEmpty()) {
-					throw new Exception("reCAPTCHA token missing");
+					throw new Exception("The reCAPTCHA token was missing");
 				}
 				riskScore = createAssessment(token, "submitFeedback");
 				if (riskScore < 0.3) {
-					throw new Exception("Sorry, the reCAPTCHA risk score was too low: " + riskScore);
+					throw new Exception("The reCAPTCHA risk score was too low: " + riskScore);
 				}
 			}
 		} catch (Exception e) {
-			Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Error during reCAPTCHA validation: ", e.toString());
+			//Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Error during reCAPTCHA validation: ", e.toString());
 			return "<h1>Submission Failed</h1>"
-					+ "The ReCAPTCHA validation failed: " + e.getMessage() + "<br/>"
-					+ "Please click the BACK button on your browser to try again.";
+					+ e.getMessage() + "<br/>"
+					+ "Please send your comments via email to admin@chemvantage.org.";
 		}
 		
 		if (comments.length() > 0) {
