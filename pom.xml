@@ -121,6 +121,53 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-vertexai</artifactId>
     </dependency>
+
+  <!-- CDK for chemical structure normalization, comparison, and depiction -->
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-interfaces</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-core</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-standard</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-data</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-atomtype</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-valencycheck</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-smiles</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-ctab</artifactId>
+      <version>2.10</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openscience.cdk</groupId>
+      <artifactId>cdk-depict</artifactId>
+      <version>2.10</version>
+    </dependency>
   
   <!-- For ObjectifyIntegrationTest -->
     <dependency>

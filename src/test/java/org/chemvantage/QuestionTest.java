@@ -101,6 +101,7 @@ class QuestionTest {
         assertEquals(5, Question.getQuestionType("NUMERIC"));
         assertEquals(6, Question.getQuestionType("FIVE_STAR"));
         assertEquals(7, Question.getQuestionType("ESSAY"));
+        assertEquals(8, Question.getQuestionType("CHEMICAL_STRUCTURE"));
         assertEquals(0, Question.getQuestionType("INVALID"));
     }
 
@@ -110,6 +111,7 @@ class QuestionTest {
         assertEquals("MULTIPLE_CHOICE", Question.getQuestionType(1));
         assertEquals("TRUE_FALSE", Question.getQuestionType(2));
         assertEquals("NUMERIC", Question.getQuestionType(5));
+        assertEquals("CHEMICAL_STRUCTURE", Question.getQuestionType(8));
         assertEquals("", Question.getQuestionType(99));
     }
 

@@ -392,11 +392,15 @@ public class Edit extends HttpServlet {
 		} catch (Exception e) {
 		}
 		String correctAnswer = "";
-		try {
-			String[] allAnswers = request.getParameterValues("CorrectAnswer");
-			for (int i = 0; i < allAnswers.length; i++) correctAnswer += allAnswers[i];
-		} catch (Exception e) {
+		if (type == Question.CHEMICAL_STRUCTURE) {
 			correctAnswer = request.getParameter("CorrectAnswer");
+		} else {
+			try {
+				String[] allAnswers = request.getParameterValues("CorrectAnswer");
+				for (int i = 0; i < allAnswers.length; i++) correctAnswer += allAnswers[i];
+			} catch (Exception e) {
+				correctAnswer = request.getParameter("CorrectAnswer");
+			}
 		}
 		String parameterString = request.getParameter("ParameterString");
 		if (parameterString == null) parameterString = "";
@@ -1156,6 +1160,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=5;submit()\" VALUE='Numeric'> "
 							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=6;submit()\" VALUE='Five Star'> "
 							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=7;submit()\" VALUE='Essay'> "
+							+ "<INPUT TYPE=BUTTON onCLick=\"document.NewQuestion.QuestionType.value=8;submit()\" VALUE='Chemical Structure'> "
 							+ "</FORM><br/>");
 				}
 			}
@@ -1611,6 +1616,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				+ "<OPTION VALUE=5" + (questionType==5?" SELECTED>":">") + "Numeric</OPTION>"
 				+ "<OPTION VALUE=6" + (questionType==6?" SELECTED>":">") + "Five Star</OPTION>"
 				+ "<OPTION VALUE=7" + (questionType==7?" SELECTED>":">") + "Essay</OPTION>"
+				+ "<OPTION VALUE=8" + (questionType==8?" SELECTED>":">") + "Chemical Structure</OPTION>"
 				+ "</SELECT>");
 		return buf.toString();
 	}

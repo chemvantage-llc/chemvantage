@@ -429,7 +429,8 @@ public class Homework extends HttpServlet {
 					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=4;submit();' VALUE='Fill in Word'> "
 					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=5;submit();' VALUE='Numeric'> "
 					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=6;submit();' VALUE='Five Star'> "
-					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=7;submit();' VALUE='Essay'>"
+					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=7;submit();' VALUE='Essay'> "
+					+ "<INPUT TYPE=BUTTON onCLick='document.NewQuestion.QuestionType.value=8;submit();' VALUE='Chemical Structure'>"
 					+ "</FORM><p><p>");
 			
 			return buf.toString();  // done
@@ -466,6 +467,8 @@ public class Homework extends HttpServlet {
 		case (7): buf.append("<h3>Essay " + assignmentType + " Question</h3>");
 		buf.append("Fill in the question text. The user will be asked to provide a short "
 				+ "essay response."); break;
+		case (8): buf.append("<h3>Chemical Structure " + assignmentType + " Question</h3>");
+		buf.append("Fill in the question text, then draw the expected structure in Ketcher and store the molfile as the correct answer."); break;
 		default: buf.append("An unexpected error occurred. Please try again.");
 		}
 		Question question = new Question(questionType);
@@ -596,7 +599,8 @@ public class Homework extends HttpServlet {
 				Question q = questions.get(k); 
 				if (q==null) continue;
 				i++;
-				buf.append("<div id=q" + i + " style='display:table-row'><div style='display:table-cell;font-size:small'>");
+				String qAnchor = "q" + q.id;
+				buf.append("<div id='" + qAnchor + "' style='display:table-row'><div style='display:table-cell;font-size:small'>");
 				String hashMe = user.getId() + hwa.id;
 				q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 
@@ -613,6 +617,7 @@ public class Homework extends HttpServlet {
 				buf.append("<FORM METHOD=POST ACTION=/Homework onsubmit=waitForScore('" + q.id + "'); >"
 						+ "<INPUT TYPE=HIDDEN NAME=sig VALUE='" + user.getTokenSignature() + "'>"
 						+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>"
+						+ "<input type=hidden name=QAnchor value='" + qAnchor + "' />"
 						+ "<input type=hidden name=QNumber value=" + i + " />"  // this is the assigned question number on the page
 						+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 						+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
@@ -638,7 +643,8 @@ public class Homework extends HttpServlet {
 					Question q = questions.get(k); 
 					if (q==null) continue;
 					i++;
-					buf.append("<div style='display:table-row'><div style='display:table-cell;font-size:small'>");
+					String qAnchor = "q" + q.id;
+					buf.append("<div id='" + qAnchor + "' style='display:table-row'><div style='display:table-cell;font-size:small'>");
 					String hashMe = user.getId() + hwa.id;
 					q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 
@@ -655,6 +661,7 @@ public class Homework extends HttpServlet {
 					buf.append("<FORM METHOD=POST ACTION=/Homework onsubmit=waitForScore('" + q.id + "'); >"
 							+ "<INPUT TYPE=HIDDEN NAME=sig VALUE='" + user.getTokenSignature() + "'>"
 							+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>" 
+							+ "<input type=hidden name=QAnchor value='" + qAnchor + "' />"
 							+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 							+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
 							+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining) 
@@ -728,10 +735,12 @@ public class Homework extends HttpServlet {
 		Date now = new Date();
 		
 		String qn = null;
+		String qAnchor = null;
 		Question q = null;
 		String hashMe = user.getId() + (user.isAnonymous()?0:hwa.id);  //used to setParameters
 		String studentAnswer = null;
 		JsonObject essay_score = new JsonObject(); // contains essay score and feedback
+		ChemicalStructureScorer.ComparisonResult structureComparison = null;
 		int studentScore = 0;
 		Score s = null;
 		
@@ -742,10 +751,11 @@ public class Homework extends HttpServlet {
 			// Check to see if a response was submitted
 			Long questionId = Long.parseLong(request.getParameter("QuestionId"));
 			studentAnswer = orderResponses(request.getParameterValues(Long.toString(questionId)));
+			qAnchor = request.getParameter("QAnchor");
 			if (studentAnswer.isEmpty()) {
 				buf.append("<h2>No response was submitted</h2>"
 						+ "<a class='btn btn-primary' href=/Homework?AssignmentId=" + hwa.id 
-						+ "&sig=" + user.getTokenSignature() + (qn==null?"":"#q" + qn) + ">"
+						+ "&sig=" + user.getTokenSignature() + (qAnchor==null||qAnchor.isBlank()?"":"#" + qAnchor) + ">"
 						+ "Go Back</a><br/><br/>");
 
 				return buf.toString();
@@ -753,13 +763,14 @@ public class Homework extends HttpServlet {
 			
 			// Check to see if attemptsAllowed has been exceeded
 			qn = request.getParameter("QNumber");
+			if ((qAnchor == null || qAnchor.isBlank()) && qn != null && !qn.isBlank()) qAnchor = "q" + qn;
 			q = ofy().load().type(Question.class).id(questionId).safe();
 			q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 			String tooManyAttempts = tooManyAttempts(user,hwa,questionId);
 			if (tooManyAttempts != null) {
 				buf.append(tooManyAttempts);
 				buf.append("<br/><a class='btn btn-primary' href=/Homework?AssignmentId=" + hwa.id 
-						+ "&sig=" + user.getTokenSignature() + (qn==null?"":"#q" + qn) + ">"
+						+ "&sig=" + user.getTokenSignature() + (qAnchor==null||qAnchor.isBlank()?"":"#" + qAnchor) + ">"
 						+ "Continue with this assignment</a><br/><br/>");
 				return buf.toString();
 			}
@@ -767,7 +778,7 @@ public class Homework extends HttpServlet {
 			// Check to see if the retry delay has expired
 			String showWork = request.getParameter("ShowWork"+q.id);
 			if (showWork==null) showWork="";  // required because later we check to see if showWork.isEmpty()
-			String attemptTooSoon = attemptTooSoon(user,hwa,q,qn,showWork,studentAnswer);
+			String attemptTooSoon = attemptTooSoon(user,hwa,q,qn,qAnchor,showWork,studentAnswer);
 			if (attemptTooSoon != null) {
 				buf.append(attemptTooSoon);
 				return buf.toString();
@@ -851,6 +862,10 @@ public class Homework extends HttpServlet {
 				}
 				debug.append("e");
 				break;
+			case 8:  // Chemical structure comparison with CDK
+				structureComparison = ChemicalStructureScorer.compare(q.correctAnswer, studentAnswer);
+				studentScore = structureComparison.matched()?q.pointValue:0;
+				break;
 			default:
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 			}
@@ -930,6 +945,12 @@ public class Homework extends HttpServlet {
 					if (score<=1) buf.append("<div class='status-text'>Your answer is incorrect.</div>");
 					else buf.append("<div class='status-text'>Your answer needs improvement</div><br/>");
 					buf.append("<p class='explanation-text'>" + essay_score.get("feedback").getAsString() + "<br/><br/></p>");
+					break;
+				case 8:  // Chemical structure question
+					buf.append("<div class='status-text'>Structure mismatch</div>"
+							+ "<p class='explanation-text'>"
+							+ (structureComparison==null?"The submitted structure could not be evaluated.":structureComparison.message())
+							+ "<br/><br/></p>");
 					break;
 				default:  // All other types of questions
 					buf.append("<div class='status-text'>Incorrect Answer</div>"
@@ -1012,7 +1033,7 @@ public class Homework extends HttpServlet {
 			
 		boolean offerHint = studentScore==0 && q.hasHint() && user.isEligibleForHints(q.id) && !isFinalAttempt(user, hwa, q.id);
 
-		buf.append("<a class='btn btn-primary' href=/Homework?AssignmentId=" + (hwa==null?0:hwa.id) + "&sig=" + user.getTokenSignature() + (offerHint?"&Q=" + q.id:"") + (qn==null?"":"#q" + qn) + ">"
+		buf.append("<a class='btn btn-primary' href=/Homework?AssignmentId=" + (hwa==null?0:hwa.id) + "&sig=" + user.getTokenSignature() + (offerHint?"&Q=" + q.id:"") + (qAnchor==null||qAnchor.isBlank()?"":"#" + qAnchor) + ">"
 				+ (offerHint?"Please give me a hint":"Continue with this assignment") 
 				+ "</a><br/>");
 
@@ -1047,7 +1068,7 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
-	String attemptTooSoon(User user,Assignment hwa,Question q,String qn,String showWork,String studentAnswer) {
+	String attemptTooSoon(User user,Assignment hwa,Question q,String qn,String qAnchor,String showWork,String studentAnswer) {
 		StringBuffer buf = new StringBuffer();
 		Date now = new Date();
 		Date minutesAgo = new Date(now.getTime()-retryDelayMinutes*60000);  // about 1 minute ago
@@ -1063,6 +1084,7 @@ public class Homework extends HttpServlet {
 				+ "<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" +(hwa.id==null?0:hwa.id) + "'>"
 				+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
 				+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>" 
+				+ (qAnchor==null||qAnchor.isBlank()?"":"<input type=hidden name=QAnchor value='" + qAnchor + "' />")
 				+ (qn==null?"":"<input type=hidden name=QNumber value=" + qn + " />")  // this is the assigned question number on the page
 				+ q.print(showWork,studentAnswer) + "<br>");
 
@@ -1088,6 +1110,7 @@ public class Homework extends HttpServlet {
 				+ "<OPTION VALUE=5" + (questionType==5?" SELECTED>":">") + "Numeric</OPTION>"
 				+ "<OPTION VALUE=6" + (questionType==6?" SELECTED>":">") + "Five Star</OPTION>"
 				+ "<OPTION VALUE=7" + (questionType==7?" SELECTED>":">") + "Essay</OPTION>"
+				+ "<OPTION VALUE=8" + (questionType==8?" SELECTED>":">") + "Chemical Structure</OPTION>"
 				+ "</SELECT>");
 		return buf.toString();
 	}

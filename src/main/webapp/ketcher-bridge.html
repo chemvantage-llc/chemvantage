@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="https://static.chemvantage.org/ketcher/">
+  <title>ChemVantage Ketcher Bridge</title>
+  <link rel="stylesheet" href="https://static.chemvantage.org/ketcher/static/css/main.f6ab72ab.css">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    #root {
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    (function () {
+      var activeSessionId = null;
+
+      function post(type, payload) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(Object.assign({
+            source: 'chemvantage-ketcher-bridge',
+            type: type,
+            sessionId: activeSessionId
+          }, payload || {}), '*');
+        }
+      }
+
+
+      function isEmptyTemplate(molfile) {
+        if (!molfile || !String(molfile).trim()) return true;
+        var text = String(molfile);
+        if (/\n\s*0\s+0\s+0\s+0\s+0\s+0\s+0\s+0\s+0\s+0999\s+V2000/.test(text)) return true;
+        if (/M\s+V30\s+COUNTS\s+0\s+0\s+0\s+0\s+0/.test(text)) return true;
+        return false;
+      }
+
+      function wait(ms) {
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      async function readMolfileWithRetry(attempts, delayMs) {
+        var molfile = '';
+        for (var i = 0; i < attempts; i++) {
+          molfile = await Promise.resolve(window.ketcher.getMolfile());
+          if (!isEmptyTemplate(molfile)) return molfile || '';
+          await wait(delayMs);
+        }
+        return molfile || '';
+      }
+
+      async function applyMolfileRobustly(molfile) {
+        var target = molfile || '';
+        if (!target.trim()) {
+          await Promise.resolve(window.ketcher.setMolecule(''));
+          return '';
+        }
+
+        // Some Ketcher startup sequences acknowledge setMolecule before the canvas/model is truly stable.
+        await Promise.resolve(window.ketcher.setMolecule(''));
+        await wait(80);
+        await Promise.resolve(window.ketcher.setMolecule(target));
+        await wait(180);
+
+        var loaded = await readMolfileWithRetry(4, 180);
+        if (!isEmptyTemplate(loaded)) return loaded;
+
+        // Final retry pass for intermittent first-load races.
+        await Promise.resolve(window.ketcher.setMolecule(target));
+        await wait(220);
+        loaded = await readMolfileWithRetry(5, 220);
+        if (!isEmptyTemplate(loaded)) return loaded;
+
+        // Late pass: hard reset + longer settle before readback.
+        await Promise.resolve(window.ketcher.setMolecule(''));
+        await wait(260);
+        await Promise.resolve(window.ketcher.setMolecule(target));
+        await wait(480);
+        return await readMolfileWithRetry(6, 260);
+      }
+
+      async function warmupEditor() {
+        // First access can race Ketcher startup internals; do a short warmup cycle.
+        await Promise.resolve(window.ketcher.getMolfile());
+        await wait(120);
+        await Promise.resolve(window.ketcher.getMolfile());
+      }
+
+      function whenKetcherReady(callback, attempts) {
+        if (window.ketcher && typeof window.ketcher.getMolfile === 'function' && typeof window.ketcher.setMolecule === 'function') {
+          callback();
+          return;
+        }
+        if (attempts <= 0) {
+          post('error', { message: 'Ketcher did not initialize in time.' });
+          return;
+        }
+        window.setTimeout(function () {
+          whenKetcherReady(callback, attempts - 1);
+        }, 250);
+      }
+
+      window.addEventListener('message', function (event) {
+        var data = event.data || {};
+        if (data.source !== 'chemvantage-ketcher-host') return;
+        if (data.sessionId) activeSessionId = data.sessionId;
+
+        whenKetcherReady(async function () {
+          try {
+            if (data.type === 'readyCheck') {
+              await warmupEditor();
+              post('ready', { requestId: data.requestId || null });
+            } else if (data.type === 'setMolfile') {
+              var loadedMolfile = await applyMolfileRobustly(data.molfile || '');
+              post('setMolfileResult', { requestId: data.requestId || null, molfile: loadedMolfile || '' });
+            } else if (data.type === 'getMolfile') {
+              // Reads can intermittently return an empty template during editor settling.
+              // Retry briefly before returning to stabilize submit-time sync behavior.
+              var molfile = await readMolfileWithRetry(5, 140);
+              post('molfile', { requestId: data.requestId || null, molfile: molfile || '' });
+            } else if (data.type === 'clear') {
+              await Promise.resolve(window.ketcher.setMolecule(''));
+              post('setMolfileResult', { requestId: data.requestId || null });
+            }
+          } catch (err) {
+            post('error', { requestId: data.requestId || null, message: err && err.message ? err.message : String(err) });
+          }
+        }, 120);
+      });
+    })();
+  </script>
+  <script defer src="https://static.chemvantage.org/ketcher/static/js/main.2a0fb0e5.js"></script>
+</body>
+</html>

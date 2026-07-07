@@ -57,6 +57,8 @@ public class DomainRedirectFilter implements Filter {
      */
     private void addSecurityHeaders(HttpServletResponse response, HttpServletRequest request) {
         boolean isLtiContext = isLtiRequest(request);
+        String requestPath = request.getRequestURI();
+        boolean isKetcherBridgeRequest = requestPath != null && requestPath.contains("/ketcher-bridge.html");
         
         // HSTS (HTTP Strict-Transport-Security)
         // Forces browser to use HTTPS for all future requests for 1 year (31536000 seconds)
@@ -66,14 +68,18 @@ public class DomainRedirectFilter implements Filter {
         // Content Security Policy (CSP) - prevents XSS and injection attacks
         // frame-ancestors is adjusted based on LTI context
         String frameAncestors = isLtiContext ? "'self' *" : "'self'";
+        String scriptSrc = "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net https://static.chemvantage.org https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.paypal.com"
+                + (isKetcherBridgeRequest ? " 'unsafe-eval' 'wasm-unsafe-eval'" : "")
+                + "; ";
         response.setHeader("Content-Security-Policy", 
             "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.paypal.com; " +
-            "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; " +
+            scriptSrc +
+            "worker-src 'self' blob: https://static.chemvantage.org; " +
+            "style-src 'self' 'unsafe-inline' https://static.chemvantage.org fonts.googleapis.com cdn.jsdelivr.net; " +
             "img-src 'self' data: images.chemvantage.org fonts.gstatic.com https://www.google-analytics.com https://www.paypalobjects.com; " +
             "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdn.jsdelivr.net; " +
-            "frame-src https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.paypal.com https://www.sandbox.paypal.com; " +
-            "connect-src 'self' cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.paypal.com https://www.sandbox.paypal.com; " +
+            "frame-src 'self' https://static.chemvantage.org https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.paypal.com https://www.sandbox.paypal.com; " +
+            "connect-src 'self' https://static.chemvantage.org cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.paypal.com https://www.sandbox.paypal.com; " +
             "frame-ancestors " + frameAncestors + "; " +
             "upgrade-insecure-requests; block-all-mixed-content");
         

@@ -95,6 +95,7 @@ public class Question implements Serializable, Cloneable {
 	public static final int NUMERIC = 5;
 	public static final int FIVE_STAR = 6;
 	public static final int ESSAY = 7;
+	public static final int CHEMICAL_STRUCTURE = 8;
 
 	Question() {}
 
@@ -110,6 +111,7 @@ public class Question implements Serializable, Cloneable {
 				  break;
 		case (6): this.type = "FIVE_STAR"; break;
 		case (7): this.type = "ESSAY"; break;
+		case (8): this.type = "CHEMICAL_STRUCTURE"; break;
 		default:  this.type = null;
 		}
 		this.correctAnswer = "";
@@ -416,6 +418,12 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<textarea id=" + this.id + " aria-label='enter your essay here' name=" + this.id 
 					+ " rows=5 cols=60 wrap=soft placeholder='Enter your answer here' maxlength=800 >" + studentAnswer + "</textarea><br>");
 			break;
+		case 8: // Chemical Structure
+			buf.append(text + "<br/>");
+			buf.append("<span style='color:#B20000;font-size: small;'>Draw the requested chemical structure in the window below. For help with the drawing tool, see the <a href='https://github.com/epam/ketcher/blob/v3.15.0/documentation/help.md#ketcher-molecules-mode' target='_blank'>Ketcher Help Page</a>.</span><br/>");
+			buf.append(renderChemicalStructureComposer(String.valueOf(this.id), studentAnswer, false, false, false));
+			if (!placeholder.isEmpty()) buf.append("<span style='color: gray; font-size: 0.8em;'>" + placeholder + "</span><br/>");
+			break;
 		}
 		return buf.toString();
 	}
@@ -523,6 +531,11 @@ public class Question implements Serializable, Cloneable {
 					+ "onKeyUp=document.getElementById('" + this.id + "').value=document.getElementById('" + this.id + "').value.substring(0,800);}>"
 					+ "</textarea></label><br/><br/>");
 			break;
+		case 8: // Chemical Structure
+			buf.append(text + "<br/>");
+			buf.append("<span style='color:#B20000;font-size: small;'>Draw the correct structure and submit the molfile data for scoring.</span><br/>");
+			buf.append(renderChemicalStructurePreview(correctAnswer, "Correct structure", false) + "<br/>");
+			break;
 		}
 		return buf.toString();
 	}
@@ -621,6 +634,12 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/>");
 			buf.append("<span style='color:#990000;font-size:small;'>(800 characters max):</span><br/>");
 			break;
+		case 8: // Chemical Structure
+			buf.append(text + "<br/>");
+			buf.append("<span style='color:#B20000;font-size: small;'>Draw the correct structure.</span><br/>");
+			if (showDetails && hasACorrectAnswer()) buf.append(renderChemicalStructurePreview(correctAnswer, "Correct structure", false));
+			else buf.append("<div style='border:1px solid #c7c7c7;background:#fff;width:320px;height:240px;display:flex;align-items:center;justify-content:center;'>Chemical structure</div>");
+			break;
 		}
 		
 		buf.append("<br/>");
@@ -635,6 +654,8 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/><br/>");
 		} else if (getQuestionType()==7) {
 			buf.append("<b>The answer submitted was: </b><br/>" + studentAnswer + "<br/>");
+		} else if (getQuestionType()==8) {
+			buf.append("<b>The structure submitted was:</b><br/>" + renderChemicalStructurePreview(studentAnswer, "Submitted structure", false) + "<br/>");
 		}
 		
 		if (reportable) {
@@ -805,6 +826,10 @@ public class Question implements Serializable, Cloneable {
 			buf.append(text + "<br/>");
 			buf.append("Enter your answer in 800 characters or less: _____________________<br/>");
 			break;
+		case 8: // Chemical Structure
+			buf.append(text + "<br/>");
+			buf.append("Draw the correct structure and submit the molfile data for scoring.<br/>");
+			break;
 		}
 		return buf.toString();	
 	}
@@ -859,6 +884,7 @@ public class Question implements Serializable, Cloneable {
 		if (type.equals("NUMERIC")) return 5;
 		if (type.equals("FIVE_STAR")) return 6;
 		if (type.equals("ESSAY")) return 7;
+		if (type.equals("CHEMICAL_STRUCTURE")) return 8;
 		else return 0;
 	}
 
@@ -871,6 +897,7 @@ public class Question implements Serializable, Cloneable {
 			case (5): return "NUMERIC";
 			case (6): return "FIVE_STAR";
 			case (7): return "ESSAY";
+			case (8): return "CHEMICAL_STRUCTURE";
 			default: return "";
 		}
 	}
@@ -884,6 +911,7 @@ public class Question implements Serializable, Cloneable {
 		case (5): type = "NUMERIC"; break;
 		case (6): type = "FIVE_STAR"; break;
 		case (7): type = "ESSAY"; break;
+		case (8): type = "CHEMICAL_STRUCTURE"; break;
 		default:  type = "";
 		}
 	}
@@ -998,11 +1026,108 @@ public class Question implements Serializable, Cloneable {
 				buf.append("<div style='border: solid 2px;width:300px;height:100px'></div>");
 				buf.append("<br/>");
 				break;
+			case 8:  // Chemical Structure
+				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=60 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
+				buf.append("<span style='color:#B20000;font-size: small;'>Draw the expected structure in Ketcher and keep the molfile data below as the stored correct answer.</span><br/>");
+				buf.append(renderChemicalStructureComposer("CorrectAnswer", correctAnswer, false, true, true));
+				break;
 			}
 		}
 		catch (Exception e) {
 			buf.append(e.toString());
 		}
+		return buf.toString();
+	}
+
+	// The composer uses a same-origin bridge page that loads the hosted Ketcher assets and synchronizes molfile data back into the form.
+	String renderChemicalStructureComposer(String fieldName, String molfile, boolean readOnly, boolean showMolfileDataPanel, boolean showControls) {
+		StringBuffer buf = new StringBuffer();
+		String preparedMolfile = ChemicalStructureScorer.prepareMolfileForEditor(molfile);
+		String safeMolfile = amp2html(preparedMolfile == null ? "" : preparedMolfile);
+		String textareaId = "structure_" + fieldName.replaceAll("[^A-Za-z0-9]", "_");
+		String frameId = textareaId + "_frame";
+		String statusId = textareaId + "_status";
+		String detailsId = textareaId + "_details";
+		String syncId = textareaId + "_sync";
+		String clearId = textareaId + "_clear";
+		String bridgeNonce = Long.toHexString(Double.doubleToLongBits(Math.random()));
+		buf.append("<div style='margin:0.75rem 0;'>");
+		buf.append("<iframe id='" + frameId + "' title='Ketcher chemical structure editor' src='/ketcher-bridge.html?cv=" + bridgeNonce + "' style='width:100%;max-width:750px;height:520px;border:1px solid #c7c7c7;background:#fff;'></iframe><br/>");
+		buf.append("<span id='" + statusId + "' style='display:none' aria-hidden='true'></span>");
+		buf.append("<button type='button' id='" + syncId + "' style='display:none' aria-hidden='true'>Sync structure now</button>");
+		buf.append("<button type='button' id='" + clearId + "' style='display:none' aria-hidden='true'>Clear editor</button>");
+		if (showMolfileDataPanel) {
+			buf.append("<details id='" + detailsId + "'><summary>Advanced: view stored molfile data</summary>");
+			buf.append("<label for='" + textareaId + "'>" + (readOnly?"Stored molfile data":"Molfile data used for scoring") + ":</label><br/>");
+			buf.append("<textarea id='" + textareaId + "'" + (fieldName==null?"":" name='" + fieldName + "'") + (readOnly?" readonly":"") + " rows=12 cols=80 wrap=off placeholder='Structure molfile data is synchronized automatically.'>" + safeMolfile + "</textarea>");
+			buf.append("</details>");
+		} else {
+			buf.append("<textarea id='" + textareaId + "'" + (fieldName==null?"":" name='" + fieldName + "'") + (readOnly?" readonly":"") + " style='display:none' aria-hidden='true'>" + safeMolfile + "</textarea>");
+		}
+		if (!readOnly) {
+			buf.append("<script>(function(){"
+					+ "const frame=document.getElementById('" + frameId + "');"
+					+ "const field=document.getElementById('" + textareaId + "');"
+					+ "const status=document.getElementById('" + statusId + "');"
+					+ "const syncButton=document.getElementById('" + syncId + "');"
+					+ "const clearButton=document.getElementById('" + clearId + "');"
+					+ "const hostForm=frame?frame.closest('form'):null;"
+					+ "const hostSessionId='sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);"
+					+ "let ready=false;"
+					+ "let readyProbeTimer=null;"
+					+ "let readyProbeCount=0;"
+					+ "let expectedPreloadRequestId='';"
+					+ "let expectedSyncRequestId='';"
+					+ "let pendingSubmit=false;"
+					+ "let pendingSubmitter=null;"
+					+ "let submitTimeout=null;"
+					+ "let submitReadyWaitTimer=null;"
+					+ "let bypassSubmitHook=false;"
+					+ "let allowTemplateOverwrite=false;"
+					+ "function updateStatus(message,color){status.textContent=message;if(color)status.style.color=color;}"
+					+ "function nextRequestId(prefix){return prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2);}"
+					+ "function post(type,payload){if(frame&&frame.contentWindow){frame.contentWindow.postMessage(Object.assign({source:'chemvantage-ketcher-host',type:type,sessionId:hostSessionId},payload||{}),'*');}}"
+					+ "function isEmptyTemplate(mol){if(!mol||!String(mol).trim())return true;const text=String(mol);if(/\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000/.test(text))return true;if(/M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0/.test(text))return true;return false;}"
+					+ "function stopReadyProbes(){if(readyProbeTimer){clearInterval(readyProbeTimer);readyProbeTimer=null;}}"
+					+ "function startReadyProbes(){if(ready||readyProbeTimer)return;readyProbeCount=0;post('readyCheck',{requestId:nextRequestId('ready')});readyProbeTimer=window.setInterval(function(){if(ready){stopReadyProbes();return;}readyProbeCount++;post('readyCheck',{requestId:nextRequestId('ready')});if(readyProbeCount>50){stopReadyProbes();updateStatus('Ketcher editor is taking longer than expected to load.','#B20000');}},350);}"
+					+ "function beginPreload(){if(!ready||!field.value)return;expectedPreloadRequestId=nextRequestId('preload');updateStatus('Loading saved structure...','#555');post('setMolfile',{molfile:field.value,requestId:expectedPreloadRequestId});}"
+					+ "function requestSyncForSubmit(){if(!ready)return;expectedPreloadRequestId='';expectedSyncRequestId=nextRequestId('sync');post('getMolfile',{requestId:expectedSyncRequestId});}"
+					+ "function finalizeSubmit(){if(!pendingSubmit||!hostForm)return;pendingSubmit=false;if(submitTimeout){clearTimeout(submitTimeout);submitTimeout=null;}if(submitReadyWaitTimer){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;}bypassSubmitHook=true;if(hostForm.requestSubmit){if(pendingSubmitter)hostForm.requestSubmit(pendingSubmitter);else hostForm.requestSubmit();}else hostForm.submit();}"
+					+ "window.addEventListener('message',function(event){const data=event.data||{};if(data.source!=='chemvantage-ketcher-bridge')return;"
+					+ "if(frame&&event.source!==frame.contentWindow)return;"
+					+ "if(data.type!=='ready'&&data.sessionId&&data.sessionId!==hostSessionId)return;"
+					+ "if(data.type==='ready'){if(ready)return;ready=true;stopReadyProbes();updateStatus('Editor ready. Structure data syncs automatically.','#0a6');if(field.value)beginPreload();if(pendingSubmit&&!expectedSyncRequestId){updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}return;}"
+					+ "if(data.type==='setMolfileResult'){const requestId=String(data.requestId||'');const isPreloadReply=expectedPreloadRequestId&&(!requestId||requestId===expectedPreloadRequestId);if(isPreloadReply){expectedPreloadRequestId='';const loaded=data.molfile||'';if(!isEmptyTemplate(loaded)){field.value=loaded;allowTemplateOverwrite=false;updateStatus('Structure synchronized.','#0a6');}else{updateStatus('Saved structure load could not be confirmed.','#B20000');}return;}updateStatus(field.value?'Saved structure loaded.':'Editor cleared.','#0a6');return;}"
+					+ "if(data.type==='molfile'){const requestId=String(data.requestId||'');if(!expectedSyncRequestId)return;if(requestId&&requestId!==expectedSyncRequestId)return;expectedSyncRequestId='';const incoming=data.molfile||'';const incomingEmpty=isEmptyTemplate(incoming);const existingEmpty=isEmptyTemplate(field.value||'');if(incomingEmpty&&field.value&&!existingEmpty&&!allowTemplateOverwrite){updateStatus('Ignoring empty template from editor sync.','#555');if(pendingSubmit)finalizeSubmit();return;}field.value=incoming;updateStatus(field.value&&!incomingEmpty?'Structure synchronized.':'Editor is empty.','#0a6');if(field.value&&!incomingEmpty)allowTemplateOverwrite=false;if(pendingSubmit)finalizeSubmit();return;}"
+					+ "else if(data.type==='error'){if(data.requestId&&expectedSyncRequestId&&data.requestId!==expectedSyncRequestId&&!String(data.requestId).startsWith('initial-'))return;if(data.requestId&&data.requestId===expectedSyncRequestId)expectedSyncRequestId='';updateStatus(data.message||'Unable to communicate with Ketcher.','#B20000');if(pendingSubmit)finalizeSubmit();}});"
+					+ "if(syncButton)syncButton.addEventListener('click',function(){if(!ready){updateStatus('Waiting for editor to finish loading...','#555');startReadyProbes();return;}updateStatus('Syncing structure...','#555');requestSyncForSubmit();});"
+					+ "if(clearButton)clearButton.addEventListener('click',function(){allowTemplateOverwrite=true;field.value='';if(ready)post('clear',{requestId:nextRequestId('clear')});updateStatus('Editor cleared.','#0a6');});"
+					+ "if(frame)frame.addEventListener('load',function(){if(!ready)startReadyProbes();});"
+					+ "if(hostForm)hostForm.addEventListener('submit',function(event){if(bypassSubmitHook){bypassSubmitHook=false;return;}expectedPreloadRequestId='';pendingSubmit=true;pendingSubmitter=event.submitter||null;event.preventDefault();if(!ready){updateStatus('Waiting for editor before submit...','#555');startReadyProbes();if(submitReadyWaitTimer){clearInterval(submitReadyWaitTimer);}submitReadyWaitTimer=window.setInterval(function(){if(!pendingSubmit){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;return;}if(ready&&!expectedSyncRequestId){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}},250);}else{updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}submitTimeout=window.setTimeout(function(){updateStatus('Timed out waiting for editor sync; submitting current molfile.','#B20000');finalizeSubmit();},12000);});"
+					+ "startReadyProbes();"
+					+ "})();</script>");
+		}
+		buf.append("</div>");
+		return buf.toString();
+	}
+
+	String renderChemicalStructurePreview(String molfile, String caption) {
+		return renderChemicalStructurePreview(molfile, caption, true);
+	}
+
+	String renderChemicalStructurePreview(String molfile, String caption, boolean showMolfileData) {
+		if (molfile == null || molfile.isBlank()) return "<div style='border:1px solid #c7c7c7;padding:0.75rem;background:#fff;'>No structure data provided.</div>";
+		StringBuffer buf = new StringBuffer();
+		String svg = ChemicalStructureScorer.renderSvg(molfile);
+		if (svg != null && !svg.isEmpty()) {
+			svg = svg.replaceFirst("<svg\\s+", "<svg style='display:block;width:100%;height:auto;max-width:100%;' ");
+		}
+		buf.append("<div style='border:1px solid #c7c7c7;padding:0.75rem;background:#fff;display:inline-block;width:100%;max-width:300px;box-sizing:border-box;'>");
+		if (caption != null && !caption.isEmpty()) buf.append("<div style='font-size:small;color:#555;margin-bottom:0.5rem;'>" + caption + "</div>");
+		if (svg == null || svg.isEmpty()) buf.append("<div style='color:#990000;'>Unable to render this structure. The raw molfile is shown below.</div>");
+		else buf.append(svg);
+		buf.append("</div>");
+		if (showMolfileData) buf.append("<details><summary>View molfile data</summary><textarea rows=12 cols=80 wrap=off readonly>" + amp2html(molfile) + "</textarea></details>");
 		return buf.toString();
 	}
 
@@ -1034,6 +1159,8 @@ public class Question implements Serializable, Cloneable {
 			return !studentAnswer.isEmpty();
 		case 7: // ESSAY
 			return false;  // graded separately in Homework to get feedback
+		case 8: // Chemical Structure
+			return ChemicalStructureScorer.compare(correctAnswer, studentAnswer).matched();
 		default:  // exact match to non-numeric answer (MULTIPLE_CHOICE, TRUE_FALSE, SELECT_MULTIPLE)
 			return correctAnswer.equals(studentAnswer);
 		}
