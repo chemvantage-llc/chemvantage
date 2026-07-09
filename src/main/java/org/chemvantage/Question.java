@@ -1028,7 +1028,7 @@ public class Question implements Serializable, Cloneable {
 				break;
 			case 8:  // Chemical Structure
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=60 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
-				buf.append("<span style='color:#B20000;font-size: small;'>Draw the expected structure in Ketcher or load it from a SMILES string, and keep the molfile data below as the stored correct answer.</span><br/>");
+				buf.append("<span style='color:#B20000;font-size: small;'>Draw the expected structure in the window below, or load it from a SMILES string.</span><br/>");
 				buf.append(renderChemicalStructureComposer("CorrectAnswer", correctAnswer, false, true, true));
 				break;
 			}
@@ -1049,44 +1049,39 @@ public class Question implements Serializable, Cloneable {
 		String statusId = textareaId + "_status";
 		String detailsId = textareaId + "_details";
 		String smilesId = textareaId + "_smiles";
+		String loadId = textareaId + "_load";
 		String syncId = textareaId + "_sync";
 		String clearId = textareaId + "_clear";
 		String drawModeId = textareaId + "_mode_draw";
-		String smilesModeId = textareaId + "_mode_smiles";
 		String drawPanelId = textareaId + "_panel_draw";
 		String smilesPanelId = textareaId + "_panel_smiles";
 		boolean useModeSelector = !readOnly && !showControls;
 		String bridgeNonce = Long.toHexString(Double.doubleToLongBits(Math.random()));
 		buf.append("<div style='margin:0.75rem 0;'>");
 		if (useModeSelector) {
-			buf.append("<div style='color:#B20000;font-size:small;margin-bottom:0.5rem;'>");
-			buf.append("Choose input mode: ");
-			buf.append("<a href='#' id='" + drawModeId + "'>Draw structure in a Ketcher window</a>");
-			buf.append(" &nbsp;|&nbsp; ");
-			buf.append("<a href='#' id='" + smilesModeId + "'>Enter structure as SMILES text</a>");
-			buf.append("</div>");
-
-			buf.append("<div id='" + smilesPanelId + "' style='display:none;margin-bottom:0.75rem;'>");
-			buf.append("<label for='" + smilesId + "' style='display:block;font-size:small;color:#555;margin-bottom:0.25rem;'>Enter a SMILES string: </label>");
-			buf.append("<div style='display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem;'>");
-			buf.append("<input id='" + smilesId + "' type='text' inputmode='text' spellcheck='false' autocapitalize='off' autocomplete='off' aria-label='Enter chemical structure as a SMILES string' placeholder='Example SMILES: C1=CC=CC=C1' style='flex:1 1 26rem;min-width:16rem;max-width:42rem;' />");
+			buf.append("<a href='#' id='" + drawModeId + "'>Open the chemical structure drawing tool</a>");
+			buf.append("<div id='" + drawPanelId + "' style='display:none;margin-top:0.75rem;margin-bottom:0.75rem;'>");
+			buf.append("<div id='" + smilesPanelId + "' style='margin-bottom:0.75rem;'>");
+			buf.append("<label for='" + smilesId + "' style='display:block;font-size:small;color:#555;margin-bottom:0.25rem;'>Optional keyboard-only input: enter a SMILES string and select Load.</label>");
+			buf.append("<div style='display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:0.5rem;width:100%;max-width:750px;'>");
+			buf.append("<input id='" + smilesId + "' type='text' inputmode='text' spellcheck='false' autocapitalize='off' autocomplete='off' aria-label='Enter chemical structure as a SMILES string' placeholder='Example SMILES: C1=CC=CC=C1' style='flex:1 1 0;min-width:14rem;max-width:none;' />");
+			buf.append("<button type='button' id='" + loadId + "' class='btn btn-primary' style='white-space:nowrap;'>Load</button>");
 			buf.append("</div>");
 			buf.append("<div style='font-size:small;'><a href='https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html' target='_blank' rel='noopener noreferrer'>SMILES help and tutorial</a></div>");
 			buf.append("</div>");
 
-			buf.append("<div id='" + drawPanelId + "' style='display:none;margin-bottom:0.75rem;'>");
-			buf.append("<iframe id='" + frameId + "' title='Ketcher chemical structure editor' src='about:blank' data-bridge-src='/ketcher-bridge.html?cv=" + bridgeNonce + "' style='width:100%;max-width:750px;height:520px;border:1px solid #c7c7c7;background:#fff;'></iframe>");
+			buf.append("<iframe id='" + frameId + "' title='Ketcher chemical structure editor' src='about:blank' data-bridge-src='/ketcher-bridge.html?cv=" + bridgeNonce + "' style='width:100%;min-width:520px;max-width:750px;height:520px;border:1px solid #c7c7c7;background:#fff;'></iframe>");
 			buf.append("<div style='font-size:small;margin-top:0.5rem;'><a href='https://github.com/epam/ketcher/blob/v3.15.0/documentation/help.md#ketcher-molecules-mode' target='_blank' rel='noopener noreferrer'>Ketcher drawing help</a></div>");
 			buf.append("</div>");
 		} else {
 			if (!readOnly) {
-				buf.append("<label for='" + smilesId + "' style='display:block;font-size:small;color:#555;margin-bottom:0.25rem;'>Enter a SMILES string. It will be loaded automatically when you click Preview.</label>");
+				buf.append("<label for='" + smilesId + "' style='display:block;font-size:small;color:#555;margin-bottom:0.25rem;'>Optional keyboard-only input: enter a SMILES string and click Preview.</label>");
 				buf.append("<div style='display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem;'>");
 				buf.append("<input id='" + smilesId + "' type='text' inputmode='text' spellcheck='false' autocapitalize='off' autocomplete='off' aria-label='Enter chemical structure as a SMILES string' placeholder='Example SMILES: C1=CC=CC=C1' style='flex:1 1 26rem;min-width:16rem;max-width:42rem;' />");
 				buf.append("</div>");
 				buf.append("<div style='font-size:small;margin-bottom:0.5rem;'><a href='https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html' target='_blank' rel='noopener noreferrer'>SMILES help and tutorial</a></div>");
 			}
-			buf.append("<iframe id='" + frameId + "' title='Ketcher chemical structure editor' src='/ketcher-bridge.html?cv=" + bridgeNonce + "' style='width:100%;max-width:750px;height:520px;border:1px solid #c7c7c7;background:#fff;'></iframe>");
+			buf.append("<iframe id='" + frameId + "' title='Ketcher chemical structure editor' src='/ketcher-bridge.html?cv=" + bridgeNonce + "' style='width:100%;min-width:520px;max-width:750px;height:520px;border:1px solid #c7c7c7;background:#fff;'></iframe>");
 			if (!readOnly) buf.append("<div style='font-size:small;margin-top:0.5rem;margin-bottom:0.75rem;'><a href='https://github.com/epam/ketcher/blob/v3.15.0/documentation/help.md#ketcher-molecules-mode' target='_blank' rel='noopener noreferrer'>Ketcher drawing help</a></div>");
 		}
 		buf.append("<span id='" + statusId + "' style='display:none' aria-hidden='true'></span>");
@@ -1106,12 +1101,11 @@ public class Question implements Serializable, Cloneable {
 					+ "const field=document.getElementById('" + textareaId + "');"
 					+ "const status=document.getElementById('" + statusId + "');"
 					+ "const smilesField=document.getElementById('" + smilesId + "');"
-					+ "const drawModeLink=document.getElementById('" + drawModeId + "');"
-					+ "const smilesModeLink=document.getElementById('" + smilesModeId + "');"
+					+ "const openToolLink=document.getElementById('" + drawModeId + "');"
+					+ "const loadButton=document.getElementById('" + loadId + "');"
 					+ "const drawPanel=document.getElementById('" + drawPanelId + "');"
 					+ "const smilesPanel=document.getElementById('" + smilesPanelId + "');"
 					+ "const useModeSelector=" + useModeSelector + ";"
-					+ "const syncButton=document.getElementById('" + syncId + "');"
 					+ "const clearButton=document.getElementById('" + clearId + "');"
 					+ "const hostForm=frame?frame.closest('form'):null;"
 					+ "const hostSessionId='sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);"
@@ -1135,7 +1129,7 @@ public class Question implements Serializable, Cloneable {
 					+ "function isEmptyTemplate(mol){if(!mol||!String(mol).trim())return true;const text=String(mol);if(/\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000/.test(text))return true;if(/M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0/.test(text))return true;return false;}"
 					+ "function stopReadyProbes(){if(readyProbeTimer){clearInterval(readyProbeTimer);readyProbeTimer=null;}}"
 					+ "function ensureEditorLoaded(){if(!frame||editorLoadRequested)return;editorLoadRequested=true;const bridgeSrc=frame.getAttribute('data-bridge-src');if(bridgeSrc&&frame.getAttribute('src')!==bridgeSrc){frame.setAttribute('src',bridgeSrc);}if(!ready)startReadyProbes();}"
-					+ "function showMode(mode){if(!useModeSelector)return;ensureEditorLoaded();if(mode==='draw'){if(drawPanel)drawPanel.style.display='';if(smilesPanel)smilesPanel.style.display='none';}else if(mode==='smiles'){if(smilesPanel)smilesPanel.style.display='';if(drawPanel)drawPanel.style.display='none';}}"
+					+ "function showTool(){if(!useModeSelector)return;if(drawPanel)drawPanel.style.display='';if(smilesPanel)smilesPanel.style.display='';ensureEditorLoaded();}"
 					+ "function startReadyProbes(){if(ready||readyProbeTimer)return;readyProbeCount=0;post('readyCheck',{requestId:nextRequestId('ready')});readyProbeTimer=window.setInterval(function(){if(ready){stopReadyProbes();return;}readyProbeCount++;post('readyCheck',{requestId:nextRequestId('ready')});if(readyProbeCount>50){stopReadyProbes();updateStatus('Ketcher editor is taking longer than expected to load.','#B20000');}},350);}"
 					+ "function beginPreload(){if(!ready||!field.value)return;expectedPreloadRequestId=nextRequestId('preload');updateStatus('Loading saved structure...','#555');post('setMolfile',{molfile:field.value,requestId:expectedPreloadRequestId});}"
 					+ "function loadStructureText(structureText){var structure=(structureText||'').trim();if(!structure){updateStatus('Enter a SMILES string to load a structure.','#B20000');return;}pendingStructureText=structure;ensureEditorLoaded();if(!ready){updateStatus('Waiting for editor before loading SMILES...','#555');startReadyProbes();return;}expectedPreloadRequestId='';expectedStructureRequestId=nextRequestId('structure');updateStatus('Loading structure from SMILES...','#555');post('setStructure',{structure:structure,requestId:expectedStructureRequestId});}"
@@ -1144,17 +1138,16 @@ public class Question implements Serializable, Cloneable {
 					+ "window.addEventListener('message',function(event){const data=event.data||{};if(data.source!=='chemvantage-ketcher-bridge')return;"
 					+ "if(frame&&event.source!==frame.contentWindow)return;"
 					+ "if(data.type!=='ready'&&data.sessionId&&data.sessionId!==hostSessionId)return;"
-					+ "if(data.type==='ready'){if(ready)return;ready=true;stopReadyProbes();updateStatus('Editor ready. Structure data syncs automatically.','#0a6');if(field.value)beginPreload();else if(pendingStructureText)loadStructureText(pendingStructureText);if(pendingSubmit&&!expectedSyncRequestId&&!expectedStructureRequestId){updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}if(window.location.hash){var _anchor=document.getElementById(window.location.hash.substring(1));if(_anchor)_anchor.scrollIntoView();}return;}"
+					+ "if(data.type==='ready'){if(ready)return;ready=true;stopReadyProbes();updateStatus('Editor ready. Structure data syncs automatically.','#0a6');if(field.value)beginPreload();else if(pendingStructureText)loadStructureText(pendingStructureText);if(pendingSubmit&&!expectedSyncRequestId&&!expectedStructureRequestId){updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}return;}"
 					+ "if(data.type==='setMolfileResult'){const requestId=String(data.requestId||'');const isPreloadReply=expectedPreloadRequestId&&(!requestId||requestId===expectedPreloadRequestId);if(isPreloadReply){expectedPreloadRequestId='';const loaded=data.molfile||'';if(!isEmptyTemplate(loaded)){field.value=loaded;allowTemplateOverwrite=false;updateStatus('Structure synchronized.','#0a6');}else{updateStatus('Saved structure load could not be confirmed.','#B20000');}return;}updateStatus(field.value?'Saved structure loaded.':'Editor cleared.','#0a6');return;}"
 					+ "if(data.type==='setStructureResult'){const requestId=String(data.requestId||'');if(expectedStructureRequestId&&requestId&&requestId!==expectedStructureRequestId)return;expectedStructureRequestId='';const loaded=data.molfile||'';if(!isEmptyTemplate(loaded)){field.value=loaded;allowTemplateOverwrite=false;pendingStructureText='';updateStatus('Structure loaded from SMILES.','#0a6');if(pendingSubmit&&!expectedSyncRequestId){updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}}else{updateStatus('Unable to load the SMILES string into the editor.','#B20000');if(pendingSubmit)finalizeSubmit();}return;}"
 					+ "if(data.type==='molfile'){const requestId=String(data.requestId||'');if(!expectedSyncRequestId)return;if(requestId&&requestId!==expectedSyncRequestId)return;expectedSyncRequestId='';const incoming=data.molfile||'';const incomingEmpty=isEmptyTemplate(incoming);const existingEmpty=isEmptyTemplate(field.value||'');if(incomingEmpty&&field.value&&!existingEmpty&&!allowTemplateOverwrite){updateStatus('Ignoring empty template from editor sync.','#555');if(pendingSubmit)finalizeSubmit();return;}field.value=incoming;updateStatus(field.value&&!incomingEmpty?'Structure synchronized.':'Editor is empty.','#0a6');if(field.value&&!incomingEmpty)allowTemplateOverwrite=false;if(pendingSubmit)finalizeSubmit();return;}"
 					+ "else if(data.type==='error'){if(data.requestId&&expectedSyncRequestId&&data.requestId!==expectedSyncRequestId&&!String(data.requestId).startsWith('initial-'))return;if(data.requestId&&data.requestId===expectedSyncRequestId)expectedSyncRequestId='';updateStatus(data.message||'Unable to communicate with Ketcher.','#B20000');if(pendingSubmit)finalizeSubmit();}});"
-					+ "if(drawModeLink)drawModeLink.addEventListener('click',function(event){event.preventDefault();showMode('draw');});"
-					+ "if(smilesModeLink)smilesModeLink.addEventListener('click',function(event){event.preventDefault();showMode('smiles');});"
-					+ "if(syncButton)syncButton.addEventListener('click',function(){if(!ready){updateStatus('Waiting for editor to finish loading...','#555');startReadyProbes();return;}updateStatus('Syncing structure...','#555');requestSyncForSubmit();});"
+					+ "if(openToolLink)openToolLink.addEventListener('click',function(event){event.preventDefault();showTool();});"
+					+ "if(loadButton)loadButton.addEventListener('click',function(){showTool();if(smilesField&&smilesField.value&&smilesField.value.trim()){loadStructureText(smilesField.value);}else{updateStatus('Enter a SMILES string to load a structure.','#B20000');}});"
 					+ "if(clearButton)clearButton.addEventListener('click',function(){allowTemplateOverwrite=true;field.value='';if(ready)post('clear',{requestId:nextRequestId('clear')});updateStatus('Editor cleared.','#0a6');});"
-					+ "if(frame)frame.addEventListener('load',function(){if(editorLoadRequested&&!ready)startReadyProbes();});"
-					+ "if(hostForm)hostForm.addEventListener('submit',function(event){if(bypassSubmitHook){bypassSubmitHook=false;return;}expectedPreloadRequestId='';pendingSubmit=true;pendingSubmitter=event.submitter||null;event.preventDefault();const smilesModeActive=useModeSelector&&smilesPanel&&smilesPanel.style.display!=='none';const shouldLoadSmilesForSubmit=!!(smilesField&&smilesField.value&&smilesField.value.trim()&&(!useModeSelector||smilesModeActive));if(shouldLoadSmilesForSubmit){loadStructureText(smilesField.value);submitTimeout=window.setTimeout(function(){updateStatus('Timed out waiting for editor sync; submitting current molfile.','#B20000');finalizeSubmit();},12000);return;}if(!editorLoadRequested){finalizeSubmit();return;}if(!ready){updateStatus('Waiting for editor before submit...','#555');startReadyProbes();if(submitReadyWaitTimer){clearInterval(submitReadyWaitTimer);}submitReadyWaitTimer=window.setInterval(function(){if(!pendingSubmit){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;return;}if(ready&&!expectedSyncRequestId&&!expectedStructureRequestId){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}},250);}else{updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}submitTimeout=window.setTimeout(function(){updateStatus('Timed out waiting for editor sync; submitting current molfile.','#B20000');finalizeSubmit();},12000);});"
+					+ "if(frame)frame.addEventListener('load',function(){if(useModeSelector&&openToolLink)openToolLink.style.display='none';if(editorLoadRequested&&!ready)startReadyProbes();});"
+					+ "if(hostForm)hostForm.addEventListener('submit',function(event){if(bypassSubmitHook){bypassSubmitHook=false;return;}expectedPreloadRequestId='';pendingSubmit=true;pendingSubmitter=event.submitter||null;event.preventDefault();const smilesModeActive=useModeSelector&&smilesPanel&&smilesPanel.style.display!=='none';const shouldLoadSmilesForSubmit=!!(smilesField&&smilesField.value&&smilesField.value.trim()&&(!useModeSelector||smilesModeActive));if(shouldLoadSmilesForSubmit){showTool();loadStructureText(smilesField.value);submitTimeout=window.setTimeout(function(){updateStatus('Timed out waiting for editor sync; submitting current molfile.','#B20000');finalizeSubmit();},12000);return;}if(!editorLoadRequested){finalizeSubmit();return;}if(!ready){updateStatus('Waiting for editor before submit...','#555');startReadyProbes();if(submitReadyWaitTimer){clearInterval(submitReadyWaitTimer);}submitReadyWaitTimer=window.setInterval(function(){if(!pendingSubmit){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;return;}if(ready&&!expectedSyncRequestId&&!expectedStructureRequestId){clearInterval(submitReadyWaitTimer);submitReadyWaitTimer=null;updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}},250);}else{updateStatus('Syncing structure before submit...','#555');requestSyncForSubmit();}submitTimeout=window.setTimeout(function(){updateStatus('Timed out waiting for editor sync; submitting current molfile.','#B20000');finalizeSubmit();},12000);});"
 					+ "if(!useModeSelector)ensureEditorLoaded();"
 					+ "})();</script>");
 		}
