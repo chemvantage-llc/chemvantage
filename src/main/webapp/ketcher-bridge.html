@@ -124,6 +124,9 @@
             } else if (data.type === 'setMolfile') {
               var loadedMolfile = await applyMolfileRobustly(data.molfile || '');
               post('setMolfileResult', { requestId: data.requestId || null, molfile: loadedMolfile || '' });
+            } else if (data.type === 'setStructure') {
+              var loadedStructure = await applyMolfileRobustly(data.structure || '');
+              post('setStructureResult', { requestId: data.requestId || null, molfile: loadedStructure || '' });
             } else if (data.type === 'getMolfile') {
               // Reads can intermittently return an empty template during editor settling.
               // Retry briefly before returning to stabilize submit-time sync behavior.

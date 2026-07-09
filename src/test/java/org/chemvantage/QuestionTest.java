@@ -116,6 +116,23 @@ class QuestionTest {
     }
 
     @Test
+    @DisplayName("Chemical structure composer should include keyboard-only SMILES input")
+    void testChemicalStructureComposerIncludesSmilesInput() {
+        Question q = new Question(Question.CHEMICAL_STRUCTURE);
+
+        String html = q.renderChemicalStructureComposer("AnswerField", "", false, false, false);
+
+        assertTrue(html.contains("Choose input mode:"));
+        assertTrue(html.contains("Draw structure"));
+        assertTrue(html.contains("Enter structure as SMILES text"));
+        assertTrue(html.contains("Keyboard-only option: enter a SMILES string"));
+        assertFalse(html.contains("Load SMILES"));
+        assertTrue(html.contains("Ketcher drawing help"));
+        assertTrue(html.contains("SMILES help and tutorial"));
+        assertTrue(html.contains("setStructure"));
+    }
+
+    @Test
     @DisplayName("Point value should default to 1")
     void testPointValueDefault() {
         Question q = new Question(Question.MULTIPLE_CHOICE);
