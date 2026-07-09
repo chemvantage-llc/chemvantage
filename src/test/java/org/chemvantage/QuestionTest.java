@@ -120,13 +120,11 @@ class QuestionTest {
     void testChemicalStructureComposerIncludesSmilesInput() {
         Question q = new Question(Question.CHEMICAL_STRUCTURE);
 
-        String html = q.renderChemicalStructureComposer("AnswerField", "", false, false, false);
+        String html = q.renderChemicalStructureComposer("AnswerField", "", false, false);
 
-        assertTrue(html.contains("Choose input mode:"));
-        assertTrue(html.contains("Draw structure"));
-        assertTrue(html.contains("Enter structure as SMILES text"));
-        assertTrue(html.contains("Keyboard-only option: enter a SMILES string"));
-        assertFalse(html.contains("Load SMILES"));
+        assertTrue(html.contains("Open the chemical structure drawing tool"));
+        assertTrue(html.contains("enter a SMILES string and select Load"));
+        assertTrue(html.contains(">Load</button>"));
         assertTrue(html.contains("Ketcher drawing help"));
         assertTrue(html.contains("SMILES help and tutorial"));
         assertTrue(html.contains("setStructure"));
