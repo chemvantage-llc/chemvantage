@@ -370,6 +370,11 @@ public class Question implements Serializable, Cloneable {
 			buf.append(text);
 			buf.append("<br/>");
 			buf.append("<label for=" + this.id + "><span id='vote" + this.id + "' style='color:#990000;font-size:small;'>(click a star):</span></label><br/>");
+			int initialStars = 0;
+			try {
+				initialStars = Integer.parseInt(studentAnswer);
+			} catch (Exception e) {}
+			buf.append("<input type=hidden id='rated" + this.id + "' name='RatingSelected" + this.id + "' value='" + (initialStars > 0?"true":"false") + "' />");
 						
 			for (int i=1;i<6;i++) {
 				buf.append("<img src='images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
@@ -385,7 +390,10 @@ public class Question implements Serializable, Cloneable {
 					+ "  document.getElementById('vote" + this.id + "').innerHTML=(nStars==0?'(click a star)':nStars+(nStars>1?' stars':' star'));"  // unary operator + converts string to int
 					+ "  for (i=1;i<6;i++) document.getElementById('star'+i+'" + this.id + "').src = (nStars<i?'https://images.chemvantage.org/star1.gif':'https://images.chemvantage.org/star2.gif');"
 					+ "  fixed" + this.id + " = clicked;"
-					+ "  if (clicked) document.getElementById('" + this.id + "').value=nStars;"
+					+ "  if (clicked) {"
+					+ "    document.getElementById('" + this.id + "').value=nStars;"
+					+ "    document.getElementById('rated" + this.id + "').value='true';"
+					+ "  }"
 					+ "}"
 					+ "</script>\n");
 			
@@ -405,11 +413,7 @@ public class Question implements Serializable, Cloneable {
 					+ "</script>\n");
 			*/
 			
-			int initialStars = 0;
-			try { 
-				initialStars = Integer.parseInt(studentAnswer);
-				buf.append("<script>showStars" + this.id + "(" + initialStars + ",true);</script>");
-			} catch (Exception e) {}
+			if (initialStars > 0) buf.append("<script>showStars" + this.id + "(" + initialStars + ",true);</script>");
 			break;
 		case 7: // Short ESSAY question
 			buf.append(text);

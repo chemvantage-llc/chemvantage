@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -54,9 +55,16 @@ public class Homework extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 137L;	
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
+	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
+	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
 
 	public String getServletInfo() {
 		return "This servlet presents a homework assignment for the user.";
+	}
+
+	private static boolean isBlankStructureSubmission(String submittedStructure) {
+		if (submittedStructure == null || submittedStructure.isBlank()) return true;
+		return EMPTY_V2000_MOLFILE.matcher(submittedStructure).find() || EMPTY_V3000_MOLFILE.matcher(submittedStructure).find();
 	}
 
 	public void doGet(HttpServletRequest request,HttpServletResponse response)
@@ -750,9 +758,38 @@ public class Homework extends HttpServlet {
 		try {
 			// Check to see if a response was submitted
 			Long questionId = Long.parseLong(request.getParameter("QuestionId"));
-			studentAnswer = orderResponses(request.getParameterValues(Long.toString(questionId)));
+			q = ofy().load().type(Question.class).id(questionId).safe();
+			q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
+
+			String answerParam = Long.toString(questionId);
+			switch (q.getQuestionType()) {
+			case 6:
+				studentAnswer = request.getParameter(answerParam);
+				if (studentAnswer == null) studentAnswer = "";
+				break;
+			case 8:
+				studentAnswer = request.getParameter(answerParam);
+				if (studentAnswer == null) studentAnswer = "";
+				break;
+			default:
+				studentAnswer = orderResponses(request.getParameterValues(answerParam));
+			}
+
 			qAnchor = request.getParameter("QAnchor");
-			if (studentAnswer.isEmpty()) {
+			boolean noResponseSubmitted;
+			switch (q.getQuestionType()) {
+			case 6:
+				boolean ratingSelected = Boolean.parseBoolean(request.getParameter("RatingSelected" + questionId));
+				noResponseSubmitted = studentAnswer.isBlank() || (!ratingSelected && "3".equals(studentAnswer));
+				break;
+			case 8:
+				noResponseSubmitted = isBlankStructureSubmission(studentAnswer);
+				break;
+			default:
+				noResponseSubmitted = studentAnswer.isEmpty();
+			}
+
+			if (noResponseSubmitted) {
 				buf.append("<h2>No response was submitted</h2>"
 						+ "<a class='btn btn-primary' href=/Homework?AssignmentId=" + hwa.id 
 						+ "&sig=" + user.getTokenSignature() + (qAnchor==null||qAnchor.isBlank()?"":"#" + qAnchor) + ">"
@@ -764,8 +801,6 @@ public class Homework extends HttpServlet {
 			// Check to see if attemptsAllowed has been exceeded
 			qn = request.getParameter("QNumber");
 			if ((qAnchor == null || qAnchor.isBlank()) && qn != null && !qn.isBlank()) qAnchor = "q" + qn;
-			q = ofy().load().type(Question.class).id(questionId).safe();
-			q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 			String tooManyAttempts = tooManyAttempts(user,hwa,questionId);
 			if (tooManyAttempts != null) {
 				buf.append(tooManyAttempts);
