@@ -24,6 +24,9 @@
   <script>
     (function () {
       var activeSessionId = null;
+      var changeMonitorTimer = null;
+      var lastReportedMolfile = null;
+      var monitorBusy = false;
 
       function post(type, payload) {
         if (window.parent && window.parent !== window) {
@@ -97,6 +100,30 @@
         await Promise.resolve(window.ketcher.getMolfile());
       }
 
+      async function pollAndReportChanges() {
+        if (monitorBusy) return;
+        monitorBusy = true;
+        try {
+          var current = await Promise.resolve(window.ketcher.getMolfile());
+          current = current || '';
+          if (lastReportedMolfile === null || current !== lastReportedMolfile) {
+            lastReportedMolfile = current;
+            post('structureChanged', { molfile: current, empty: isEmptyTemplate(current) });
+          }
+        } catch (err) {
+          // Ignore transient polling errors; explicit requests still report errors.
+        } finally {
+          monitorBusy = false;
+        }
+      }
+
+      function startChangeMonitor() {
+        if (changeMonitorTimer) return;
+        changeMonitorTimer = window.setInterval(function () {
+          pollAndReportChanges();
+        }, 700);
+      }
+
       function whenKetcherReady(callback, attempts) {
         if (window.ketcher && typeof window.ketcher.getMolfile === 'function' && typeof window.ketcher.setMolecule === 'function') {
           callback();
@@ -118,22 +145,31 @@
 
         whenKetcherReady(async function () {
           try {
+            startChangeMonitor();
             if (data.type === 'readyCheck') {
               await warmupEditor();
+              await pollAndReportChanges();
               post('ready', { requestId: data.requestId || null });
             } else if (data.type === 'setMolfile') {
               var loadedMolfile = await applyMolfileRobustly(data.molfile || '');
+              lastReportedMolfile = loadedMolfile || '';
+              post('structureChanged', { molfile: loadedMolfile || '', empty: isEmptyTemplate(loadedMolfile || '') });
               post('setMolfileResult', { requestId: data.requestId || null, molfile: loadedMolfile || '' });
             } else if (data.type === 'setStructure') {
               var loadedStructure = await applyMolfileRobustly(data.structure || '');
+              lastReportedMolfile = loadedStructure || '';
+              post('structureChanged', { molfile: loadedStructure || '', empty: isEmptyTemplate(loadedStructure || '') });
               post('setStructureResult', { requestId: data.requestId || null, molfile: loadedStructure || '' });
             } else if (data.type === 'getMolfile') {
               // Reads can intermittently return an empty template during editor settling.
               // Retry briefly before returning to stabilize submit-time sync behavior.
               var molfile = await readMolfileWithRetry(5, 140);
+              lastReportedMolfile = molfile || '';
               post('molfile', { requestId: data.requestId || null, molfile: molfile || '' });
             } else if (data.type === 'clear') {
               await Promise.resolve(window.ketcher.setMolecule(''));
+              lastReportedMolfile = '';
+              post('structureChanged', { molfile: '', empty: true });
               post('setMolfileResult', { requestId: data.requestId || null });
             }
           } catch (err) {

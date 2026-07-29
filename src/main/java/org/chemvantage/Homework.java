@@ -622,16 +622,18 @@ public class Homework extends HttpServlet {
 				
 				buf.append("</div>");
 
-				buf.append("<FORM METHOD=POST ACTION=/Homework onsubmit=waitForScore('" + q.id + "'); >"
+				buf.append("<FORM METHOD=POST ACTION=/Homework class='homework-response-form' data-question-id='" + q.id + "' data-question-type='" + q.getQuestionType() + "' onsubmit='return validateHomeworkSubmit(this," + q.id + ");'>"
 						+ "<INPUT TYPE=HIDDEN NAME=sig VALUE='" + user.getTokenSignature() + "'>"
 						+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>"
 						+ "<input type=hidden name=QAnchor value='" + qAnchor + "' />"
 						+ "<input type=hidden name=QNumber value=" + i + " />"  // this is the assigned question number on the page
+						+ "<input type=hidden name=QuestionType value='" + q.getQuestionType() + "' />"
 						+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 						+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
 						+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining) 
 						+ (q.id == hintQuestionId?"Hint:<br>" + q.getHint():"")
-						+ "<INPUT id=sub" + q.id + " role='button' aria-label='submit this answer for scoring' TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'><p>"
+						+ "<INPUT id=sub" + q.id + " role='button' aria-label='submit this answer for scoring' aria-disabled='true' disabled TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'>"
+						+ "<div id=submsg" + q.id + " style='font-size:0.9em;color:#666;margin-top:6px;'>Provide an answer to enable submit.</div><p>"
 						+ "</div></div></FORM>\n");
 			}
 			if (i==0) buf.append("(none)");
@@ -666,15 +668,17 @@ public class Homework extends HttpServlet {
 					
 					buf.append("</div>");
 
-					buf.append("<FORM METHOD=POST ACTION=/Homework onsubmit=waitForScore('" + q.id + "'); >"
+					buf.append("<FORM METHOD=POST ACTION=/Homework class='homework-response-form' data-question-id='" + q.id + "' data-question-type='" + q.getQuestionType() + "' onsubmit='return validateHomeworkSubmit(this," + q.id + ");'>"
 							+ "<INPUT TYPE=HIDDEN NAME=sig VALUE='" + user.getTokenSignature() + "'>"
 							+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>" 
 							+ "<input type=hidden name=QAnchor value='" + qAnchor + "' />"
+							+ "<input type=hidden name=QuestionType value='" + q.getQuestionType() + "' />"
 							+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 							+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
 							+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining) 
 							+ (q.id == hintQuestionId?"Hint:<br>" + q.getHint():"")
-							+ "<INPUT id=sub" + q.id + " role='button' TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'><p>"
+							+ "<INPUT id=sub" + q.id + " role='button' aria-disabled='true' disabled TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'>"
+							+ "<div id=submsg" + q.id + " style='font-size:0.9em;color:#666;margin-top:6px;'>Provide an answer to enable submit.</div><p>"
 							+ "</div></div></FORM>\n");
 				}
 				if (i==0) buf.append("(none)");
@@ -688,6 +692,114 @@ public class Homework extends HttpServlet {
 							document.getElementById('showWork'+qid).style.display='';
 							document.getElementById('answer'+qid).placeholder='Enter your answer here';
 						}
+
+						const emptyV2000Molfile = /\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000/;
+						const emptyV3000Molfile = /M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0/;
+
+						function isBlankStructureSubmission(submittedStructure) {
+							if (!submittedStructure || submittedStructure.trim() === '') return true;
+							return emptyV2000Molfile.test(submittedStructure) || emptyV3000Molfile.test(submittedStructure);
+						}
+
+						function hasMeaningfulAnswerByName(form, fieldName) {
+							const fields = form.querySelectorAll('[name="' + fieldName + '"]');
+							if (!fields || fields.length === 0) return false;
+
+							const first = fields[0];
+							if (first.type === 'radio' || first.type === 'checkbox') {
+								for (const f of fields) if (f.checked) return true;
+								return false;
+							}
+
+							return (first.value || '').trim() !== '';
+						}
+
+						function evaluateSubmitEligibility(form) {
+							const qid = form.getAttribute('data-question-id');
+							const qType = parseInt(form.getAttribute('data-question-type') || '0', 10);
+							const answerFieldName = String(qid);
+							const answerField = form.querySelector('[name="' + answerFieldName + '"]');
+
+							if (qType === 6) {
+								const ratedField = form.querySelector('[name="RatingSelected' + qid + '"]');
+								const ratingSelected = ratedField && ratedField.value === 'true';
+								const ratingValue = answerField ? (answerField.value || '').trim() : '';
+								return ratingSelected && ratingValue !== '';
+							}
+
+							if (qType === 8) {
+								const structure = answerField ? (answerField.value || '') : '';
+								if (!isBlankStructureSubmission(structure)) return true;
+
+								// Allow submit after meaningful editor interaction even before molfile sync.
+								const smilesField = form.querySelector('[id="structure_' + qid + '_smiles"]');
+								if (smilesField && (smilesField.value || '').trim() !== '') return true;
+
+								return false;
+							}
+
+							return hasMeaningfulAnswerByName(form, answerFieldName);
+						}
+
+						function setSubmitState(form, enabled) {
+							const qid = form.getAttribute('data-question-id');
+							const submit = document.getElementById('sub' + qid);
+							const message = document.getElementById('submsg' + qid);
+							if (!submit) return;
+
+							submit.disabled = !enabled;
+							submit.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+							if (message) message.style.display = enabled ? 'none' : 'block';
+						}
+
+						function refreshSubmitState(form) {
+							setSubmitState(form, evaluateSubmitEligibility(form));
+						}
+
+						function initializeHomeworkSubmitGuards() {
+							const forms = document.querySelectorAll('form.homework-response-form');
+							for (const form of forms) {
+								form.addEventListener('input', function() { refreshSubmitState(form); });
+								form.addEventListener('change', function() { refreshSubmitState(form); });
+								form.addEventListener('focusin', function() { refreshSubmitState(form); });
+								form.addEventListener('click', function() { refreshSubmitState(form); });
+
+								// Chemical structure composer interactions may not emit standard input/change events.
+								const qType = parseInt(form.getAttribute('data-question-type') || '0', 10);
+								if (qType === 8) {
+									const qid = form.getAttribute('data-question-id');
+									const smilesField = form.querySelector('[id="structure_' + qid + '_smiles"]');
+									const ketcherFrame = form.querySelector('[id="structure_' + qid + '_frame"]');
+
+									if (smilesField) {
+										smilesField.addEventListener('input', function() { refreshSubmitState(form); });
+										smilesField.addEventListener('change', function() { refreshSubmitState(form); });
+									}
+
+									if (ketcherFrame) {
+										const markInteracted = function() {
+											form.setAttribute('data-chem-interacted', 'true');
+											refreshSubmitState(form);
+										};
+										ketcherFrame.addEventListener('focus', markInteracted);
+										ketcherFrame.addEventListener('pointerdown', markInteracted);
+									}
+								}
+								refreshSubmitState(form);
+							}
+						}
+
+						function validateHomeworkSubmit(form, qid) {
+							if (!evaluateSubmitEligibility(form)) {
+								const message = document.getElementById('submsg' + qid);
+								if (message) message.style.display = 'block';
+								return false;
+							}
+							waitForScore(String(qid));
+							return true;
+						}
+
+						document.addEventListener('DOMContentLoaded', initializeHomeworkSubmitGuards);
 					</script>
 				""");
 		} catch (Exception e) {
