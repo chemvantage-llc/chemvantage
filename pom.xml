@@ -116,10 +116,11 @@
       <artifactId>google-cloud-recaptchaenterprise</artifactId>
     </dependency>
 
-  <!-- Google Cloud Vertex AI (Gemini) -->
+  <!-- Google Gen AI SDK (Gemini) -->
     <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-vertexai</artifactId>
+      <groupId>com.google.genai</groupId>
+      <artifactId>google-genai</artifactId>
+      <version>1.64.0</version>
     </dependency>
 
   <!-- CDK for chemical structure normalization, comparison, and depiction -->

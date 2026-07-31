@@ -30,13 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.cloud.vertexai.VertexAI;
-import com.google.cloud.vertexai.api.GenerateContentResponse;
-import com.google.cloud.vertexai.api.GenerationConfig;
-import com.google.cloud.vertexai.api.Schema;
-import com.google.cloud.vertexai.api.Type;
-import com.google.cloud.vertexai.generativeai.GenerativeModel;
-import com.google.cloud.vertexai.generativeai.ResponseHandler;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HttpOptions;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.googlecode.objectify.Key;
@@ -56,22 +53,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class Edit extends HttpServlet {
 
 	private static final long serialVersionUID = 137L;
-	private static final String VERTEX_AI_LOCATION = "us-central1";
-	private static final String VERTEX_AI_DEFAULT_MODEL = "gemini-2.5-flash";
-	//private static final String CORRECT_ANSWER_PROMPT_ID = "pmpt_69aca16a881081938f557752ab5ef5a107c7ea937e14ff76";
-	//private static final String AI_VALIDATOR_PROVIDER = System.getProperty("cv.ai.validator", "gemini").trim().toLowerCase(); // gemini | chatgpt
 	Map<Key<Question>,Question> questions = new HashMap<Key<Question>,Question>();
 	Map<Key<Question>,Integer> pointValue = new HashMap<Key<Question>,Integer>();
 	List<Concept> concepts = new ArrayList<Concept>();
 	Map<Long,Concept> conceptMap = new HashMap<Long,Concept>();
 
-	private static String getVertexAiModel() {
-		String model = Subject.getGemModel();
-		return model == null || model.isBlank() || "changeMe".equalsIgnoreCase(model)
-				? VERTEX_AI_DEFAULT_MODEL
-				: model;
-	}
-	
 	public String getServletInfo() {
 		return "This servlet is used by editors and admins to create, review, edit and delete question items.";
 	}
@@ -1625,17 +1611,19 @@ void assignToConcept(User user, HttpServletRequest request) {
 		String questionItem = q.printForSage();
 		if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
 
-		Schema responseSchema = Schema.newBuilder()
-				.setType(Type.OBJECT)
-				.putProperties("best_answer", Schema.newBuilder().setType(Type.STRING).build())
-				.putProperties("isCorrect", Schema.newBuilder().setType(Type.BOOLEAN).build())
-				.addRequired("best_answer")
-				.addRequired("isCorrect")
-				.build();
+		Map<String,Object> responseSchema = Map.of(
+				"type", "object",
+				"properties", Map.of(
+						"best_answer", Map.of("type", "string"),
+						"isCorrect", Map.of("type", "boolean")
+				),
+				"required", List.of("best_answer", "isCorrect")
+		);
 
-		GenerationConfig generationConfig = GenerationConfig.newBuilder()
-				.setResponseMimeType("application/json")
-				.setResponseSchema(responseSchema)
+		GenerateContentConfig generationConfig = GenerateContentConfig.builder()
+				.responseMimeType("application/json")
+				.responseJsonSchema(responseSchema)
+				.candidateCount(1)
 				.build();
 
 		String prompt = "You are validating a chemistry question and a proposed answer. "
@@ -1653,22 +1641,23 @@ void assignToConcept(User user, HttpServletRequest request) {
 				+ "question_item:\n" + questionItem + "\n\n"
 				+ "proposed_answer:\n" + q.getCorrectAnswer();
 
-		try (VertexAI vertexAI = new VertexAI(Subject.getProjectId(), VERTEX_AI_LOCATION)) {
-			GenerativeModel model = new GenerativeModel.Builder()
-					.setModelName(getVertexAiModel())
-					.setVertexAi(vertexAI)
-					.setGenerationConfig(generationConfig)
+		try {
+			Client client = Client.builder()
+					.enterprise(true)
+					.project(Subject.getProjectId())
+					.location(Subject.getGemModelLocation())
+					.httpOptions(HttpOptions.builder().apiVersion("v1").build())
 					.build();
-			GenerateContentResponse response = model.generateContent(prompt);
-			String text = ResponseHandler.getText(response);
-			if (text == null || text.trim().isEmpty()) throw new Exception("Vertex AI response did not contain answer text.");
+			GenerateContentResponse response = client.models.generateContent(Subject.getGemModel(), prompt, generationConfig);
+			String text = response.text();
+			if (text == null || text.trim().isEmpty()) throw new Exception("Google Gen AI response did not contain answer text.");
 			try {
 				return JsonParser.parseString(text.trim()).getAsJsonObject();
 			} catch (Exception parseException) {
-				throw new Exception("Vertex AI response was not valid JSON object: " + text.trim());
+				throw new Exception("Google Gen AI response was not valid JSON object: " + text.trim());
 			}
 		} catch (Exception e) {
-			throw new Exception("Vertex AI API error: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+			throw new Exception("Google Gen AI API error: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
 		}
 	}
 

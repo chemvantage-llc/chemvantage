@@ -52,7 +52,8 @@ public class Subject {
 	private String projectId;
 	private String serverUrl;
 	private String gptModel;  // e.g. "gpt-4-0613"
-	private String gemModel;  // e.g. "gemini-2.5-pro"
+	private String gemModel;  // e.g. "gemini-3.5-flash-lite"
+	private String gemModelLocation;  // e.g. "us"
 	private String payPalClientId;
 	private String payPalClientSecret;
 	
@@ -68,6 +69,7 @@ public class Subject {
 		fallback.openai_key = "changeMe";
 		fallback.gptModel = "changeMe";
 		fallback.gemModel = "changeMe";
+		fallback.gemModelLocation = "changeMe";
 		fallback.sendGridAPIKey = "changeMe";
 		fallback.payPalClientId = "changeMe";
 		fallback.payPalClientSecret = "changeMe";
@@ -198,11 +200,16 @@ public class Subject {
 		return s.gptModel;
 	}
 	
-	static String getGemModel() { // Gemini is Google's family of LLMs, e.g. "gemini-2.5-pro"
+	static String getGemModel() { // Gemini is Google's family of LLMs, e.g. "gemini-3.5-flash-lite"
 		if (s==null) refresh(); 
 		return s.gemModel;
 	}
 	
+	static String getGemModelLocation() { // Returns the location of the Gemini model, e.g. "us-central1"
+		if (s==null) refresh();
+		return s.gemModelLocation;
+	}
+
 	static String getOpenAIKey() {
 		if (s==null) refresh();
 		return s.openai_key;
