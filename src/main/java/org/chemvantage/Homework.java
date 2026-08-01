@@ -189,6 +189,12 @@ public class Homework extends HttpServlet {
 				if (synchronizeScores(user,a,request)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				else out.println("Synchronization request failed.");
 				break;
+			case "Email Report":
+				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
+				synchronizeScores(user,a,request);
+				Utilities.sendEmail(null,request.getParameter("InstructorEmail"), "ChemVantage Score Synchronization Report", request.getParameter("Report"));
+				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+				break;
 			case "IncludeCustomQuestions":
 				if (user.isInstructor()) {
 					includeCustomQuestions(user,a,request);
@@ -1521,10 +1527,8 @@ public class Homework extends HttpServlet {
 			buf.append("<h1>Homework Scores</h1>");
 			buf.append("Title: " + a.title + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
-			buf.append("Valid: " + new Date() + "<p>");
-			buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "
-					+ "and may or may not include user's names or emails, depending on the settings of your LMS.<br/><br/>");
-
+			buf.append("Valid: " + new Date() + "<br/><br/>");
+			
 			Map<String,String> scores = LTIMessage.readMembershipScores(a);
 			if (scores==null) scores = new HashMap<String,String>();  // in case service call fails
 
@@ -1538,32 +1542,69 @@ public class Homework extends HttpServlet {
 				keys.put(id,key(key(User.class,Subject.hashId(platform_id+id)),Score.class,a.id));
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
-			buf.append("<table><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Scores Detail</th></tr>");
+
+			StringBuffer scoresTable = new StringBuffer();
+			scoresTable.append("<table><tr><th>&nbsp;</th><th>Name&nbsp;</th><th>Email&nbsp;</th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
 			int i=0;
 			int nMismatched = 0;
+			boolean showsNames = false;
+			boolean showsEmails = false;
+			String instructorEmail = null;
+			String currentUserLmsId = user.getId()==null?null:user.getId().substring(user.getId().lastIndexOf("/")+1);
 			for (Map.Entry<String,String[]> entry : membership.entrySet()) {
 				if (entry == null) continue;
+				if (currentUserLmsId != null && currentUserLmsId.equals(entry.getKey()) && entry.getValue()!=null && entry.getValue().length>2) { // this is the current user, so save their email address for later
+					String role = entry.getValue()[0];
+					if (role != null && (role.contains("Instructor") || role.contains("Administrator"))) instructorEmail = entry.getValue()[2];
+				}
 				String lmsScoreString = scores.get(entry.getKey());
 				lmsScoreString = (lmsScoreString==null?" - ":lmsScoreString + "%");
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
+				// Flag this score set as unsynchronized only if there is one or more non-null ChemVantage Learner score that is not equal to the LMS score
+				// Ignore Instructor scores because the LMS often does not report them, and ignore null cvScore entities because they cannot be reported.
 				boolean synched = !"Learner".equals(entry.getValue()[0]) || cvScoreString.equals(lmsScoreString);
-				String forUserId = platform_id + entry.getKey();  // only send hashed values through links
+				if (!synched) nMismatched++;
+				//String forUserId = platform_id + entry.getKey();  // only send hashed values through links
 				i++;
-				buf.append("<tr><td>" + i + ".&nbsp;</td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
+				showsNames = showsNames || (entry.getValue()[1]!=null && !entry.getValue()[1].isEmpty());
+				showsEmails = showsEmails || (entry.getValue()[2]!=null && !entry.getValue()[2].isEmpty());
+				scoresTable.append("<tr><td>" + i + ".&nbsp;</td>"
+						+ "<td>" + (showsNames?entry.getValue()[1]:"-") + "</td>"
+						+ "<td>" + (showsEmails?entry.getValue()[2]:"-") + "</td>"
 						+ "<td>" + entry.getValue()[0] + "</td>"
 						+ "<td align=center>" + lmsScoreString + "</td>"
 						+ "<td align=center>" + cvScoreString + "</td>"
-						+ "<td align=center><a href=/Homework?UserRequest=Review&sig=" + user.getTokenSignature() + "&ForUserId=" + forUserId + "&ForUserName=" + entry.getValue()[1].replaceAll(" ","+") + ">show</a></td>"
-						+ (synched?"":"<td><span id='cell" + forUserId + "'><button onClick=this.disabled=true;this.style.opacity=0.5;synchronizeScore('" + forUserId + "','" + user.getTokenSignature() + "','/Homework'); >sync</button></span></td>")
+						//+ "<td align=center><a href=/Homework?UserRequest=Review&sig=" + user.getTokenSignature() + "&ForUserId=" + forUserId + "&ForUserName=" + entry.getValue()[1].replaceAll(" ","+") + ">show</a></td>"
+						//+ (synched?"":"<td><span id='cell" + forUserId + "'><button onClick=this.disabled=true;this.style.opacity=0.5;synchronizeScore('" + forUserId + "','" + user.getTokenSignature() + "','/Homework'); >sync</button></span></td>")
 						+ "</tr>");
-				// Flag this score set as unsynchronized only if there is one or more non-null ChemVantage Learner score that is not equal to the LMS score
-				// Ignore Instructor scores because the LMS often does not report them, and ignore null cvScore entities because they cannot be reported.
-				if (!synched) nMismatched++;
 			}
-			buf.append("</table><br/>");
+			scoresTable.append("</table><br/>");
+			if (!showsNames || !showsEmails) scoresTable.append("<span style='font-size:0.8em'>Note: Some LMSs do not provide names or email addresses for students.</span><br/><br/>");
+
+			if (nMismatched==0) buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
+			else buf.append("There " + (nMismatched == 1 ? "is" : "are") + " " + nMismatched + " student ChemVantage score" + (nMismatched == 1 ? "" : "s") + " that " + (nMismatched == 1 ? "is" : "are") + " not synchronized with the LMS grade book. "
+				+ "This may happen for one or more of the following reasons:<ul>"
+				+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
+				+ "<li>A late student submission was not accepted by the LMS.</li>"
+				+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
+			
+			if (instructorEmail != null && !instructorEmail.isEmpty()) {
+				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
+						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
+						.append("<input type=hidden name=UserRequest value='Email Report' />")
+						.append("<input type=hidden name=InstructorEmail value=" + instructorEmail + " />")
+						.append("<input type=hidden name=Report value=\"" + scoresTable.toString().replace("\"", "&quot;") + "\" />")
+						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
+						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute.</span>")
+						.append("</form>");
+			}
+		} catch (Exception e) {
+			buf.append(e.toString());
+		}
+		return buf.toString();
+	}
+/*
 			if (nMismatched > 0) {
 				//buf.append(ajaxJavaScript(user.getTokenSignature()));
 				buf.append("You may use the individual 'sync' buttons above to resubmit any ChemVantage score to the LMS. Note that in some cases, mismatched scores are expected (e.g., when "
@@ -1578,12 +1619,8 @@ public class Homework extends HttpServlet {
 					+ "<input type=submit id=syncAll value='Synchronize All Scores' />"
 					+ "</form>");
 			}
-				return buf.toString();
-		} catch (Exception e) {
-			buf.append(e.toString());
-		}
-		return buf.toString();
-	}
+*/
+	
 	
 	String synchronizeScore(User user, Assignment a, String forUserId) {
 		try {
