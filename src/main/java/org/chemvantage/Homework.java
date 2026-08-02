@@ -186,12 +186,12 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Synchronize Scores":
-				if (synchronizeScores(user,a,request)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				if (synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				else out.println("Synchronization request failed.");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				synchronizeScores(user,a,request);
+				synchronizeScores(user,a);
 				showSummary(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
@@ -1519,7 +1519,7 @@ public class Homework extends HttpServlet {
 		return showSummary(user,a,false);
 	}
 
-	static String showSummary (User user, Assignment a, boolean showDetails) {
+	static String showSummary(User user, Assignment a, boolean showDetails) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -1608,7 +1608,7 @@ public class Homework extends HttpServlet {
 		return "Failed. Check assignment settings in the LMS.";
 	}
 
-	boolean synchronizeScores(User user,Assignment a,HttpServletRequest request) {
+	boolean synchronizeScores(User user,Assignment a) {
 		// This method looks for assignment scores that are different from the LMS scores and resubmits the score to the LMS
 		try {
 			if (!user.isInstructor()) throw new Exception();  // only instructors can use this function
