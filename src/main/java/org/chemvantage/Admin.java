@@ -82,7 +82,7 @@ public class Admin extends HttpServlet {
 			
 			String userId = "admin";
 			User user = new User("https://"+request.getServerName(), userId);
-			user.setIsChemVantageAdmin(true);
+			if (user.setIsChemVantageAdmin(true)) ofy().save().entity(user).now();
 			
 			String userRequest = request.getParameter("UserRequest");
 			if (userRequest == null) userRequest = "";

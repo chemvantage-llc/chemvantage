@@ -383,7 +383,7 @@ public class Homework extends HttpServlet {
 			buf.append("<tr>"
 				+ "<td>Custom Questions</td>"
 				+ "<td align=center>" + nQuestionsInAssignment + " of " + nCustomQuestions + "</td>"
-				+ "<td><a href='/Homework?UserRequest=" + (nCustomQuestions==0?"CreateCustomQuestion":"AssignHomeworkQuestions") + "&sig=" + user.getTokenSignature() + "&ConceptId'>Create/Select Questions</a></td>"
+				+ "<td><a href='/Homework?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "'>Create/Select Questions</a></td>"
 				+ "</tr>"
 				+ "</table><br/>");
 
@@ -482,7 +482,7 @@ public class Homework extends HttpServlet {
 		buf.append("Fill in the question text. The user will be asked to provide a short "
 				+ "essay response."); break;
 		case (8): buf.append("<h3>Chemical Structure " + assignmentType + " Question</h3>");
-		buf.append("Fill in the question text, then draw the expected structure in Ketcher and store the molfile as the correct answer."); break;
+		buf.append("Fill in the question text, then draw the expected structure in the Ketcher frame. The molfile will be stored as the correct answer."); break;
 		default: buf.append("An unexpected error occurred. Please try again.");
 		}
 		Question question = new Question(questionType);
@@ -1359,8 +1359,9 @@ public class Homework extends HttpServlet {
 		buf.append("<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "'>Return to the Instructor Page</a><br/><br/>");
 		
 		if (c.title.equals("Custom")) {
-			buf.append("<button class='btn btn-secondary' "
-				+ "onclick=\"location.href='/Homework?UserRequest=CreateCustomQuestion&sig=" + user.getTokenSignature() + "';\">Create New Custom Question</button><br/><br/>");
+			buf.append("<button class='btn btn-secondary' onclick=\"location.href='/Homework?UserRequest=CreateCustomQuestion&sig=" + user.getTokenSignature() + "';\">Create A New Custom Question</button>"
+				+ " or "
+				+ "<button class='btn btn-secondary' onclick=\"location.href='/Contribute?sig=" + user.getTokenSignature() + "';\">Upload Custom Questions in Bulk</button><br/><br/>");
 		}
 
 		List<Question> questions = null;

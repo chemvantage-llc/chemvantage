@@ -50,24 +50,23 @@ public class Contribute extends HttpServlet {
 
 	public void doGet(HttpServletRequest request,HttpServletResponse response)
 			throws ServletException, IOException {
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+			
 		try {
 			User user = User.getUser(request.getParameter("sig"));
-			if (user==null) throw new Exception();
-			
-			response.setContentType("text/html");
-			PrintWriter out = response.getWriter();
+			if (user==null || !user.isInstructor()) throw new Exception("You must be logged in through your LMS to as an instructor to use this utility.");
 			
 			String userRequest = request.getParameter("UserRequest");
 			if (userRequest == null) userRequest = "";
 			
 			switch (userRequest) {
-			case "Batch":
-				out.println(Subject.header("Batch Upload") + batchUpload(user) + Subject.footer);
-				break;
 			default:
-				out.println(Subject.header("Contribute a ChemVantage Question Item") + newQuestionForm(user,request) + Subject.footer);		
+				out.println(Subject.header("Upload Question Items") + uploadQuestionsForm(user) + Subject.footer);		
 			}
-		} catch (Exception e) {}
+		} catch (Exception e) {
+			out.println(Subject.header("Upload Question Items") + e.getMessage() + Subject.footer);
+		}
 	}
 
 	public void doPost(HttpServletRequest request,HttpServletResponse response)
@@ -81,37 +80,45 @@ public class Contribute extends HttpServlet {
 
 			String userRequest = request.getParameter("UserRequest");
 			if (userRequest == null) userRequest = "";
-
+			
 			switch (userRequest) {
-			case "Batch":
-				out.println(Subject.header("Batch Upload") + processBatchUpload(user,request) + Subject.footer);
-				return;
-			case "Save":
-				out.println(Subject.header("Thank you for the ChemVantage Question Item") + submitQuestion(user,request) + Subject.footer);
-				return;
 			default:
-				out.println(Subject.header("Contribute a ChemVantage Question Item") + newQuestionForm(user,request) + Subject.footer);
+				out.println(Subject.header("Upload Question Items") + processBatchUpload(user,request) + Subject.footer);
 			}
 		} catch (Exception e) {
-			out.println(e.getMessage());
+			out.println(Subject.header("Upload Question Items") + e.getMessage() + Subject.footer);
 		}
 	}
 
-	String batchUpload(User user) {
-		StringBuffer buf = new StringBuffer();
-		buf.append("You can upload many proposed questions simultaneously by pasting a JSON array below. "
+	String uploadQuestionsForm(User user) {
+		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
+				+ "      <div class='container py-5'>"
+				+ "          <div class='col-lg-7'>"
+				+ "            <h1 class='display-5 fw-semibold mb-3'>Upload Question Items</h1>"
+				+ "          </div>"
+				+ "        </div>"
+				+ "    </section><p>");
+		
+				buf.append("You can upload many custom questions simultaneously by pasting a JSON array below. All custom questions are sequestered for "
+				+ "your exclusive use in your ChemVantage assignments.<br/><br/>The JSON array must be formatted as follows:<br/>"
 				+ "Each member of the array must be a JSON object with the fields:<ul>"
-				+ "<li>concept - string title of the key concept</li>"
-				+ "<li>type - string that identifies the type of question item (e.g., MULTIPLE_CHOICE)</li>"
-				+ "<li>text - the main prompt of the question item</li>"
-				+ "<li>choices - array of strings used by MULTIPLE_CHOICE and SELECT_MULIPLE types</li>"
-				+ "<li>correctAnswer - this is a string, boolean or number representing the correct response</li>"
-				+ "<li>tag - string ending the question item for FILL_IN_WORD or NUMERIC question types</li>"
-				+ "</ul><div id=test></div>");
+				+ (user.isEditor()?
+					"<li>concept - required string that identifies the key concept for the question item</li>"
+					+ "<li>assignmentType - required string that identifies the assignment type for the question item (e.g., Quiz, Homework)</li>":"")
+				+ "<li>type - required string that identifies the type of question item (MULTIPLE_CHOICE, TRUE_FALSE, SELECT_MULTIPLE, FILL_IN_WORD, NUMERIC, ESSAY)</li>"
+				+ "<li>text - required string that contains the main prompt of the question item</li>"
+				+ "<li>choices - optional JSON array of up to 5 strings (required for MULTIPLE_CHOICE and SELECT_MULTIPLE types)</li>"
+				+ "<li>nChoices - optional integer that indicates the number of choices in the choices array (required for MULTIPLE_CHOICE and SELECT_MULTIPLE types)</li>"
+				+ "<li>scrambleChoices - optional boolean that indicates whether the choices should be scrambled (default is false)</li>"
+				+ "<li>correctAnswer - string representing the correct response, choices (\"b\" or \"acd\"), numeric value (\"4.25E-6\") or boolean (not used for ESSAY type)</li>"
+				+ "<li>tag - optional string ending the question item for FILL_IN_WORD or required units for NUMERIC questions</li>"
+				+ "</ul>"
+				+ "Download the <a href='/docs/question-json-ingest.md'>detailed instructions for the JSON format</a>.<br/>You should be able to "
+				+ "use this file with an AI agent to convert your text file to the required JSON array format and paste it in the form below.<br/>");
 		buf.append("<form method=post action=/Contribute >"
 				+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 				+ "<input type=hidden name=UserRequest value=Batch />"
-				+ "<textarea id=box name=QuestionJson rows=20 cols=80 ></textarea></br>"
+				+ "<textarea id=box name=QuestionJson rows=20 cols=80 placeholder = 'Paste your JSON array here'></textarea></br>"
 				+ "<input type=submit onclick=replaceCurlies(); >" 
 				+ "</form><p>");
 		
@@ -125,6 +132,64 @@ public class Contribute extends HttpServlet {
 		return buf.toString();
 	}
 	
+	String processBatchUpload(User user, HttpServletRequest request) {
+		List<Concept> concepts = ofy().load().type(Concept.class).list();
+		Map<String,Long> conceptIds = new HashMap<String,Long>();
+		for (Concept c : concepts) conceptIds.put(c.title, c.id);
+		List<Question> questions = new ArrayList<Question>();
+
+		StringBuffer buf = new StringBuffer();
+		String json = null;
+		Question q = null;
+		try {
+			json = request.getParameter("QuestionJson");
+			
+			JsonArray questionArray = JsonParser.parseString(json).getAsJsonArray();
+			for (int i=0;i<questionArray.size();i++) {
+				try {
+					JsonObject question = questionArray.get(i).getAsJsonObject();
+					if (user.isEditor()) {
+						Long conceptId = conceptIds.get(question.get("concept").getAsString());
+						question.addProperty("conceptId", conceptId);
+						question.remove("concept");
+						q = new Gson().fromJson(question, ProposedQuestion.class);
+						q.authorId = user.getId();
+						q.pointValue = 1;
+						questions.add(q);
+						ofy().save().entity(q);
+					} else {
+						q = new Gson().fromJson(question, Question.class);
+						q.assignmentType = "Custom";
+						q.isActive = true;
+						q.authorId = user.getId();
+						q.pointValue = 1;
+						questions.add(q);
+						ofy().save().entity(q);
+					}
+				} catch (Exception e) {
+					buf.append("Error on question " + (questions.size() + 1) + ": " + e.getMessage()==null?e.toString():e.getMessage());
+				}
+			}
+			ofy().save().entities(questions);
+		} catch (Exception e) {
+			buf.append("Error: " + e.getMessage()==null?e.toString():e.getMessage() + "<p>" + json);
+		}
+		int n = questions.size();
+		buf.append(n + " question " + (n == 1 ? "item was" : "items were") + " uploaded successfully.<br/>");
+		if (user.isChemVantageAdmin()) {
+			buf.append("<a href='/Edit?UserRequest=Review&sig=" + user.getTokenSignature() + "'>Review the ProposedQuestion items</a>.");
+		} else {
+			String assignmentType = ofy().load().type(Assignment.class).id(user.getAssignmentId()).now().assignmentType;
+			buf.append("You can view/edit/select " + (n == 1 ? "it" : "them") + " by using the "
+					+ "<a href='/" + assignmentType + "?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "'>Custom Questions link</a> "
+					+ "on the Instructor page of your Homework or Quiz assignment or "
+					+ "<a href='/Contribute?sig=" + user.getTokenSignature() + "'>upload another JSON</a>");
+		
+		}
+		return buf.toString();
+	}
+
+	/* 
 	String newQuestionForm(User user,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
 				+ "      <div class='container py-5'>"
@@ -310,41 +375,9 @@ public class Contribute extends HttpServlet {
 		}
 		return buf.toString();
 	}
+*/
 
-	String processBatchUpload(User user, HttpServletRequest request) {
-		List<Concept> concepts = ofy().load().type(Concept.class).list();
-		Map<String,Long> conceptIds = new HashMap<String,Long>();
-		for (Concept c : concepts) conceptIds.put(c.title, c.id);
-		List<Question> questions = new ArrayList<Question>();
-
-		StringBuffer buf = new StringBuffer();
-		String json = null;
-		try {
-			json = request.getParameter("QuestionJson");
-			
-			JsonArray questionArray = JsonParser.parseString(json).getAsJsonArray();
-			for (int i=0;i<questionArray.size();i++) {
-				try {
-					JsonObject question = questionArray.get(i).getAsJsonObject();
-					Long conceptId = conceptIds.get(question.get("concept").getAsString());
-					question.addProperty("conceptId", conceptId);
-					question.remove("concept");
-					ProposedQuestion q = new Gson().fromJson(question, ProposedQuestion.class);
-					questions.add(q);
-				} catch (Exception e) {
-					buf.append("Error on question " + (questions.size() + 1) + ": " + e.getMessage()==null?e.toString():e.getMessage());
-				}
-			}
-			ofy().save().entities(questions);
-		} catch (Exception e) {
-			buf.append("Error: " + e.getMessage()==null?e.toString():e.getMessage() + "<p>" + json);
-		}
-		buf.append(questions.size() + " proposed question items were uploaded successfully.<p>"
-				+ "<a href='/Contribute?UserRequest=Batch&sig=" + user.getTokenSignature() + "'>Upload another JSON</a> or "
-				+ "<a href='/Edit'>go to the Edit page</a>.");
-		return buf.toString();
-	}
-	
+/* 	
 	String submitQuestion(User user,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer();
 		//String cvsToken = request.getSession().isNew()?user.getCvsToken():null;
@@ -426,4 +459,5 @@ public class Contribute extends HttpServlet {
 		}
 		return buf.toString();
 	}
+		*/
 }

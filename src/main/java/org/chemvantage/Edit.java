@@ -80,7 +80,7 @@ public class Edit extends HttpServlet {
 			String userId = "admin";
 			User user = new User("https://"+request.getServerName(), userId);
 			user.setIsChemVantageAdmin(true);
-			
+
 			out.println(Subject.getHeader(user));
 			
 			String userRequest = request.getParameter("UserRequest");
@@ -1045,6 +1045,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 					buf.append("<a href=/Edit?UserRequest=ManageVideos>Manage Videos</a><br/>");
 					buf.append("<a href=/Edit?UserRequest=ManageTexts>Manage Texts</a><br/>");
 					buf.append("<a href=/Edit?UserRequest=ManageOrphanQuestions>Manage Orphan Questions</a><br/>");
+					buf.append("<a href=/Contribute?sig=" + user.getTokenSignature() + ">Upload Question Items in Bulk</a><br/>");
 					buf.append("<a href=/Edit?UserRequest=ReviewAI>Review AI Questions (" + needsAttention + " need attention)</a><br/>");
 					buf.append("<form><label>Assignment ID: <input type=text name=AssignmentId /></label> <input type=submit value=Select></form>");
 				}
