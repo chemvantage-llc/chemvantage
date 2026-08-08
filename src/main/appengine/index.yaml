@@ -139,6 +139,11 @@ indexes:
   - name: assignmentType
   - name: topicId
 
+- kind: Question
+  properties:
+  - name: authorId
+  - name: conceptId
+  
 - kind: QuizTransaction
   properties:
   - name: userId

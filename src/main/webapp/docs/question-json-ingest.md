@@ -35,7 +35,7 @@ The batch importer accepts the same type names used by the `Question` model:
 
 ## Field reference
 
-### Required or strongly recommended fields
+### Required or recommended fields
 
 #### `type`
 
@@ -49,6 +49,16 @@ Examples:
 
 ```json
 "type": "NUMERIC"
+```
+
+#### 'concept'
+
+Optional - must match exactly one of the allowed values listed below
+
+Example:
+
+```json
+"concept": "Scientific Method"
 ```
 
 #### `text`
@@ -316,3 +326,154 @@ Example:
 ## Where this is used in the app
 
 The batch form is exposed from the Contribute servlet and parsed in the batch upload handler. The app stores the submitted objects as custom Question entities that may be reviewed and edited before including them in a Homework or Quiz assignment.
+
+## Allowed values of concept
+
+- Scientific Method
+- Atoms & Molecules
+- Phases & Classification of Matter
+- Physical & Chemical Properties
+- Units, Prefixes & Conversions
+- Density
+- Uncertainty, Accuracy & Precision
+- Significant Figures
+- Dimensional Analysis
+- Temperature Conversions
+- Dalton's Atomic Theory
+- Discovery of the Electron
+- Rutherford Scattering
+- Atomic Structure
+- Atomic Symbols
+- Isotopes and Average Mass
+- Periodic Table of Elements
+- Ionic and Covalent Compounds
+- Chemical Nomenclature
+- The Mole & Avogadro's Number
+- Mass, Moles and Particles
+- Formula Mass
+- Empirical & Molecular Formulas
+- Molarity
+- Molality, PPM, PPB
+- Total & Net Ionic Equations
+- Balancing Chemical Equations
+- Classifying Chemical Equations
+- Reaction Stoichiometry
+- Reaction Yields
+- Quantitative Analysis
+- Heat and Work
+- Calorimetry
+- Enthalpy
+- First Law of Thermodynamics
+- Enthalpy of Reaction
+- Hess' Law
+- Wave Nature of Light
+- Blackbody Radiation
+- Photoelectric Effect
+- Line Spectra
+- Bohr Model & Rydberg Equation
+- Wave-Particle Duality
+- Heisenberg Uncertainty Princiiple
+- Atomic Orbitals & Energy
+- Pauli Exclusion Principle
+- Aufbau Principle
+- Electron configurations
+- Periodic Trends: Size, IE, EA
+- Ionic Bonding
+- Covalent Bonding
+- Lewis Structures
+- Formal Charges and Resonance
+- Strengths of Chemical Bonds
+- Molecular Structure & Polarity
+- Valence Bond Theory
+- Hybrid Atomic Orbitals
+- Multiple Bonds
+- Molecular Orbital Theory
+- Gas Pressure
+- Simple Gas Laws
+- Ideal Gas Law
+- Gas Mixtures, Density, Partial Pressure
+- Effusion and Diffusion of Gases
+- Kinetic Molecular Theory of Gases
+- Non-ideal Gas Behavior
+- Intermolecular Forces
+- Properties of Liquids
+- Phase Transitions
+- Phase Diagrams
+- Solid State of Matter
+- Lattice Structures of Crystalline Solids
+- Semiconductors and Band Theory
+- Dissolution Process
+- Solubility
+- Electrolytes
+- Colligative Properties
+- Colloids
+- Chemical Reaction Rates
+- Arrhenius Equation
+- Rate Laws
+- Integrated Rate Laws
+- Collision Theory
+- Reaction Mechanisms
+- Catalysis
+- Chemical Equilibria
+- Equilibrium Constants
+- Le Chatelier's Principle
+- Equilibrium Calculations
+- Bronsted-Lowry Acids & Bases
+- pH and pOH
+- Relative Strengths of Acids and Bases
+- Hydrolysis of Salts
+- Polyprotic Acids
+- Buffer Solutions
+- Acid-Base Titrations
+- Slightly Soluble Salts
+- Lewis Acids and Bases
+- Coupled Equilibria
+- Formation of Complex Ions
+- Reaction Spontaneity
+- Entropy
+- 2nd & 3rd Laws of Thermodynamics
+- Free Energy
+- Carnot Engine
+- Oxidation-Reduction Reactions
+- Galvanic Cells
+- Electrode and Cell Potentials
+- Potential, Free Energy & Equilibrium
+- Batteries & Fuel Cells
+- Corrosion
+- Electrolysis and Disproportionation
+- Classification of Elements
+- Representative Metals
+- Metalloids
+- Nonmetals
+- Compounds of Hydrogen
+- Carbonates
+- Compounds of Nitrogen
+- Compounds of Phosphorus
+- Compounds of Oxygen
+- Compounds of Sulfur
+- Halogens
+- Noble Gases
+- Transition Metals and Compounds
+- Coordination Chemistry
+- Properties of Coordination Compounds
+- Metallurgy
+- Hydrocarbons
+- Alcohols & Ethers
+- Aldehydes, Ketones, Acids & Esters
+- Amines and Amides
+- Stereoisomers
+- Polymers and Plastics
+- Nuclear Structure & Stability
+- Nuclear Equations
+- Radioactive Decay
+- Nuclear Fission & Fusion
+- Uses of Radioisotopes
+- Biological Effects of Radiation
+- Lipids
+- Carbohydrates
+- Amino Acids and Proteins
+- Nucleic Acids
+- Chemical Separations
+- Environmental Chemistry
+- Molecular Spectroscopy
+

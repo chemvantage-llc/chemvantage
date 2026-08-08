@@ -229,6 +229,9 @@ public class Homework extends HttpServlet {
 		try {
 			q.id = Long.parseLong(request.getParameter("QuestionId"));
 		} catch (Exception e) {}
+		try {
+			q.conceptId = Long.parseLong(request.getParameter("ConceptId"));
+		} catch (Exception e) {}
 		String questionText = request.getParameter("QuestionText");
 		ArrayList<String> choices = new ArrayList<String>();
 		int nChoices = 0;
@@ -353,9 +356,15 @@ public class Homework extends HttpServlet {
 			// Create a map of conceptId to number of questions assigned for that concept
 			Map<Long,Integer> conceptQuestionCounts = new HashMap<Long,Integer>();
 			questionMap.values().forEach(q -> {
-				Integer n = conceptQuestionCounts.get(q.conceptId);
-				if (n==null) n = 0;
-				conceptQuestionCounts.put(q.conceptId, n+1);
+				if (q.assignmentType.equals("Homework")) {
+					Integer n = conceptQuestionCounts.get(q.conceptId);
+					if (n==null) n = 0;
+					conceptQuestionCounts.put(q.conceptId, n+1);
+				} else if (q.assignmentType.equals("Custom")) {
+					Integer n = conceptQuestionCounts.get(0L); // use 0L as the key for custom questions
+					if (n==null) n = 0;
+					conceptQuestionCounts.put(0L, n+1);
+				}
 			});
 
 			// Print a table of concepts with the number of assigned questions for each concept
@@ -374,16 +383,16 @@ public class Homework extends HttpServlet {
 				buf.append("<tr>"
 						+ "<td>" + (c==null?"(deleted concept)":c.title) + "</td>"
 						+ "<td align=center>" + nQuestions + " of " + nTotalQuestions + "</td>"
-						+ "<td align=center><a href='/Homework?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "&ConceptId=" + cId + "'>Select Questions</a></td>"
+						+ "<td align=center><a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Homework&sig=" + user.getTokenSignature() + "&ConceptId=" + cId + "'>Select Questions</a></td>"
 						+ "</tr>");
 			});
 			int nCustomQuestions = ofy().load().type(Question.class).filter("assignmentType","Custom").filter("authorId",user.getId()).count();
-			int nQuestionsInAssignment = conceptQuestionCounts.get(null)==null?0:conceptQuestionCounts.get(null);
+			int nQuestionsInAssignment = conceptQuestionCounts.get(0L)==null?0:conceptQuestionCounts.get(0L);
 			
 			buf.append("<tr>"
 				+ "<td>Custom Questions</td>"
 				+ "<td align=center>" + nQuestionsInAssignment + " of " + nCustomQuestions + "</td>"
-				+ "<td><a href='/Homework?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "'>Create/Select Questions</a></td>"
+				+ "<td><a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'>Create/Select Questions</a></td>"
 				+ "</tr>"
 				+ "</table><br/>");
 
@@ -543,7 +552,7 @@ public class Homework extends HttpServlet {
 
 		buf.append("<hr><h2>Continue Editing</h2>");
 		buf.append("Question Type:" + questionTypeDropDownBox(q.getQuestionType()) + "<br/>");
-		
+		buf.append("Concept: " + conceptDropDownBox(q.conceptId) + "<br/>");
 		buf.append(q.edit());
 
 		buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Preview' />");
@@ -1268,6 +1277,18 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
+	String conceptDropDownBox(Long conceptId) {
+		StringBuffer buf = new StringBuffer();
+		buf.append("<SELECT NAME=ConceptId><OPTION VALUE=''>Select a concept (optional)</OPTION>");
+		List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
+		for (Concept c : concepts) {
+			if (c.orderBy.startsWith(" 0")) continue;  // skip the "hidden" concepts
+			buf.append("<OPTION VALUE=" + c.id + (c.id.equals(conceptId)?" SELECTED>":">") + c.title + "</OPTION>");
+		}
+		buf.append("</SELECT>");
+		return buf.toString();
+	}
+
 	static String reviewSubmissions(User user, Assignment a, String forUserId, String forUserName) {
 		StringBuffer buf = new StringBuffer();
 		StringBuffer debug = new StringBuffer("Debug: ");
@@ -1345,50 +1366,62 @@ public class Homework extends HttpServlet {
 	}
 
 	String selectQuestionsForm(User user,Assignment a,HttpServletRequest request) {
-		StringBuffer buf = new StringBuffer();
-		Concept c = null;
+		StringBuffer buf = new StringBuffer("<h1>Customize Homework Assignment</h1>");
+		
+		String assignmentType = request.getParameter("AssignmentType");
+		Concept c = new Concept();
 		try {
-			buf.append("<h1>Customize Homework Assignment</h1>");
 			Long conceptId = Long.parseLong(request.getParameter("ConceptId"));
 			c = ofy().load().type(Concept.class).id(conceptId).now();
 		} catch (Exception e) {
-			c = new Concept("Custom","0");
 		}
 			
-		buf.append("<h2>" + (c.title.equals("Custom")?"Custom Questions":"Concept: " + c.title) + "</h2>");
+		buf.append("<h2>" + (assignmentType.equals("Custom")?"Custom Questions": assignmentType + " Questions") + "</h2>");
 		buf.append("<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "'>Return to the Instructor Page</a><br/><br/>");
 		
-		if (c.title.equals("Custom")) {
+		List<Question> questions = null;
+		if (assignmentType.equals("Custom")) { // Load Custom questions for this instructor
 			buf.append("<button class='btn btn-secondary' onclick=\"location.href='/Homework?UserRequest=CreateCustomQuestion&sig=" + user.getTokenSignature() + "';\">Create A New Custom Question</button>"
 				+ " or "
 				+ "<button class='btn btn-secondary' onclick=\"location.href='/Contribute?sig=" + user.getTokenSignature() + "';\">Upload Custom Questions in Bulk</button><br/><br/>");
-		}
-
-		List<Question> questions = null;
-		if (c.title.equals("Custom")) {
 			questions = ofy().load().type(Question.class).filter("assignmentType","Custom").filter("authorId",user.getId()).list();
-		} else {
+		} else { // Load Homework questions for the selected concept
 			questions = ofy().load().type(Question.class).filter("assignmentType","Homework").filter("conceptId",c.id).list();
 		}
-		
+
 		if (questions.isEmpty()) {
-			buf.append("There are currently no active questions available.<br/>");
+			buf.append("There are currently no questions available here.<br/>");
 			return buf.toString();
 		} else {  // Allow instructor to pick individual question items from all active questions:
-			buf.append("Select/unselect the homework questions below to be assigned for grading, "
-				+ "then click the 'Use Selected Items' button. All questions have equal point value.");
-			if (!c.title.equals("Custom")) buf.append(" Questions not selected will be available to students as optional practice problems.<p>");
+			buf.append("Select/unselect the questions to be assigned for grading, then click the 'Use Selected Items' button.<br/>");
 		}
 
-		// Show questions for only the selected concept. Make 2 lists of Assigned and Optional questions:
+		// Make 2 lists of Assigned and Optional questions:
 		StringBuffer assignedQuestions = new StringBuffer();
 		StringBuffer optionalQuestions = new StringBuffer();
-		int i = 1;  // counter for assigned questions
-		int j = 1;  // counter for optional questions
+		int i = 0;  // counter for assigned questions
+		int j = 0;  // counter for optional questions
 		
+		// For Custom questions, we show optional (not already assigned) questions in 2 alternative ways: 
+		// a) those with concepts that are included in the assignment concepts, or
+		// b) all Custom questions for this instructor
+		// Defaults to b) if the number of questions in option a) is zero or if 'ShowAllCustomQuestions' is contained in the request object
+		int nUnassignedQuestionsWithConcepts = 0;
+		if (assignmentType.equals("Custom")) {
+			for (Question q : questions) {
+				if (q.conceptId!=null && a.conceptIds.contains(q.conceptId) && !a.questionKeys.contains(key(q))) nUnassignedQuestionsWithConcepts++;
+			}
+		}
+		
+		// If the assignment is not Custom, or if the instructor has requested to show all Custom questions, or if there are no unassigned Custom questions with concepts included in the assignment, then show all questions
+		boolean showAllQuestions = !assignmentType.equals("Custom") || request.getParameter("ShowAllCustomQuestions")!=null || nUnassignedQuestionsWithConcepts==0;
+
 		if (questions.size()>1) Collections.sort(questions,new SortBySuccessPct());
 		for (Question q : questions) {
 			boolean assigned = a.questionKeys.remove(key(q));
+			// Ignore an optional question if it has a concept that is not included in the assignment concepts, unless the instructor has requested to show all Custom questions
+			if (!assigned && !showAllQuestions && !(q.conceptId!=null && a.conceptIds.contains(q.conceptId))) continue;
+			
 			StringBuffer qbuf = new StringBuffer();
 			q.setParameters();  // creates randomly selected parameters
 			int successRate = q.getPctSuccess();
@@ -1397,25 +1430,29 @@ public class Homework extends HttpServlet {
 					+ "<label>"
 					+ "<INPUT TYPE=CHECKBOX NAME=QuestionId VALUE='" + q.id + "'"
 					+ (assigned?" CHECKED />":" />")
-					+ "<b>&nbsp;" + (assigned?i:j) + ".</b>"
+					+ "<b>&nbsp;" + (assigned?i+1:j+1) + ".</b>"
 					+ "</label><br/>"
 					+ "<span style='font-size:0.5em'>" + (successRate==0?"new item&nbsp;&nbsp;":successRate + "% correct&nbsp;&nbsp;") + "</span><br/>"
-					+ (c.title.equals("Custom")?"<a href=/Homework?UserRequest=Preview&sig=" + user.getTokenSignature() + "&QuestionId=" + q.id + ">Edit</a>":"")
+					+ (assignmentType.equals("Custom")?"<a href=/Homework?UserRequest=Preview&sig=" + user.getTokenSignature() + "&QuestionId=" + q.id + ">Edit</a>":"")
 					+ "</TD>"
 					+ "<TD>" + q.printAll() + "</TD>"
 					+ "</TR>");
 			if (assigned) {
-				assignedQuestions.append(qbuf);
 				i++;
+				assignedQuestions.append(qbuf);
 			} else {
-				optionalQuestions.append(qbuf);
 				j++;
+				optionalQuestions.append(qbuf);
 			}
 		}
 		
-		if (c.title.equals("Custom")) buf.append(" Currently, there are " + (i-1) + " custom question items included in this assignment.<br/><br/>");
-		else buf.append(" Currently, this concept has " + (i-1) + " assigned question items and " + (j-1) + " optional questions.<br/><br/>");
-			
+		if (assignmentType.equals("Custom")) {
+			buf.append(" Currently, there " + (i==1?"is":"are") + " " + i + " custom question " + (i==1?"item":"items") + " included in this assignment. ");
+		} else {
+			buf.append(" Currently, this concept has " + i + " assigned question " + (i==1?"item":"items") + " and " + j + " optional question " + (j==1?"item":"items") + ".");
+		}
+		buf.append("<br/><br/>");
+
 		// This dummy form uses javascript to select/deselect all questions
 		buf.append("<FORM style='display:inline;' NAME=DummyForm><label><INPUT id=selectAll TYPE=CHECKBOX NAME=SelectAll "
 			+ "onClick='for (var i=0;i<document.Questions.QuestionId.length;i++)"
@@ -1427,7 +1464,7 @@ public class Homework extends HttpServlet {
 		buf.append("<FORM style='display:inline;' NAME=Questions METHOD=POST ACTION=/Homework />"
 				+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + " />"
 				+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE='UpdateAssignment' />"
-				+ (c.title.equals("Custom")?"":"<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + c.id + "' />")
+				+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + c.id + "' />"  // Should be null for Custom questions, even if some/all of the questions are associated with a concept
 				+ "<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + a.id + "' />"
 				+ "<INPUT TYPE=SUBMIT Value='Use Selected Items' /><br/><br/>");
 	
@@ -1438,7 +1475,19 @@ public class Homework extends HttpServlet {
 			buf.append(assignedQuestions);
 		}
 		if (!optionalQuestions.isEmpty()) {
-			buf.append("<TR><TD COLSPAN=2><b>" + (c.title.equals("Custom")?"Available Questions":"Optional Questions") + ":</b></TD></TR>");
+			buf.append("<TR><TD COLSPAN=2><b>");
+			if (assignmentType.equals("Custom")) {
+				if (showAllQuestions) {
+					buf.append("All Available Custom Questions");
+					if (nUnassignedQuestionsWithConcepts != 0 && nUnassignedQuestionsWithConcepts != j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'></b>(show less)<b></a>");
+				} else {
+					buf.append("Available Questions with Concepts Included in this Assignment");
+					if (questions.size() != i+j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&ShowAllCustomQuestions=true&sig=" + user.getTokenSignature() + "'></b>(show more)<b></a>");
+				}
+			} else {
+				buf.append("Optional Questions");
+			}
+			buf.append("</b></TD></TR>");
 			buf.append(optionalQuestions);
 		}
 		buf.append("</TABLE><INPUT TYPE=SUBMIT Value='Use Selected Items'></FORM><br/>");
