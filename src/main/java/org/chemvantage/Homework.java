@@ -1413,8 +1413,8 @@ public class Homework extends HttpServlet {
 			}
 		}
 		
-		// If the assignment is not Custom, or if the instructor has requested to show all Custom questions, or if there are no unassigned Custom questions with concepts included in the assignment, then show all questions
-		boolean showAllQuestions = !assignmentType.equals("Custom") || request.getParameter("ShowAllCustomQuestions")!=null || nUnassignedQuestionsWithConcepts==0;
+		// Option to display all cvustom questions for this instructor, even if they have concepts that are not included in the assignment concepts
+		boolean showAllQuestions = request.getParameter("ShowAllCustomQuestions")!=null;
 
 		if (questions.size()>1) Collections.sort(questions,new SortBySuccessPct());
 		for (Question q : questions) {
@@ -1475,22 +1475,27 @@ public class Homework extends HttpServlet {
 			buf.append(assignedQuestions);
 		}
 		if (!optionalQuestions.isEmpty()) {
-			buf.append("<TR><TD COLSPAN=2><b>");
+			buf.append("<TR><TD COLSPAN=2>");
 			if (assignmentType.equals("Custom")) {
 				if (showAllQuestions) {
-					buf.append("All Available Custom Questions");
-					if (nUnassignedQuestionsWithConcepts != 0 && nUnassignedQuestionsWithConcepts != j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'></b>(show less)<b></a>");
+					buf.append("<b>All Available Custom Questions</b>");
+					if (nUnassignedQuestionsWithConcepts != 0 && nUnassignedQuestionsWithConcepts != j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'>(show less)</a>");
 				} else {
-					buf.append("Available Questions with Concepts Included in this Assignment");
-					if (questions.size() != i+j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&ShowAllCustomQuestions=true&sig=" + user.getTokenSignature() + "'></b>(show more)<b></a>");
+					buf.append("<b>Available Questions with Concepts Included in this Assignment</b>");
+					if (questions.size() != i+j) buf.append(" <a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&ShowAllCustomQuestions=true&sig=" + user.getTokenSignature() + "'>(show all)</a>");
 				}
 			} else {
 				buf.append("Optional Questions");
 			}
-			buf.append("</b></TD></TR>");
+			buf.append("</TD></TR>");
 			buf.append(optionalQuestions);
+		} else if (assignmentType.equals("Custom") && questions.size() != i+j) {  // there are some questions that are not being displayed because they have concepts that are not included in the assignment concepts
+			buf.append("<TR><TD COLSPAN=2><brt/><b>There " + (questions.size()-(i+j)==1?"is":"are") + " " + (questions.size()-(i+j)) + " additional question " + (questions.size()-(i+j)==1?"item":"items") 
+				+ " that are not being displayed because they have not been assigned to concepts or have concepts that are not included in this assignment. You can "
+				+ "<a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&ShowAllCustomQuestions=true&sig=" + user.getTokenSignature() + "'>display all custom questions</a> "
+				+ "and assign them to concepts using the 'Edit' links, if desired, or just use them as is in this assignment.</b></TD></TR>");
 		}
-		buf.append("</TABLE><INPUT TYPE=SUBMIT Value='Use Selected Items'></FORM><br/>");
+		buf.append("</TABLE><br/><INPUT TYPE=SUBMIT Value='Use Selected Items'></FORM><br/>");
 		return buf.toString();
 	}
 
