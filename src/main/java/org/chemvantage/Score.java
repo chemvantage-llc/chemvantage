@@ -150,6 +150,7 @@ public class Score {    // this object represents a best score achieved by a use
 		case "SmartText":
 			List<STTransaction> stTransactions = ofy().load().type(STTransaction.class).filter("userId",hashedId).filter("assignmentId",a.id).list();
 			for (STTransaction st : stTransactions) {
+				if (st.graded==null) continue;  // skip transactions that have not yet been graded
 				s.numberOfAttempts++;  // number of pre-deadline quiz attempts
 				if (s.mostRecentAttempt==null || st.graded.after(s.mostRecentAttempt)) {  // this transaction is the most recent so far
 					s.mostRecentAttempt = st.graded;
