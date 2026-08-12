@@ -166,10 +166,14 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
 				return access_token;
 			} else {
-				reader = new BufferedReader(new InputStreamReader(uc.getErrorStream()));				
-				JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
-				reader.close();
-				debug.append("Error Stream: " + json.toString() + "<br/>");
+				// The LMS error body is not guaranteed to be valid JSON, so read it as raw text first
+				String errorBody = "(no error body)";
+				if (uc.getErrorStream() != null) {
+					try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(uc.getErrorStream()))) {
+						errorBody = errorReader.lines().reduce("",(a1,b) -> a1+b);
+					}
+				}
+				debug.append("Error Stream: " + errorBody + "<br/>");
 				throw new Exception("Failed AuthToken Request");
 			}
 		} catch (Exception e) {
