@@ -53,7 +53,8 @@ Examples:
 
 #### 'concept'
 
-Optional - must match exactly one of the allowed values listed below
+Optional - must match exactly one of the allowed values listed at the end of this file. 
+If the concept field is not included in the JSON object, ChemVantage will use an AI model to try to assign it to one of the allowed values.
 
 Example:
 
