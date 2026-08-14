@@ -27,6 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HttpOptions;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -76,8 +80,8 @@ public class Contribute extends HttpServlet {
 
 		try {
 			User user = User.getUser(request.getParameter("sig"));
-			if (user==null) throw new Exception();
-
+			if (user==null || !user.isInstructor()) throw new Exception("You must be logged in through your LMS to as an instructor to use this utility.");
+			
 			String userRequest = request.getParameter("UserRequest");
 			if (userRequest == null) userRequest = "";
 			
@@ -102,9 +106,9 @@ public class Contribute extends HttpServlet {
 				buf.append("You can upload many custom questions simultaneously by pasting a JSON array below. All custom questions are sequestered for "
 				+ "your exclusive use in your ChemVantage assignments.<br/><br/>The JSON array must be formatted as follows:<br/>"
 				+ "Each member of the array must be a JSON object with the fields:<ul>"
+				+ "<li>concept - optional string that identifies the key concept for the question item; if omitted, ChemVantage will attempt to assign one automatically using AI</li>"
 				+ (user.isEditor()?
-					"<li>concept - required string that identifies the key concept for the question item</li>"
-					+ "<li>assignmentType - required string that identifies the assignment type for the question item (e.g., Quiz, Homework)</li>":"")
+					"<li>assignmentType - required string that identifies the assignment type for the question item (e.g., Quiz, Homework)</li>":"")
 				+ "<li>type - required string that identifies the type of question item (MULTIPLE_CHOICE, TRUE_FALSE, SELECT_MULTIPLE, FILL_IN_WORD, NUMERIC, ESSAY)</li>"
 				+ "<li>text - required string that contains the main prompt of the question item</li>"
 				+ "<li>choices - optional JSON array of up to 5 strings (required for MULTIPLE_CHOICE and SELECT_MULTIPLE types)</li>"
@@ -148,24 +152,27 @@ public class Contribute extends HttpServlet {
 			for (int i=0;i<questionArray.size();i++) {
 				try {
 					JsonObject question = questionArray.get(i).getAsJsonObject();
-					if (user.isEditor()) {
+					if (question.has("concept")) {
 						Long conceptId = conceptIds.get(question.get("concept").getAsString());
-						question.addProperty("conceptId", conceptId);
+						if (conceptId != null) question.addProperty("conceptId", conceptId);
 						question.remove("concept");
+					}
+					if (user.isEditor()) {
 						q = new Gson().fromJson(question, ProposedQuestion.class);
 						q.authorId = user.getId();
 						q.pointValue = 1;
-						questions.add(q);
-						ofy().save().entity(q);
 					} else {
 						q = new Gson().fromJson(question, Question.class);
 						q.assignmentType = "Custom";
 						q.isActive = true;
 						q.authorId = user.getId();
 						q.pointValue = 1;
-						questions.add(q);
-						ofy().save().entity(q);
 					}
+					if (q.type == null) throw new Exception("Missing required field: type");
+					if (q.text == null || q.text.isEmpty()) throw new Exception("Missing required field: text");
+					if ((q.type.equals("MULTIPLE_CHOICE") || q.type.equals("SELECT_MULTIPLE")) && (q.choices == null || q.choices.isEmpty())) throw new Exception("Missing required field: choices for MULTIPLE_CHOICE or SELECT_MULTIPLE type");
+					questions.add(q);
+					ofy().save().entity(q);
 				} catch (Exception e) {
 					buf.append("Error on question " + (questions.size() + 1) + ": " + e.getMessage()==null?e.toString():e.getMessage());
 				}
@@ -174,6 +181,9 @@ public class Contribute extends HttpServlet {
 		} catch (Exception e) {
 			buf.append("Error: " + e.getMessage()==null?e.toString():e.getMessage() + "<p>" + json);
 		}
+
+		assignMissingConcepts(questions, concepts, conceptIds, buf);
+
 		int n = questions.size();
 		buf.append(n + " question " + (n == 1 ? "item was" : "items were") + " uploaded successfully.<br/>");
 		if (user.isChemVantageAdmin()) {
@@ -181,7 +191,7 @@ public class Contribute extends HttpServlet {
 		} else {
 			String assignmentType = ofy().load().type(Assignment.class).id(user.getAssignmentId()).now().assignmentType;
 			buf.append("You can view/edit/select " + (n == 1 ? "it" : "them") + " by using the "
-					+ "<a href='/" + assignmentType + "?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "'>Custom Questions link</a> "
+					+ "<a href='/" + assignmentType + "?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'>Custom Questions link</a> "
 					+ "on the Instructor page of your Homework or Quiz assignment or "
 					+ "<a href='/Contribute?sig=" + user.getTokenSignature() + "'>upload another JSON</a>");
 		
@@ -189,6 +199,136 @@ public class Contribute extends HttpServlet {
 		return buf.toString();
 	}
 
+	// Uses Gemini to assign a conceptId to any question item that does not already have one.
+	void assignMissingConcepts(List<Question> questions, List<Concept> concepts, Map<String,Long> conceptIds, StringBuffer buf) {
+		if (concepts.isEmpty()) return;
+
+		List<Question> pending = new ArrayList<Question>();
+		for (Question q : questions) {
+			if (q.conceptId != null) continue;
+			try {
+				q.setParameters();
+				String questionItem = q.printForSage();
+				if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
+				pending.add(q);
+			} catch (Exception e) {
+				buf.append("Could not assign a concept to question \"" + q.text + "\": " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>");
+			}
+		}
+		if (pending.isEmpty()) return;
+
+		try {
+			JsonObject json = requestConceptAssignmentsFromGemini(pending, concepts);
+			JsonArray assignments = json.getAsJsonArray("assignments");
+			if (assignments == null || assignments.isEmpty()) {
+				throw new Exception("Google Gen AI returned no assignments.");
+			}
+
+			boolean[] assigned = new boolean[pending.size()];
+			List<Question> updated = new ArrayList<Question>();
+			for (int i = 0; i < assignments.size(); i++) {
+				JsonObject assignment = assignments.get(i).getAsJsonObject();
+				if (!assignment.has("question_index") || !assignment.has("concept")) continue;
+
+				int questionIndex = assignment.get("question_index").getAsInt();
+				if (questionIndex < 0 || questionIndex >= pending.size()) continue;
+				if (assigned[questionIndex]) continue;
+
+				String conceptTitle = assignment.get("concept").getAsString();
+				Long conceptId = conceptIds.get(conceptTitle);
+				if (conceptId == null) {
+					Question q = pending.get(questionIndex);
+					buf.append("Could not assign a concept to question \"" + q.text + "\": Gemini returned an unrecognized concept: " + conceptTitle + "<br/>");
+					continue;
+				}
+
+				Question q = pending.get(questionIndex);
+				q.conceptId = conceptId;
+				updated.add(q);
+				assigned[questionIndex] = true;
+			}
+
+			if (!updated.isEmpty()) ofy().save().entities(updated);
+
+			for (int i = 0; i < pending.size(); i++) {
+				if (!assigned[i]) {
+					Question q = pending.get(i);
+					buf.append("Could not assign a concept to question \"" + q.text + "\": Gemini returned no assignment.<br/>");
+				}
+			}
+		} catch (Exception e) {
+			String error = e.getMessage()==null?e.toString():e.getMessage();
+			for (Question q : pending) {
+				buf.append("Could not assign a concept to question \"" + q.text + "\": " + error + "<br/>");
+			}
+		}
+	}
+
+	private JsonObject requestConceptAssignmentsFromGemini(List<Question> questions, List<Concept> concepts) throws Exception {
+		StringBuilder conceptList = new StringBuilder();
+		for (Concept c : concepts) conceptList.append("- ").append(c.title).append("\n");
+
+		StringBuilder questionList = new StringBuilder();
+		for (int i = 0; i < questions.size(); i++) {
+			questionList.append("question_index: ").append(i).append("\n");
+			questionList.append("question_item:\n").append(questions.get(i).printForSage()).append("\n\n");
+		}
+
+		Map<String,Object> responseSchema = Map.of(
+				"type", "object",
+				"properties", Map.of(
+						"assignments", Map.of(
+								"type", "array",
+								"items", Map.of(
+										"type", "object",
+										"properties", Map.of(
+												"question_index", Map.of("type", "integer"),
+												"concept", Map.of("type", "string")
+										),
+										"required", List.of("question_index", "concept")
+								)
+						)
+				),
+				"required", List.of("assignments")
+		);
+
+		GenerateContentConfig generationConfig = GenerateContentConfig.builder()
+				.responseMimeType("application/json")
+				.responseJsonSchema(responseSchema)
+				.candidateCount(1)
+				.build();
+
+		String prompt = "You are categorizing chemistry question items by key concept. "
+				+ "For each question, choose the single best matching concept from this list and return the title exactly as shown:\n"
+				+ conceptList
+				+ "\nReturn ONLY a valid JSON object (no markdown, no code fences, no extra text) with this exact schema:\n"
+				+ "{\n"
+				+ "  \"assignments\": [\n"
+				+ "    { \"question_index\": 0, \"concept\": \"string\" }\n"
+				+ "  ]\n"
+				+ "}\n\n"
+				+ "Provide one assignment object for each question_index.\n\n"
+				+ "Questions:\n" + questionList;
+
+		try {
+			Client client = Client.builder()
+					.enterprise(true)
+					.project(Subject.getProjectId())
+					.location(Subject.getGemModelLocation())
+					.httpOptions(HttpOptions.builder().apiVersion("v1").build())
+					.build();
+			GenerateContentResponse response = client.models.generateContent(Subject.getGemModel(), prompt, generationConfig);
+			String text = response.text();
+			if (text == null || text.trim().isEmpty()) throw new Exception("Google Gen AI response did not contain concept text.");
+			try {
+				return JsonParser.parseString(text.trim()).getAsJsonObject();
+			} catch (Exception parseException) {
+				throw new Exception("Google Gen AI response was not valid JSON object: " + text.trim());
+			}
+		} catch (Exception e) {
+			throw new Exception("Google Gen AI API error: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
+		}
+	}
 	/* 
 	String newQuestionForm(User user,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
