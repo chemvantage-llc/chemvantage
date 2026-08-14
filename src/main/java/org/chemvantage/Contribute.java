@@ -168,6 +168,9 @@ public class Contribute extends HttpServlet {
 						q.authorId = user.getId();
 						q.pointValue = 1;
 					}
+					if (q.type == null) throw new Exception("Missing required field: type");
+					if (q.text == null || q.text.isEmpty()) throw new Exception("Missing required field: text");
+					if ((q.type.equals("MULTIPLE_CHOICE") || q.type.equals("SELECT_MULTIPLE")) && (q.choices == null || q.choices.isEmpty())) throw new Exception("Missing required field: choices for MULTIPLE_CHOICE or SELECT_MULTIPLE type");
 					questions.add(q);
 					ofy().save().entity(q);
 				} catch (Exception e) {
@@ -188,7 +191,7 @@ public class Contribute extends HttpServlet {
 		} else {
 			String assignmentType = ofy().load().type(Assignment.class).id(user.getAssignmentId()).now().assignmentType;
 			buf.append("You can view/edit/select " + (n == 1 ? "it" : "them") + " by using the "
-					+ "<a href='/" + assignmentType + "?UserRequest=AssignHomeworkQuestions&sig=" + user.getTokenSignature() + "'>Custom Questions link</a> "
+					+ "<a href='/" + assignmentType + "?UserRequest=AssignHomeworkQuestions&AssignmentType=Custom&sig=" + user.getTokenSignature() + "'>Custom Questions link</a> "
 					+ "on the Instructor page of your Homework or Quiz assignment or "
 					+ "<a href='/Contribute?sig=" + user.getTokenSignature() + "'>upload another JSON</a>");
 		
@@ -199,34 +202,94 @@ public class Contribute extends HttpServlet {
 	// Uses Gemini to assign a conceptId to any question item that does not already have one.
 	void assignMissingConcepts(List<Question> questions, List<Concept> concepts, Map<String,Long> conceptIds, StringBuffer buf) {
 		if (concepts.isEmpty()) return;
+
+		List<Question> pending = new ArrayList<Question>();
 		for (Question q : questions) {
 			if (q.conceptId != null) continue;
 			try {
 				q.setParameters();
-				String conceptTitle = requestConceptFromGemini(q, concepts).get("concept").getAsString();
-				Long conceptId = conceptIds.get(conceptTitle);
-				if (conceptId == null) throw new Exception("Gemini returned an unrecognized concept: " + conceptTitle);
-				q.conceptId = conceptId;
-				ofy().save().entity(q);
+				String questionItem = q.printForSage();
+				if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
+				pending.add(q);
 			} catch (Exception e) {
 				buf.append("Could not assign a concept to question \"" + q.text + "\": " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>");
 			}
 		}
+		if (pending.isEmpty()) return;
+
+		try {
+			JsonObject json = requestConceptAssignmentsFromGemini(pending, concepts);
+			JsonArray assignments = json.getAsJsonArray("assignments");
+			if (assignments == null || assignments.isEmpty()) {
+				throw new Exception("Google Gen AI returned no assignments.");
+			}
+
+			boolean[] assigned = new boolean[pending.size()];
+			List<Question> updated = new ArrayList<Question>();
+			for (int i = 0; i < assignments.size(); i++) {
+				JsonObject assignment = assignments.get(i).getAsJsonObject();
+				if (!assignment.has("question_index") || !assignment.has("concept")) continue;
+
+				int questionIndex = assignment.get("question_index").getAsInt();
+				if (questionIndex < 0 || questionIndex >= pending.size()) continue;
+				if (assigned[questionIndex]) continue;
+
+				String conceptTitle = assignment.get("concept").getAsString();
+				Long conceptId = conceptIds.get(conceptTitle);
+				if (conceptId == null) {
+					Question q = pending.get(questionIndex);
+					buf.append("Could not assign a concept to question \"" + q.text + "\": Gemini returned an unrecognized concept: " + conceptTitle + "<br/>");
+					continue;
+				}
+
+				Question q = pending.get(questionIndex);
+				q.conceptId = conceptId;
+				updated.add(q);
+				assigned[questionIndex] = true;
+			}
+
+			if (!updated.isEmpty()) ofy().save().entities(updated);
+
+			for (int i = 0; i < pending.size(); i++) {
+				if (!assigned[i]) {
+					Question q = pending.get(i);
+					buf.append("Could not assign a concept to question \"" + q.text + "\": Gemini returned no assignment.<br/>");
+				}
+			}
+		} catch (Exception e) {
+			String error = e.getMessage()==null?e.toString():e.getMessage();
+			for (Question q : pending) {
+				buf.append("Could not assign a concept to question \"" + q.text + "\": " + error + "<br/>");
+			}
+		}
 	}
 
-	private JsonObject requestConceptFromGemini(Question q, List<Concept> concepts) throws Exception {
-		String questionItem = q.printForSage();
-		if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
-
+	private JsonObject requestConceptAssignmentsFromGemini(List<Question> questions, List<Concept> concepts) throws Exception {
 		StringBuilder conceptList = new StringBuilder();
 		for (Concept c : concepts) conceptList.append("- ").append(c.title).append("\n");
+
+		StringBuilder questionList = new StringBuilder();
+		for (int i = 0; i < questions.size(); i++) {
+			questionList.append("question_index: ").append(i).append("\n");
+			questionList.append("question_item:\n").append(questions.get(i).printForSage()).append("\n\n");
+		}
 
 		Map<String,Object> responseSchema = Map.of(
 				"type", "object",
 				"properties", Map.of(
-						"concept", Map.of("type", "string")
+						"assignments", Map.of(
+								"type", "array",
+								"items", Map.of(
+										"type", "object",
+										"properties", Map.of(
+												"question_index", Map.of("type", "integer"),
+												"concept", Map.of("type", "string")
+										),
+										"required", List.of("question_index", "concept")
+								)
+						)
 				),
-				"required", List.of("concept")
+				"required", List.of("assignments")
 		);
 
 		GenerateContentConfig generationConfig = GenerateContentConfig.builder()
@@ -235,12 +298,17 @@ public class Contribute extends HttpServlet {
 				.candidateCount(1)
 				.build();
 
-		String prompt = "You are categorizing a chemistry question item by its key concept. "
-				+ "Choose the single best matching concept from this list of known concepts, and return its title exactly as shown:\n"
+		String prompt = "You are categorizing chemistry question items by key concept. "
+				+ "For each question, choose the single best matching concept from this list and return the title exactly as shown:\n"
 				+ conceptList
 				+ "\nReturn ONLY a valid JSON object (no markdown, no code fences, no extra text) with this exact schema:\n"
-				+ "{\n  \"concept\": \"string\"\n}\n\n"
-				+ "question_item:\n" + questionItem;
+				+ "{\n"
+				+ "  \"assignments\": [\n"
+				+ "    { \"question_index\": 0, \"concept\": \"string\" }\n"
+				+ "  ]\n"
+				+ "}\n\n"
+				+ "Provide one assignment object for each question_index.\n\n"
+				+ "Questions:\n" + questionList;
 
 		try {
 			Client client = Client.builder()
