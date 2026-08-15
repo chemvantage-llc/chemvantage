@@ -1,0 +1,47 @@
+# Cloud Build pipeline for ChemVantage dev deployment to Cloud Run.
+#
+# Example invocation:
+# gcloud builds submit --config cloudbuild.dev.yaml \
+#   --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev
+
+substitutions:
+  _PROJECT_ID: chem-vantage-hrd
+  _REGION: us-central1
+  _REPOSITORY: chemvantage
+  _SERVICE: chemvantage-dev
+  _IMAGE_TAG: manual
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: Build image
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: Push image
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    id: Deploy to Cloud Run
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --project=${_PROJECT_ID}
+      - --region=${_REGION}
+      - --platform=managed
+      - --image=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
+      - --allow-unauthenticated
+      - --port=8080
+      - --min-instances=1
+      - --max-instances=5
+      - --set-env-vars=ENFORCE_HTTPS=true
+
+images:
+  - ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}

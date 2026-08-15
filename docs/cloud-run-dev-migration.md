@@ -1,0 +1,138 @@
+# Cloud Run Development Migration Guide
+
+This guide defines the first implementation target for migrating ChemVantage development traffic from App Engine to Cloud Run.
+
+## Target
+
+- Current development URL: https://dev.chemvantage.org
+- Cloud Run destination URL (after DNS cutover): https://dev.chemvantage.org
+- Project: dev-vantage-hrd
+- Region: us-central1
+- Suggested service name: chemvantage-dev
+
+## Prerequisites
+
+1. Install and authenticate gcloud.
+2. Ensure billing is enabled on the project.
+3. Enable required APIs:
+   - run.googleapis.com
+   - cloudbuild.googleapis.com
+   - artifactregistry.googleapis.com
+4. Create Artifact Registry repository (once):
+
+```bash
+gcloud artifacts repositories create chemvantage \
+  --repository-format=docker \
+  --location=us-central1 \
+  --description="ChemVantage container images"
+```
+
+## Build and Deploy (Dev)
+
+Run from repository root:
+
+```bash
+gcloud builds submit --config cloudbuild.dev.yaml \
+  --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=manual
+```
+
+After deploy, capture the generated URL:
+
+```bash
+gcloud run services describe chemvantage-dev \
+  --region us-central1 \
+  --format='value(status.url)'
+```
+
+Use that URL for validation before DNS cutover.
+
+## Recommended Validation Before DNS
+
+1. Home page and static assets load.
+2. LTI launch and deep link routes respond correctly.
+3. Datastore read/write flows work in development.
+4. Admin-restricted endpoints still reject unauthorized requests.
+5. Cloud Run logs contain no startup/runtime errors.
+
+## Load Balancer Path (Active Plan)
+
+This environment now uses a global external Application Load Balancer path for custom domains. Direct Cloud Run domain mapping for dev.chemvantage.org was removed.
+
+Provisioned resources:
+
+- Serverless NEG: cv-dev-run-neg (targets Cloud Run service chemvantage-dev in us-central1)
+- Backend service (default): cv-dev-run-bes
+- Backend bucket: cv-dev-static-frontend (Cloud Storage bucket chemvantage-static-dev)
+- URL map: cv-dev-urlmap
+  - Default backend: cv-dev-run-bes (servlets)
+  - Host rule: dev.chemvantage.org -> path matcher dev-host-matcher
+  - Static path rules routed to backend bucket cv-dev-static-frontend:
+    - /css/*, /js/*, /images/*, /docs/*, /error/*, /lms/*, /rewards/*, /chemistry-reasoning/*
+    - /index.html, /install.html, /privacy.html, /copyright.html
+    - /terms_and_conditions.html, /homepage-geometric.html, /ketcher-bridge.html
+    - /robots.txt, /sitemap.xml, /videos.html, /sampleQuestionLibrary.json, /rewards_terms.html
+- Managed certificate: cv-dev-devonly-cert (domain: dev.chemvantage.org)
+- HTTPS target proxy: cv-dev-https-proxy
+- Global forwarding rule: cv-dev-https-fr
+- Global IPv4 address: cv-dev-lb-ip
+
+Current LB IP:
+
+- 34.54.51.124
+
+## GoDaddy DNS Cutover Checklist (when approved)
+
+1. Open GoDaddy DNS management for chemvantage.org.
+2. For host dev, create or replace with:
+   - Type: A
+   - Name: dev
+   - Value: 34.54.51.124
+   - TTL: 600 seconds (or lowest allowed)
+3. Save changes.
+4. Verify propagation:
+
+```bash
+dig +short A dev.chemvantage.org
+```
+
+Expected result: 34.54.51.124
+
+5. Check managed certificate status:
+
+```bash
+gcloud compute ssl-certificates describe cv-dev-devonly-cert \
+  --global \
+  --project=dev-vantage-hrd \
+  --format='yaml(name,managed.status,managed.domainStatus)'
+```
+
+Expected: managed.status=ACTIVE and domainStatus for dev.chemvantage.org is ACTIVE.
+
+6. Validate hostname and representative static paths:
+
+```bash
+curl -I https://dev.chemvantage.org/
+curl -I https://dev.chemvantage.org/css/style.css
+curl -I https://dev.chemvantage.org/docs/question-json-ingest.md
+```
+
+Expected:
+
+- Non-static servlet routes are served by Cloud Run.
+- Static asset paths are served by the bucket backend through the same hostname.
+
+7. Optional verification from URL map:
+
+```bash
+gcloud compute url-maps describe cv-dev-urlmap --global --project=dev-vantage-hrd
+```
+
+Confirm dev.chemvantage.org host rule maps static path rules to backend bucket and default to backend service.
+
+## Rollback
+
+If issues are found after DNS cutover:
+
+1. Revert GoDaddy A record for dev to its previous value.
+2. Keep Cloud Run deployed for debugging.
+3. Document failing routes and logs before retrying cutover.

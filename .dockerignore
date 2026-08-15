@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+.vscode
+.settings
+.classpath
+.DS_Store
+target
+bin/target
+
+# Local tooling artifacts
+**/.idea
+**/*.iml
+
+# Logs
+*.log

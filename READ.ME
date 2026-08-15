@@ -15,6 +15,12 @@ To deploy on Google Cloud:
 	You may encounter a deployment error if a cached image has been deleted on app engine 
 	 (i.e., you haven't deployed for more than a month). To fix this, use
 	gcloud app deploy --no-cache
+
+To deploy the development service on Cloud Run:
+	See docs/cloud-run-dev-migration.md
+	Quick command (from repo root):
+	gcloud builds submit --config cloudbuild.dev.yaml \
+	  --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev
 	
 To build missing datastore indexes:
   gcloud --project chem-vantage-hrd datastore indexes create index.yaml
