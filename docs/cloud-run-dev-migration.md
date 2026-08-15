@@ -32,9 +32,44 @@ gcloud artifacts repositories create chemvantage \
 Run from repository root:
 
 ```bash
-gcloud builds submit --config cloudbuild.dev.yaml \
-  --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=manual
+./scripts/deploy-dev.sh
 ```
+
+Optional explicit image tag:
+
+```bash
+./scripts/deploy-dev.sh v2026-08-15
+```
+
+Equivalent raw command:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=$(git rev-parse --short HEAD)
+```
+
+## Build and Deploy (Production)
+
+Use the same Cloud Build pipeline with production substitutions:
+
+```bash
+./scripts/deploy-prod.sh
+```
+
+Optional explicit image tag:
+
+```bash
+./scripts/deploy-prod.sh v2026-08-15
+```
+
+Equivalent raw command:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage,_IMAGE_TAG=$(git rev-parse --short HEAD)
+```
+
+Recommendation: configure separate Cloud Build triggers and IAM scopes for dev and production so production deploys require explicit approval.
 
 After deploy, capture the generated URL:
 

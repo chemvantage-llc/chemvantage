@@ -1,15 +1,22 @@
-# Cloud Build pipeline for ChemVantage dev deployment to Cloud Run.
+# Cloud Build pipeline for ChemVantage deployment to Cloud Run.
 #
-# Example invocation:
-# gcloud builds submit --config cloudbuild.dev.yaml \
-#   --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev
+# This file is environment-neutral. Use substitutions (or wrapper scripts)
+# to target dev or production explicitly.
+#
+# Example invocation (dev):
+# gcloud builds submit --config cloudbuild.yaml \
+#   --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=$(git rev-parse --short HEAD)
+
+# Example invocation (prod):
+# gcloud builds submit --config cloudbuild.yaml \
+#   --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage,_IMAGE_TAG=$(git rev-parse --short HEAD)
 
 substitutions:
-  _PROJECT_ID: chem-vantage-hrd
+  _PROJECT_ID: dev-vantage-hrd
   _REGION: us-central1
   _REPOSITORY: chemvantage
   _SERVICE: chemvantage-dev
-  _IMAGE_TAG: manual
+  _IMAGE_TAG: dev
 
 steps:
   - name: gcr.io/cloud-builders/docker

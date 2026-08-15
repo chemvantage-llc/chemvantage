@@ -19,7 +19,7 @@ To deploy on Google Cloud:
 To deploy the development service on Cloud Run:
 	See docs/cloud-run-dev-migration.md
 	Quick command (from repo root):
-	gcloud builds submit --config cloudbuild.dev.yaml \
+	gcloud builds submit --config cloudbuild.yaml \
 	  --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev
 	
 To build missing datastore indexes:
