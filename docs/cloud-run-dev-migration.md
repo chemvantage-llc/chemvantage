@@ -66,7 +66,7 @@ Equivalent raw command:
 
 ```bash
 gcloud builds submit --config cloudbuild.yaml \
-  --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage,_IMAGE_TAG=$(git rev-parse --short HEAD)
+  --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-prod,_IMAGE_TAG=$(git rev-parse --short HEAD)
 ```
 
 Recommendation: configure separate Cloud Build triggers and IAM scopes for dev and production so production deploys require explicit approval.

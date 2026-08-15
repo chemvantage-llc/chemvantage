@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_ID="${PROJECT_ID:-chem-vantage-hrd}"
 REGION="${REGION:-us-central1}"
 REPOSITORY="${REPOSITORY:-chemvantage}"
-SERVICE="${SERVICE:-chemvantage}"
+SERVICE="${SERVICE:-chemvantage-prod}"
 IMAGE_TAG="${1:-$(git rev-parse --short HEAD)}"
 
 echo "Deploying production service ${SERVICE} to project ${PROJECT_ID} (region: ${REGION}, tag: ${IMAGE_TAG})"
