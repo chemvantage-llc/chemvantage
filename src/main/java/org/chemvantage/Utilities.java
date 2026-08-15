@@ -5,9 +5,10 @@ import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 
-import com.google.cloud.tasks.v2.AppEngineHttpRequest;
 import com.google.cloud.tasks.v2.CloudTasksClient;
+import com.google.cloud.tasks.v2.HttpRequest;
 import com.google.cloud.tasks.v2.HttpMethod;
+import com.google.cloud.tasks.v2.OidcToken;
 import com.google.cloud.tasks.v2.QueueName;
 import com.google.cloud.tasks.v2.Task;
 import com.google.protobuf.ByteString;
@@ -32,21 +33,30 @@ public class Utilities {
 		String projectId = Subject.getProjectId();
 		String location = "us-central1";
 		String queueName = "default";
+		String baseUrl = Subject.getServerUrl();
+		String taskUrl = buildTaskUrl(baseUrl, relativeUri);
+		String oidcServiceAccount = getTaskOidcServiceAccount();
 		// Instantiates a client.
 		try (CloudTasksClient client = CloudTasksClient.create()) {
 			// Construct the fully qualified queue name.
 			String queuePath = QueueName.of(projectId, location, queueName).toString();
 
-			// Build the Task:
-			Task.Builder taskBuilder =
-					Task.newBuilder()
-					.setAppEngineHttpRequest(
-							AppEngineHttpRequest.newBuilder()
-							.setBody(ByteString.copyFrom(query, Charset.defaultCharset()))
-							.setRelativeUri(relativeUri)
-							.setHttpMethod(HttpMethod.POST)
-							.putHeaders("Content-Type", "application/x-www-form-urlencoded")
-							.build());
+			// Build the Task for Cloud Run / HTTPS load balancer target.
+			HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+					.setUrl(taskUrl)
+					.setBody(ByteString.copyFrom(query, Charset.defaultCharset()))
+					.setHttpMethod(HttpMethod.POST)
+					.putHeaders("Content-Type", "application/x-www-form-urlencoded");
+
+			if (oidcServiceAccount != null && !oidcServiceAccount.isBlank()) {
+				requestBuilder.setOidcToken(
+						OidcToken.newBuilder()
+								.setServiceAccountEmail(oidcServiceAccount)
+								.setAudience(baseUrl)
+								.build());
+			}
+
+			Task.Builder taskBuilder = Task.newBuilder().setHttpRequest(requestBuilder.build());
 
 			// Add the scheduled time to the request.
 			taskBuilder.setScheduleTime(
@@ -57,6 +67,23 @@ public class Utilities {
 			client.createTask(queuePath, taskBuilder.build());  // returns Task entity
 			//System.out.println("Task created: " + task.getName());
 		}
+	}
+
+	private static String getTaskOidcServiceAccount() {
+		String configured = System.getenv("CLOUD_TASKS_OIDC_SERVICE_ACCOUNT");
+		if (configured == null || configured.isBlank()) {
+			configured = System.getenv("CV_TASKS_OIDC_SERVICE_ACCOUNT");
+		}
+		return configured;
+	}
+
+	private static String buildTaskUrl(String baseUrl, String relativeUri) {
+		String trimmedBase = baseUrl == null ? "" : baseUrl.trim();
+		String trimmedPath = relativeUri == null ? "" : relativeUri.trim();
+		if (trimmedPath.isEmpty()) return trimmedBase;
+		if (!trimmedPath.startsWith("/")) trimmedPath = "/" + trimmedPath;
+		if (trimmedBase.endsWith("/")) trimmedBase = trimmedBase.substring(0, trimmedBase.length() - 1);
+		return trimmedBase + trimmedPath;
 	}
 	
 	public static void sendEmail(String recipientName, String recipientEmail, String subject, String message) 

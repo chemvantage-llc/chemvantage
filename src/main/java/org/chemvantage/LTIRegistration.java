@@ -841,7 +841,7 @@ public class LTIRegistration extends HttpServlet {
 			redirectUris.add(iss + "/lti/deeplinks");
 			regJson.add("redirect_uris", redirectUris);
 			regJson.addProperty("initiate_login_uri", iss + "/auth/token");
-			regJson.addProperty("client_name", "ChemVantage" + (iss.contains("dev-vantage")?" Development":""));
+			regJson.addProperty("client_name", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
 			regJson.addProperty("jwks_uri", iss + "/jwks");
 			regJson.addProperty("logo_uri", "https://images.chemvantage.org/CVLogo_thumb.png");
 			regJson.addProperty("token_endpoint_auth_method", "private_key_jwt");
@@ -850,7 +850,7 @@ public class LTIRegistration extends HttpServlet {
 			regJson.add("contacts", contactEmails);		
 			regJson.addProperty("client_uri", iss);
 			regJson.addProperty("tos_uri", iss + "/terms_and_conditions.html");
-			regJson.addProperty("policy_uri", iss + "/privacy_policy.html");
+			regJson.addProperty("policy_uri", iss + "/privacy.html");
 			regJson.addProperty("scope", "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly https://purl.imsglobal.org/spec/lti-ags/scope/score https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly");
 			JsonObject ltiToolConfig = new JsonObject();
 			ltiToolConfig.addProperty("domain", domain);
@@ -869,7 +869,7 @@ public class LTIRegistration extends HttpServlet {
 			JsonObject deepLinking = new JsonObject();
 			deepLinking.addProperty("type",  "LtiDeepLinkingRequest");
 			deepLinking.addProperty("target_link_uri", iss + "/lti/deeplinks");
-			deepLinking.addProperty("label", "ChemVantage" + (iss.contains("dev-vantage")?" Development":""));
+			deepLinking.addProperty("label", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
 		debug.append("c");
 		try {
 			JsonArray messagesSupported = openIdConfiguration.get("https://purl.imsglobal.org/spec/lti-platform-configuration").getAsJsonObject().get("messages_supported").getAsJsonArray();
@@ -889,7 +889,7 @@ public class LTIRegistration extends HttpServlet {
 		JsonObject resourceLaunch = new JsonObject();
 		resourceLaunch.addProperty("type",  "LtiResourceLinkRequest");
 		resourceLaunch.addProperty("target_link_uri", iss + "/lti/launch");
-			resourceLaunch.addProperty("label", "ChemVantage" + (iss.contains("dev-vantage")?" Development":""));
+			resourceLaunch.addProperty("label", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
 			debug.append("e");
 			try {
 				JsonArray messagesSupported = openIdConfiguration.get("https://purl.imsglobal.org/spec/lti-platform-configuration").getAsJsonObject().get("messages_supported").getAsJsonArray();
@@ -925,7 +925,7 @@ public class LTIRegistration extends HttpServlet {
 		try {
 			switch (openIdConfiguration.get("https://purl.imsglobal.org/spec/lti-platform-configuration").getAsJsonObject().get("product_family_code").getAsString()) {
 			case "moodle": 
-				if (iss != null && iss.equals("https://www.chemvantage.org")) uc.setRequestProperty("Host", "www.chemvantage.org"); // prevents code 400 failure in Moodle due to getRemoteHost()->chem-vantage-hrd.appspot.com
+				if (iss != null) uc.setRequestProperty("Host", iss); // prevents code 400 failure in Moodle due to getRemoteHost()->chem-vantage-hrd.appspot.com
 				break;
 			default:
 			}

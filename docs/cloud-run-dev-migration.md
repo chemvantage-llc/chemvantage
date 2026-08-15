@@ -18,6 +18,7 @@ This guide defines the first implementation target for migrating ChemVantage dev
    - run.googleapis.com
    - cloudbuild.googleapis.com
    - artifactregistry.googleapis.com
+  - cloudtasks.googleapis.com
 4. Create Artifact Registry repository (once):
 
 ```bash
@@ -27,7 +28,63 @@ gcloud artifacts repositories create chemvantage \
   --description="ChemVantage container images"
 ```
 
+5. Ensure Cloud Tasks queue exists in the same region (once):
+
+```bash
+gcloud tasks queues describe default --location=us-central1 --project=dev-vantage-hrd \
+  || gcloud tasks queues create default --location=us-central1 --project=dev-vantage-hrd
+```
+
+## Cloud Tasks Authentication (Cloud Run)
+
+ChemVantage now enqueues Cloud Tasks as HTTP requests (not App Engine requests) and can attach an OIDC token using the
+`CLOUD_TASKS_OIDC_SERVICE_ACCOUNT` runtime environment variable.
+
+Example (dev):
+
+```bash
+export TASKS_OIDC_SERVICE_ACCOUNT=890312835091-compute@developer.gserviceaccount.com
+./scripts/deploy-dev.sh
+```
+
+Required IAM for authenticated task delivery:
+
+1. Runtime service account can enqueue tasks:
+
+```bash
+gcloud projects add-iam-policy-binding dev-vantage-hrd \
+  --member="serviceAccount:890312835091-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudtasks.enqueuer"
+```
+
+2. Token service account can invoke Cloud Run service:
+
+```bash
+gcloud run services add-iam-policy-binding chemvantage-dev \
+  --project=dev-vantage-hrd \
+  --region=us-central1 \
+  --member="serviceAccount:890312835091-compute@developer.gserviceaccount.com" \
+  --role="roles/run.invoker"
+```
+
+3. Cloud Tasks service agent can mint tokens for the token service account:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  890312835091-compute@developer.gserviceaccount.com \
+  --member="serviceAccount:service-890312835091@gcp-sa-cloudtasks.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountTokenCreator"
+```
+
 ## Build and Deploy (Dev)
+
+`./scripts/deploy-dev.sh` now runs static asset sync first, then submits Cloud Build.
+
+Defaults:
+
+- Static source directory: `src/main/webapp`
+- Static bucket: `chemvantage-static-dev`
+- Dotfile exclusion regex: `(^|/)\\..*`
 
 Run from repository root:
 
@@ -41,6 +98,16 @@ Optional explicit image tag:
 ./scripts/deploy-dev.sh v2026-08-15
 ```
 
+Optional controls:
+
+```bash
+# Skip static sync for this deploy
+SKIP_STATIC_SYNC=true ./scripts/deploy-dev.sh
+
+# Override static bucket/source for one run
+STATIC_BUCKET=chemvantage-static-dev SOURCE_DIR=src/main/webapp ./scripts/deploy-dev.sh
+```
+
 Equivalent raw command:
 
 ```bash
@@ -50,16 +117,29 @@ gcloud builds submit --config cloudbuild.yaml \
 
 ## Build and Deploy (Production)
 
+`./scripts/deploy-prod.sh` now runs static asset sync first, then submits Cloud Build.
+
+Required for production sync:
+
+- `STATIC_BUCKET` must be set (example: `chemvantage-static-prod`)
+
 Use the same Cloud Build pipeline with production substitutions:
 
 ```bash
-./scripts/deploy-prod.sh
+STATIC_BUCKET=chemvantage-static-prod ./scripts/deploy-prod.sh
 ```
 
 Optional explicit image tag:
 
 ```bash
-./scripts/deploy-prod.sh v2026-08-15
+STATIC_BUCKET=chemvantage-static-prod ./scripts/deploy-prod.sh v2026-08-15
+```
+
+Optional controls:
+
+```bash
+# Skip static sync for this deploy
+SKIP_STATIC_SYNC=true ./scripts/deploy-prod.sh
 ```
 
 Equivalent raw command:
