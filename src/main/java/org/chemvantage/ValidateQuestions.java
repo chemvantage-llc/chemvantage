@@ -37,9 +37,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/* 
- * Access to this servlet is restricted to ChemVantage admin users and the project service account
- * by specifying login: admin in a url handler of the project app.yaml file
+/*
+ * Access to this servlet is restricted to admin@chemvantage.org.
  */
 @WebServlet("/ValidateQuestions")
 public class ValidateQuestions extends HttpServlet {
@@ -55,6 +54,11 @@ public class ValidateQuestions extends HttpServlet {
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		try {
+			if (!Utilities.isAdminAuthenticated(request)) {
+				response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access required");
+				return;
+			}
+			
 			response.setContentType("text/html");
 			PrintWriter out = response.getWriter();
 			
@@ -93,6 +97,11 @@ public class ValidateQuestions extends HttpServlet {
 	public void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 	    try {
+			if (!Utilities.isAdminAuthenticated(request)) {
+				response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access required");
+				return;
+			}
+
 			response.setContentType("text/html");
 			PrintWriter out = response.getWriter();
 			

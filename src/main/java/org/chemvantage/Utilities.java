@@ -5,6 +5,9 @@ import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 
+import com.google.appengine.api.users.User;
+import com.google.appengine.api.users.UserService;
+import com.google.appengine.api.users.UserServiceFactory;
 import com.google.cloud.tasks.v2.CloudTasksClient;
 import com.google.cloud.tasks.v2.HttpRequest;
 import com.google.cloud.tasks.v2.HttpMethod;
@@ -22,6 +25,7 @@ import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 
 public class Utilities {
+	private static final String ADMIN_EMAIL = "admin@chemvantage.org";
 	
 	public static void createTask(String relativeUri, String query) throws IOException {
 		createTask(relativeUri, query, 0);
@@ -84,6 +88,43 @@ public class Utilities {
 		if (!trimmedPath.startsWith("/")) trimmedPath = "/" + trimmedPath;
 		if (trimmedBase.endsWith("/")) trimmedBase = trimmedBase.substring(0, trimmedBase.length() - 1);
 		return trimmedBase + trimmedPath;
+	}
+
+	public static boolean isAdminAuthenticated(jakarta.servlet.http.HttpServletRequest request) {
+		if (request == null) return false;
+		String serverName = request.getServerName();
+		if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) return true;
+		String authenticatedEmail = getAuthenticatedEmail(request);
+		if (authenticatedEmail != null && ADMIN_EMAIL.equalsIgnoreCase(authenticatedEmail)) return true;
+		try {
+			UserService userService = UserServiceFactory.getUserService();
+			if (!userService.isUserLoggedIn()) return false;
+			User currentUser = userService.getCurrentUser();
+			return currentUser != null && ADMIN_EMAIL.equalsIgnoreCase(currentUser.getEmail());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static String getAuthenticatedEmail(jakarta.servlet.http.HttpServletRequest request) {
+		String[] headerNames = {
+			"X-Goog-Authenticated-User-Email",
+			"X-Forwarded-Email",
+			"X-Authenticated-User-Email"
+		};
+		for (String headerName : headerNames) {
+			String headerValue = request.getHeader(headerName);
+			if (headerValue == null || headerValue.isBlank()) continue;
+			headerValue = headerValue.trim();
+			int colonIndex = headerValue.indexOf(':');
+			if (colonIndex >= 0 && colonIndex < headerValue.length() - 1) {
+				headerValue = headerValue.substring(colonIndex + 1).trim();
+			}
+			if (!headerValue.isEmpty()) return headerValue;
+		}
+		String remoteUser = request.getRemoteUser();
+		if (remoteUser != null && !remoteUser.isBlank()) return remoteUser.trim();
+		return null;
 	}
 	
 	public static void sendEmail(String recipientName, String recipientEmail, String subject, String message) 

@@ -69,15 +69,6 @@ handlers:
   require_matching_file: True
   secure: always
 
-# All requests to the following URLs are restricted to admins or service accounts
-# NOTE: The associated Java classes (Admin, DataStoreCleaner, Edit, etc.) ALSO 
-# perform redundant authentication checks as defense-in-depth.
-# If this app.yaml rule is misconfigured or bypassed, the Java code will reject the request.
-- url: /(Admin|DataStoreCleaner|Edit|EraseEntity|contacts|messages|ReportScore|ValidateQuestions)
-  secure: always
-  login: admin
-  script: auto
-
 # All other requests must be secure (TLS)
 - url: /.*
   secure: always

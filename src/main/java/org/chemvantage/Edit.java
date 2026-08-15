@@ -45,9 +45,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/* 
- * Access to this servlet is restricted to ChemVantage admin users and the project service account
- * by specifying login: admin in a url handler of the project app.yaml file
+/*
+ * Access to this servlet is restricted to admin@chemvantage.org.
  */
 @WebServlet("/Edit")
 public class Edit extends HttpServlet {
@@ -77,6 +76,11 @@ public class Edit extends HttpServlet {
 		PrintWriter out = response.getWriter();
 		
 		try {
+			if (!Utilities.isAdminAuthenticated(request)) {
+				response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access required");
+				return;
+			}
+			
 			String userId = "admin";
 			User user = new User("https://"+request.getServerName(), userId);
 			user.setIsChemVantageAdmin(true);

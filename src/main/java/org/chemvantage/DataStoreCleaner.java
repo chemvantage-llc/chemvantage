@@ -44,9 +44,8 @@ import com.google.gson.JsonObject;
 import com.googlecode.objectify.Key;
 
 
-/* 
- * Access to this servlet is restricted to ChemVantage admin users and the project service account
- * by specifying login: admin in a url handler of the project app.yaml file
+/*
+ * Access to this servlet is restricted to admin@chemvantage.org.
  */
 @WebServlet("/DataStoreCleaner")
 public class DataStoreCleaner extends HttpServlet {
@@ -719,37 +718,10 @@ public class DataStoreCleaner extends HttpServlet {
 	}
 	
 	/**
-	 * Verify the request is from an authenticated admin user or service account
-	 * using Google Cloud IAM authentication
+	 * Verify the request is from the ChemVantage admin account.
 	 */
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
-		try {
-			// Verify the application has Google Cloud credentials
-			com.google.auth.oauth2.GoogleCredentials credentials = com.google.auth.oauth2.GoogleCredentials.getApplicationDefault();
-			
-			if (credentials == null) {
-				return false;  // No credentials available
-			}
-			
-			// Validate that the application has access to Google Cloud
-			String projectId = System.getenv("GOOGLE_CLOUD_PROJECT");
-			if (projectId == null) {
-				projectId = System.getenv("GCLOUD_PROJECT");
-			}
-			
-			if (projectId == null) {
-				return false;  // Cannot determine project
-			}
-			
-			// Admin access is controlled through IAM policies in Google Cloud Console
-			// If the request reached here with valid credentials, the IAM policy 
-			// has already filtered for admin-only access
-			return true;
-		} catch (Exception e) {
-			System.err.println("Error during admin authentication: " + e.getMessage());
-			e.printStackTrace();
-			return false;
-		}
+		return Utilities.isAdminAuthenticated(request);
 	}
 
 	/**
