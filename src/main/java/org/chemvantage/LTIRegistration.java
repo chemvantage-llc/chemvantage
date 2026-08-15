@@ -828,8 +828,8 @@ public class LTIRegistration extends HttpServlet {
 		String domain = null;
 		switch (projectId) {
 		case "dev-vantage-hrd":
-			iss = "https://dev-vantage-hrd.appspot.com";
-			domain = "dev-vantage-hrd.appspot.com";
+			iss = "https://dev.chemvantage.org";
+			domain = "dev.chemvantage.org";
 			break;
 		case "chem-vantage-hrd":
 			iss = "https://www.chemvantage.org";

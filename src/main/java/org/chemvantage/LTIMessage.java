@@ -106,7 +106,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
 			// At this point no valid cached authToken was found, so we request a new authToken from the LMS platform:
 			// First, construct a request token to send to the platform
-			String iss = Subject.getProjectId().equals("dev-vantage-hrd")?"https://dev-vantage-hrd.appspot.com":"https://www.chemvantage.org";
+			String iss = Subject.getProjectId().equals("dev-vantage-hrd")?"https://dev.chemvantage.org":"https://www.chemvantage.org";
 			debug.append("Denied by: " + d.oauth_access_token_url + "<br/>");
 
 			String aud = d.oauth_access_token_url;

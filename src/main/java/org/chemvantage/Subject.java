@@ -76,7 +76,7 @@ public class Subject {
 		fallback.projectId = ServiceOptions.getDefaultProjectId();
 		if (fallback.projectId == null || fallback.projectId.isBlank()) fallback.projectId = "localhost";
 		fallback.serverUrl = switch (fallback.projectId) {
-			case "dev-vantage-hrd" -> "https://dev-vantage-hrd.appspot.com";
+			case "dev-vantage-hrd" -> "https://dev.chemvantage.org";
 			case "localhost" -> "http://localhost:8080";
 			default -> "https://www.chemvantage.org";
 		};

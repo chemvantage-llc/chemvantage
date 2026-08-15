@@ -2199,13 +2199,13 @@ void assignToConcept(User user, HttpServletRequest request) {
 		}
 		if (flaggedQuestionKeys.size()==0 && failedQuestionKeys.size()==0) return buf.append("All questions in this assignment passed AI validation.").toString();
 		
-		String message = "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?AssignmentId=" + a.id + ">View Assignment</a> or "
-		+ "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?UserRequest=ValidateAssignmentWithAI&AssignmentId=" + a.id + ">Run Validation Interactively</a><br/><br/>";
+		String message = "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev.chemvantage.org") + "/Edit?AssignmentId=" + a.id + ">View Assignment</a> or "
+		+ "<a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev.chemvantage.org") + "/Edit?UserRequest=ValidateAssignmentWithAI&AssignmentId=" + a.id + ">Run Validation Interactively</a><br/><br/>";
 		if (flaggedQuestionKeys.size()>0) {
 			message += "The following questions in Assignment " + a.id + " were flagged by the AI validator as potentially having incorrect answers:<br/>";
 			for (Key<Question> k : flaggedQuestionKeys) {
 				Long questionId = k.getId();
-				message += "Question ID: " + questionId + " <a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?UserRequest=Edit&AssignmentId=" + a.id + "&QuestionId=" + questionId + ">Edit</a><br/>";
+				message += "Question ID: " + questionId + " <a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev.chemvantage.org") + "/Edit?UserRequest=Edit&AssignmentId=" + a.id + "&QuestionId=" + questionId + ">Edit</a><br/>";
 			}
 		} else {
 			message += "The AI validator did not flag any questions in Assignment " + a.id + " as potentially having incorrect answers.<br/>";
@@ -2216,7 +2216,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			message += "The AI validator encountered errors when validating the following questions in Assignment " + a.id + ":<br/>";
 			for (Key<Question> k : failedQuestionKeys) {
 				Long questionId = k.getId();
-				message += "Question ID: " + questionId + " <a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev-vantage-hrd.appspot.com") + "/Edit?UserRequest=Edit&AssignmentId=" + a.id + "&QuestionId=" + questionId + ">Edit</a><br/>";
+				message += "Question ID: " + questionId + " <a href=https://" + (Subject.getProjectId().equals("chem-vantage-hrd")?"www.chemvantage.org":"dev.chemvantage.org") + "/Edit?UserRequest=Edit&AssignmentId=" + a.id + "&QuestionId=" + questionId + ">Edit</a><br/>";
 			}
 		}
 

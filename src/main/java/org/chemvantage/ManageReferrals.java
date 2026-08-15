@@ -247,7 +247,7 @@ public class ManageReferrals extends HttpServlet {
 
 private void sendVerificationEmail(String name, String email, String referralCode, Long referralId) {
 		try {
-			String baseURL = Subject.getProjectId().equals("dev-vantage-hrd") ? "https://dev-vantage-hrd.appspot.com" : "https://www.chemvantage.org";
+			String baseURL = Subject.getProjectId().equals("dev-vantage-hrd") ? "https://dev.chemvantage.org" : "https://www.chemvantage.org";
 			String verificationLURL = baseURL + "/rewards/" + referralCode + "?id=" + referralId;
 			
 			String emailBody = "<h2>Verify Your Email</h2>"
