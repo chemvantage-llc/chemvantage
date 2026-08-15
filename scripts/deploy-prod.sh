@@ -18,6 +18,7 @@ else
 fi
 
 gcloud builds submit \
+  --project "${PROJECT_ID}" \
   --config cloudbuild.yaml \
   --substitutions _PROJECT_ID="${PROJECT_ID}",_REGION="${REGION}",_REPOSITORY="${REPOSITORY}",_SERVICE="${SERVICE}",_IMAGE_TAG="${IMAGE_TAG}",_TASKS_OIDC_SERVICE_ACCOUNT="${TASKS_OIDC_SERVICE_ACCOUNT}"
 
