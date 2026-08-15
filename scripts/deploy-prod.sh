@@ -12,7 +12,7 @@ SKIP_STATIC_SYNC="${SKIP_STATIC_SYNC:-false}"
 echo "Deploying production service ${SERVICE} to project ${PROJECT_ID} (region: ${REGION}, tag: ${IMAGE_TAG})"
 
 if [[ "${SKIP_STATIC_SYNC}" != "true" ]]; then
-  PROJECT_ID="${PROJECT_ID}" STATIC_BUCKET="${STATIC_BUCKET:-}" ./scripts/sync-static-prod.sh
+  PROJECT_ID="${PROJECT_ID}" STATIC_BUCKET="${STATIC_BUCKET:-chemvantage-static-prod}" ./scripts/sync-static-prod.sh
 else
   echo "Skipping static sync because SKIP_STATIC_SYNC=true"
 fi
