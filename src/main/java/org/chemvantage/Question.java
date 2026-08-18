@@ -377,7 +377,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<input type=hidden id='rated" + this.id + "' name='RatingSelected" + this.id + "' value='" + (initialStars > 0?"true":"false") + "' />");
 						
 			for (int i=1;i<6;i++) {
-				buf.append("<img src='images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
+				buf.append("<img src='https://images.chemvantage.org/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
 						+ "onmouseover=showStars" + this.id + "(" + i + ") onmouseout=showStars" + this.id + "(0) onclick=showStars" + this.id + "(" + i + ",true) />" ); // mouse actions
 			}
 			
@@ -520,7 +520,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<script src='/js/star-rating.js'></script>\n");
 						
 			for (int i=1;i<6;i++) {
-				buf.append("<img src='images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
+				buf.append("<img src='https://images.chemvantage.org/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
 						+ "onmouseover=\"showStarsRating(" + this.id + "," + i + ")\" onmouseout=\"showStarsRating(" + this.id + ",0)\" onclick=\"showStarsRating(" + this.id + "," + i + ",true)\" />" ); // mouse actions
 			}
 			
@@ -628,7 +628,7 @@ public class Question implements Serializable, Cloneable {
 				nStars = Integer.parseInt(studentAnswer);
 			} catch (Exception e) {}
 			for (int i=1;i<6;i++) {
-				buf.append("<img " + (i<=nStars?"src='images/star2.gif'":"src='images/star1.gif'") + " style='width:30px; height:30px;' alt='star" + i + "' />");
+				buf.append("<img " + (i<=nStars?"src='https://images.chemvantage.org/star2.gif'":"src='https://images.chemvantage.org/star1.gif'") + " style='width:30px; height:30px;' alt='star" + i + "' />");
 			}
 			if (studentAnswer!=null) buf.append("&nbsp;(" + nStars +  (nStars==1?" star":" stars)"));
 			buf.append("<br/>");
