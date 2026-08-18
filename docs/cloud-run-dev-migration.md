@@ -173,23 +173,36 @@ Use that URL for validation before DNS cutover.
 
 This environment now uses a global external Application Load Balancer path for custom domains. Direct Cloud Run domain mapping for dev.chemvantage.org was removed.
 
+As of 2026-08-17, routing was inverted from the original "default to Cloud Run" model to a "default to the static bucket" model, so that unmatched/junk paths (bot scans, typos, etc.) resolve cheaply against the bucket instead of invoking a Cloud Run instance. This requires every servlet path to be explicitly enumerated in the URL map.
+
 Provisioned resources:
 
 - Serverless NEG: cv-dev-run-neg (targets Cloud Run service chemvantage-dev in us-central1)
-- Backend service (default): cv-dev-run-bes
-- Backend bucket: cv-dev-static-frontend (Cloud Storage bucket chemvantage-static-dev)
+- Backend service (servlets): cv-dev-run-bes
+- Backend service (admin, IAP-enabled): cv-dev-admin-bes (also targets cv-dev-run-neg)
+- Backend bucket (default): cv-dev-static-frontend (Cloud Storage bucket chemvantage-static-dev)
+- Bucket website config: mainPageSuffix=index.html, notFoundPage=error/404.html
 - URL map: cv-dev-urlmap
-  - Default backend: cv-dev-run-bes (servlets)
+  - Default backend (both top-level and path matcher): cv-dev-static-frontend (static bucket)
   - Host rule: dev.chemvantage.org -> path matcher dev-host-matcher
-  - Static path rules routed to backend bucket cv-dev-static-frontend:
-    - /css/*, /js/*, /images/*, /docs/*, /error/*, /lms/*, /rewards/*, /chemistry-reasoning/*
-    - /index.html, /install.html, /privacy.html, /copyright.html
-    - /terms_and_conditions.html, /homepage-geometric.html, /ketcher-bridge.html
-    - /robots.txt, /sitemap.xml, /videos.html, /sampleQuestionLibrary.json, /rewards_terms.html
+  - Admin path rule (IAP, routed to cv-dev-admin-bes):
+    - /Admin, /DataStoreCleaner, /Edit, /EraseEntity, /contacts, /messages, /ReportScore, /ValidateQuestions (each with a `/*` wildcard variant)
+  - Redirect rule: /chemistry-reasoning -> urlRedirect (302 FOUND) to /chemistry-reasoning/ (infra-level, no app code)
+  - All other servlet paths explicitly routed to cv-dev-run-bes:
+    - /checkout, /Contribute, /example-questions, /examples, /Feedback, /feedback, /Help, /help, /Homework, /images/*, /itembank, /items, /jwks, /lti/deeplinks, /lti/registration, /lti/launch, /rewards/*, /item, /PlacementExam, /Poll, /PracticeExam, /Quiz, /Sage, /SmartText, /auth/token, /unsubscribe, /VideoQuiz (each with a `/*` wildcard variant except /images/* and /rewards/*, which are wildcard-only to match their servlet mappings)
+  - Everything not listed above (static HTML/CSS/JS/docs/images assets, /chemistry-reasoning/* SPA assets, unknown paths) falls through to the bucket default.
 - Managed certificate: cv-dev-devonly-cert (domain: dev.chemvantage.org)
 - HTTPS target proxy: cv-dev-https-proxy
 - Global forwarding rule: cv-dev-https-fr
 - Global IPv4 address: cv-dev-lb-ip
+
+Note: `/images/*` (ImageRedirect servlet, issues 301s to images.chemvantage.org) and `/rewards/*` (ManageReferrals servlet) were previously mis-routed to the static bucket under the old default-to-Cloud-Run model and were effectively unreachable; this is fixed by the explicit rules above.
+
+**Maintenance requirement:** any new `@WebServlet` path added to the codebase must also be added to the `cv-dev-run-bes` (or `cv-dev-admin-bes` for admin/IAP-protected routes) path rule in `cv-dev-urlmap`, or it will silently 404 from the bucket instead of reaching the app.
+
+### chemistry-reasoning: static-only routing (2026-08-18)
+
+The `/chemistry-reasoning` SPA no longer has a backing servlet or Cloud Run classpath bundle. `src/chemistry-reasoning-standalone/` is synced directly into the static bucket under a `chemistry-reasoning/` prefix by `scripts/sync-static-dev.sh` / `scripts/sync-static-prod.sh` (in addition to the `src/main/webapp` sync). The bucket's `mainPageSuffix=index.html` website config serves `chemistry-reasoning/index.html` for the trailing-slash path automatically; the bare `/chemistry-reasoning` path is handled by a URL map `urlRedirect` rule (302 to `/chemistry-reasoning/`). This removed the `ChemistryReasoning.java` servlet and its `pom.xml` resource-copy block entirely — the feature now has zero Cloud Run/app dependency.
 
 Current LB IP:
 
@@ -223,18 +236,21 @@ gcloud compute ssl-certificates describe cv-dev-devonly-cert \
 
 Expected: managed.status=ACTIVE and domainStatus for dev.chemvantage.org is ACTIVE.
 
-6. Validate hostname and representative static paths:
+6. Validate hostname and representative servlet/static paths:
 
 ```bash
 curl -I https://dev.chemvantage.org/
 curl -I https://dev.chemvantage.org/css/style.css
 curl -I https://dev.chemvantage.org/docs/question-json-ingest.md
+curl -I https://dev.chemvantage.org/Quiz
+curl -I https://dev.chemvantage.org/images/foo.png
 ```
 
 Expected:
 
-- Non-static servlet routes are served by Cloud Run.
-- Static asset paths are served by the bucket backend through the same hostname.
+- `/` and static asset paths are served by the bucket backend (200, or custom 404 page for missing objects).
+- Explicitly enumerated servlet routes (e.g. `/Quiz`) are served by Cloud Run.
+- `/images/*` returns a 301 redirect to images.chemvantage.org (ImageRedirect servlet on Cloud Run).
 
 7. Optional verification from URL map:
 
@@ -242,7 +258,7 @@ Expected:
 gcloud compute url-maps describe cv-dev-urlmap --global --project=dev-vantage-hrd
 ```
 
-Confirm dev.chemvantage.org host rule maps static path rules to backend bucket and default to backend service.
+Confirm dev.chemvantage.org host rule maps enumerated servlet path rules to the backend services and defaults everything else to the backend bucket.
 
 ## Rollback
 

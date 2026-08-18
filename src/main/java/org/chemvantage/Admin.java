@@ -330,12 +330,6 @@ public class Admin extends HttpServlet {
 			buf.append("<h2>Quarterly OpenStax Ally Partner Report</h2>"
 					+ "<a href=/Admin?UserRequest=OpenStaxReport>Preview</a> or <a href=/Admin?UserRequest=OpenStaxCSVReport>Download CSV File</a><p>");
 			
-			// Referrals Rewards Program
-			int nReferrals = ofy().load().type(Referral.class).count();
-			buf.append("<h2>Referral Rewards Program</h2>"
-					+ "There are currently " + nReferrals + " referrals in the system. "
-					+ "<a href='https://console.cloud.google.com/datastore/databases/-default-/entities;kind=Referral;ns=__$DEFAULT$__/query/kind?project=" + Subject.getProjectId() + "'>View</a><p>");
-
 			// Subscription vouchers
 			buf.append("<h2>Subscription Vouchers</h2>");
 			List<Voucher> vouchers = ofy().load().type(Voucher.class).filter("activated =",null).order("-purchased").list();
