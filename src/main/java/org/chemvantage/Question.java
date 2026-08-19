@@ -29,16 +29,22 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import com.bestcode.mathparser.IMathParser;
 import com.bestcode.mathparser.MathParserFactory;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HttpOptions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnLoad;
 
@@ -71,7 +77,11 @@ public class Question implements Serializable, Cloneable {
 			String explanation;
 			boolean scrambleChoices;
 			boolean strictSpelling;
-	@Index  Boolean checkedByAI; // true="valid", false="flagged", null="not checked
+	@Ignore	boolean correctValue = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
+	@Ignore	boolean correctSigFigs = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
+	@Ignore boolean correctWork = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
+	@Ignore	String showWork = null; // used for scoring student answers to NUMERIC questions, not stored in datastore
+	@Index  Boolean checkedByAI; // true="valid", false="flagged", null="not checked"
 	private Integer nCorrectAnswers = null;
 	private Integer nTotalAttempts = null;
 			int[] parameters = {0,0,0,0};
@@ -397,22 +407,6 @@ public class Question implements Serializable, Cloneable {
 					+ "}"
 					+ "</script>\n");
 			
-			/*
-			buf.append("<input id=" + this.id + " type=hidden name=" + this.id + " />");
-			buf.append("&nbsp;&nbsp;&nbsp;&nbsp;<input type=range min=1 max=5 style='opacity:0' onfocus=this.style='opacity:1' oninput='showStars" + this.id + "(this.value,true);' />");
-			buf.append("<br clear='all'>");
-			buf.append("<script>"
-					+ "var fixed" + this.id + " = false;"
-					+ "function showStars" + this.id + "(nStars,clicked=false) {"
-					+ "  if (fixed" + this.id + " && !clicked) return;"
-					+ "  document.getElementById('vote" + this.id + "').innerHTML=(nStars==0?'(click a star)':nStars+(nStars>1?' stars':' star'));"  // unary operator + converts string to int
-					+ "  for (i=1;i<6;i++) document.getElementById('star'+i+'" + this.id + "').src = (nStars<i?'images/star1.gif':'images/star2.gif');"
-					+ "  fixed" + this.id + " = clicked;"
-					+ "  if (clicked) document.getElementById('" + this.id + "').value=nStars;"
-					+ "}"
-					+ "</script>\n");
-			*/
-			
 			if (initialStars > 0) buf.append("<script>showStars" + this.id + "(" + initialStars + ",true);</script>");
 			break;
 		case 7: // Short ESSAY question
@@ -649,19 +643,42 @@ public class Question implements Serializable, Cloneable {
 		buf.append("<br/>");
 		if (showWork != null && !showWork.isEmpty()) buf.append("<b>Student work:</b><br/><div style='border-style: solid; border-width: thin; white-space: pre-wrap;'>" + showWork + "</div>");	
 		if (studentAnswer==null || studentAnswer.isEmpty()) buf.append("<b>No answer was submitted for this question item.</b><p></p>");
-		else if (getQuestionType()<6) {
-			buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
-			if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
-			else if (this.agreesToRequiredPrecision(studentAnswer)) buf.append("<IMG SRC=https://images.chemvantage.org/partCredit.png ALT='minus 1 sig figs' align=middle>"
-					+ "<br/>Your answer must have exactly " + significantFigures + " significant digits.<br/>If your answer ends in a zero, then it must also have a decimal point to indicate which digits are significant.");
-			else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
-			buf.append("<br/><br/>");
-		} else if (getQuestionType()==7) {
-			buf.append("<b>The answer submitted was: </b><br/>" + studentAnswer + "<br/>");
-		} else if (getQuestionType()==8) {
-			buf.append("<b>The structure submitted was:</b><br/>" + renderChemicalStructurePreview(studentAnswer, "Submitted structure", false) + "<br/>");
+		else {
+			switch (getQuestionType()) {
+			case 5: // Numeric Answer
+				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
+				else if (!correctValue) // check if the value is wrong
+						buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>"
+						+ "<br/>Your answer must be within " + requiredPrecision + "% of the correct answer.");
+				else if (!correctSigFigs) // check if the sig figs are wrong
+						buf.append("<IMG SRC=https://images.chemvantage.org/partCredit.png ALT='wrong number of sig figs' align=middle>"
+						+ "<br/>Your answer must have exactly " + significantFigures + " significant digits.<br/>If your answer ends in a zero, then it must also have a decimal point to indicate which digits are significant.");
+				else if (!correctWork) // check if the work is wrong
+						buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>"
+						+ "<br/>Your answer must show your work to receive credit.");
+				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				break;
+			case 6: // FIVE_STAR rating
+				buf.append("<b>The rating submitted was: " + studentAnswer + "</b>&nbsp;");
+				break;
+			case 7: // Short ESSAY question
+				buf.append("<b>The answer submitted was: </b><br/>" + studentAnswer + "<br/><br/>");
+				break;
+			case 8: // Chemical Structure
+				buf.append("<b>The structure submitted was:</b><br/>" + renderChemicalStructurePreview(studentAnswer, "Submitted structure", true));
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
+				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				break;
+			default: // Multiple Choice, True/False, Select Multiple, Fill-in-Word
+				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
+				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				buf.append("<br/><br/>");
+				break;
+			}
 		}
-		
+
 		if (reportable) {
 			try {
 				studentAnswer = URLEncoder.encode(studentAnswer,"UTF-8");  // to send with URL
@@ -1193,6 +1210,10 @@ public class Question implements Serializable, Cloneable {
 		return !hasNoCorrectAnswer();
 	}
 	
+	void setShowWork(String work) {
+		this.showWork = work==null?"":work;
+	}
+
 	boolean isCorrect(String studentAnswer){
 		if (studentAnswer == null || studentAnswer.isEmpty() || hasNoCorrectAnswer()) return false;
 		switch (getQuestionType()) {
@@ -1208,7 +1229,10 @@ public class Question implements Serializable, Cloneable {
 			}
 			return false;
 		case 5: // Numeric Answer
-			return hasCorrectSigFigs(studentAnswer) && agreesToRequiredPrecision(studentAnswer);
+			correctValue = agreesToRequiredPrecision(studentAnswer);
+			correctSigFigs = correctValue && hasCorrectSigFigs(studentAnswer);
+			correctWork = correctSigFigs && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work
+			return correctValue && correctSigFigs && correctWork;
 		case 6: // Five star rating
 			return !studentAnswer.isEmpty();
 		case 7: // ESSAY
@@ -1295,6 +1319,57 @@ public class Question implements Serializable, Cloneable {
 		}
 	}
 	
+	boolean workIsValid(String showWork) {
+		// This method uses an AI model to evaluate whether the student's work is valid for the given question. It returns true if the work is valid, false otherwise.
+		if (showWork == null || showWork.isEmpty()) return false;
+
+		try {
+			String questionItem = this.printForSage();
+			if (questionItem == null || questionItem.isEmpty()) return false;
+
+			Map<String,Object> responseSchema = Map.of(
+					"type", "object",
+					"properties", Map.of(
+							"isValid", Map.of("type", "boolean")
+					),
+					"required", List.of("isValid")
+			);
+
+			GenerateContentConfig generationConfig = GenerateContentConfig.builder()
+					.responseMimeType("application/json")
+					.responseJsonSchema(responseSchema)
+					.candidateCount(1)
+					.build();
+
+			String prompt = "You are grading a chemistry student's shown work for a question whose final answer has already been confirmed correct. "
+					+ "Do NOT re-evaluate the final answer; assume correct_answer is correct and was submitted by the student. "
+					+ "Your only task is to decide whether student_shown_work provides enough evidence that the student used a valid method to arrive at correct_answer, "
+					+ "as opposed to guessing, restating the answer with no supporting reasoning, or using flawed reasoning that happened to produce the correct answer. "
+					+ "Return ONLY a valid JSON object (no markdown, no code fences, no extra text) with this exact schema:\n"
+					+ "{\n"
+					+ "  \"isValid\": true|false\n"
+					+ "}\n\n"
+					+ "question_item:\n" + questionItem + "\n\n"
+					+ "correct_answer:\n" + this.getCorrectAnswerForSage() + "\n\n"
+					+ "student_shown_work:\n" + showWork;
+
+			Client client = Client.builder()
+					.enterprise(true)
+					.project(Subject.getProjectId())
+					.location(Subject.getGemModelLocation())
+					.httpOptions(HttpOptions.builder().apiVersion("v1").build())
+					.build();
+			GenerateContentResponse response = client.models.generateContent(Subject.getGemModel(), prompt, generationConfig);
+			String text = response.text();
+			if (text == null || text.trim().isEmpty()) return false;
+
+			JsonObject json = JsonParser.parseString(text.trim()).getAsJsonObject();
+			return json.has("isValid") && json.get("isValid").getAsBoolean();
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	String parseNumber(String input) {  // converts input like "forty-two" to "42"
 		if (input==null || input.isEmpty()) return input;
 		String words = input.replaceAll("-", " ").toLowerCase().replaceAll(" and", " ");
