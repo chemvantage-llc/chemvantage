@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 import com.google.gson.JsonArray;
@@ -136,19 +137,25 @@ public class Homework extends HttpServlet {
 
 	public void doPost(HttpServletRequest request,HttpServletResponse response)
 	throws ServletException, IOException {
-		
-		response.setContentType("text/html");
+
+		String userRequest = request.getParameter("UserRequest");
+		if (userRequest==null) userRequest = "";
+
+		boolean isJsonRequest = "ValidateQuestionWithAI".equals(userRequest);
+		response.setContentType(isJsonRequest ? "application/json" : "text/html");
 		PrintWriter out = response.getWriter();
 
 		try {
 			User user = User.getUser(request.getParameter("sig"));
 			if (user==null) throw new Exception("Invalid user token (may have expired).");
-			
+
+			if (isJsonRequest) {
+				out.println(validateQuestionItemWithAI(user,request));
+				return;
+			}
+
 			long aId = user.getAssignmentId();		
 			Assignment a = aId==0?null:ofy().load().type(Assignment.class).id(user.getAssignmentId()).now();
-			
-			String userRequest = request.getParameter("UserRequest");
-			if (userRequest==null) userRequest = "";
 
 			switch (userRequest) {
 			case "UpdateAssignment":
@@ -218,7 +225,13 @@ public class Homework extends HttpServlet {
 			}
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        	out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+			if (isJsonRequest) {
+				JsonObject errorResponse = new JsonObject();
+				errorResponse.addProperty("message", e.getMessage()==null?e.toString():e.getMessage());
+				out.println(errorResponse);
+			} else {
+				out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+			}
 		}
 	}
 
@@ -529,13 +542,59 @@ public class Homework extends HttpServlet {
 			q = ofy().load().type(Question.class).id(questionId).now();
 		}
 		
-		if (q.requiresParser()) q.setParameters();
+		long parameterSeed = ThreadLocalRandom.current().nextLong();
+		if (q.requiresParser()) q.setParameters(parameterSeed);
 
 		buf.append("<h1>Custom Homework Question</h1><h2>Preview</h2>");
 
-		buf.append("<FORM ACTION=/Homework METHOD=POST>");
+		buf.append("<FORM ID=previewQuestionForm ACTION=/Homework METHOD=POST>");
 
 		buf.append(q.printAll());
+
+		if (q.id != null && q.getQuestionType() <= 5) {
+			if (q.passedAICheck==null) {
+				buf.append("<div id='AIAnswerContainer'><a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">Validate with AI</a></div><br/>");
+			} else if (q.passedAICheck) {
+				buf.append("<div id='AIAnswerContainer'>&#x2705; Checked by AI. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
+			} else {
+				buf.append("<div id='AIAnswerContainer'>&#x26A0;&#xFE0F; Needs attention. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
+			}
+			buf.append("""
+				<script>
+				async function validateQuestionWithAI(link,parameterSeed) {
+					const ai_answer_container = document.getElementById('AIAnswerContainer');
+					ai_answer_container.textContent = 'Validating...';
+					var result;
+					try {
+						// use the form's current field values so edits made since the last Preview are validated;
+						// look up the form by id rather than link.closest('form') since malformed HTML in the
+						// question text could otherwise break the DOM ancestry chain
+						const form = document.getElementById('previewQuestionForm');
+						if (!form) throw new Error('Could not find the question form on this page.');
+						const params = new URLSearchParams(new FormData(form));
+						params.set('UserRequest', 'ValidateQuestionWithAI');
+						params.set('ParameterSeed', String(parameterSeed));
+						const response = await fetch('/Homework', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+							body: params
+						});
+						result = await response.json();
+						if (!response.ok) throw new Error(result.message || 'Validation failed.');
+						if (result.isCorrect) {
+							ai_answer_container.innerHTML = '&#x2705; Checked by AI';
+						} else {
+							ai_answer_container.innerHTML = '&#x26A0;&#xFE0F; Needs attention. The best answer is ' + result.best_answer;
+						}
+					} catch (err) {
+						console.error('Validate with AI failed:', err);
+						const details = result ? (' ' + JSON.stringify(result)) : (' ' + err.message);
+						ai_answer_container.textContent = 'Validation failed. ' + details;
+					}
+				}
+				</script>
+			""");
+		}
 
 		if (q.authorId==null) q.authorId = user.getId();
 		buf.append("<INPUT TYPE=HIDDEN NAME=sig VALUE='" + user.getTokenSignature() + "'>");
@@ -558,6 +617,29 @@ public class Homework extends HttpServlet {
 		buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Preview' />");
 		buf.append("</FORM>");
 		return buf.toString();
+	}
+
+	JsonObject validateQuestionItemWithAI(User user, HttpServletRequest request) throws Exception {
+		if (!user.isInstructor()) throw new Exception("You must be an instructor for this.");
+		// always build the question from the form's current field values, so unsaved edits are validated
+		Question q = assembleQuestion(request);
+		try {
+			long parameterSeed = Long.parseLong(request.getParameter("ParameterSeed"));
+			if (q.requiresParser()) q.setParameters(parameterSeed);
+		} catch (Exception e) {}
+
+		JsonObject api_response = Edit.requestValidationFromGemini(q);
+		boolean isCorrect = api_response.get("isCorrect").getAsBoolean() || q.isCorrect(api_response.get("best_answer").getAsString());
+		// persist the AI result onto the actual saved entity by updating only the AI fields,
+		// so unsaved edits to other fields are not written to the datastore
+		if (q.id != null) {
+			Question saved = ofy().load().type(Question.class).id(q.id).now();
+			if (saved != null) {
+				saved.passedAICheck = isCorrect;
+				ofy().save().entity(saved).now();
+			}
+		}
+		return api_response;
 	}
 
 	String printHomework(User user, Assignment hwa, long hintQuestionId, boolean showOptional) throws Exception  {
