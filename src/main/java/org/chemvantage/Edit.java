@@ -1612,7 +1612,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		return buf.toString();
 	}
 
-	private JsonObject requestValidationFromGemini(Question q) throws Exception {
+	static JsonObject requestValidationFromGemini(Question q) throws Exception {
 		String questionItem = q.printForSage();
 		if (questionItem == null || questionItem.isEmpty()) throw new Exception("Question text is empty");
 

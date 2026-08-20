@@ -72,6 +72,7 @@ public class Question implements Serializable, Cloneable {
 			boolean scrambleChoices;
 			boolean strictSpelling;
 	@Index  Boolean checkedByAI; // true="valid", false="flagged", null="not checked
+	//		String aiBestAnswer; // AI's suggested best answer when checkedByAI is false
 	private Integer nCorrectAnswers = null;
 	private Integer nTotalAttempts = null;
 			int[] parameters = {0,0,0,0};
