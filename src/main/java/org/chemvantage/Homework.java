@@ -552,12 +552,12 @@ public class Homework extends HttpServlet {
 		buf.append(q.printAll());
 
 		if (q.id != null && q.getQuestionType() <= 5) {
-			if (q.checkedByAI==null) {
+			if (q.passedAICheck==null) {
 				buf.append("<div id='AIAnswerContainer'><a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">Validate with AI</a></div><br/>");
-			} else if (q.checkedByAI) {
-				buf.append("<div id='AIAnswerContainer'>&#x2705; Checked by AI.</div><br/>");
+			} else if (q.passedAICheck) {
+				buf.append("<div id='AIAnswerContainer'>&#x2705; Checked by AI. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
 			} else {
-				buf.append("<div id='AIAnswerContainer'>&#x26A0;&#xFE0F; Failed AI validation.</div><br/>");
+				buf.append("<div id='AIAnswerContainer'>&#x26A0;&#xFE0F; Needs attention. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
 			}
 			buf.append("""
 				<script>
@@ -584,7 +584,7 @@ public class Homework extends HttpServlet {
 						if (result.isCorrect) {
 							ai_answer_container.innerHTML = '&#x2705; Checked by AI';
 						} else {
-							ai_answer_container.innerHTML = '&#x26A0;&#xFE0F; Failed AI validation. The best answer is ' + result.best_answer;
+							ai_answer_container.innerHTML = '&#x26A0;&#xFE0F; Needs attention. The best answer is ' + result.best_answer;
 						}
 					} catch (err) {
 						console.error('Validate with AI failed:', err);
@@ -635,8 +635,7 @@ public class Homework extends HttpServlet {
 		if (q.id != null) {
 			Question saved = ofy().load().type(Question.class).id(q.id).now();
 			if (saved != null) {
-				saved.checkedByAI = isCorrect;
-				//saved.aiBestAnswer = isCorrect ? null : api_response.get("best_answer").getAsString();
+				saved.passedAICheck = isCorrect;
 				ofy().save().entity(saved).now();
 			}
 		}
