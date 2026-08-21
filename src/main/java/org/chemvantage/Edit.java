@@ -829,7 +829,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			buf.append(("Custom".equals(q.assignmentType)?"":"Concept:" + conceptSelectBox(q.conceptId) + "<br/>"));
 			buf.append("Question Type:" + questionTypeDropDownBox(q.getQuestionType()));
 			buf.append(" Point Value: " + pointValueSelectBox(q.pointValue) + "<br/>");
-			buf.append("<label><input type=checkbox name=CheckedByAI value=true /> Checked by AI</label><br/><br/>");
+			buf.append("<label><input type=checkbox name=CheckedByAI value=true /> Mark as validated</label><br/><br/>");
 
 			buf.append(q.edit());
 			

@@ -552,9 +552,9 @@ public class Homework extends HttpServlet {
 		buf.append(q.printAll());
 
 		if (q.id != null && q.getQuestionType() <= 5) {
-			if (q.passedAICheck==null) {
+			if (q.checkedByAI==null) {
 				buf.append("<div id='AIAnswerContainer'><a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">Validate with AI</a></div><br/>");
-			} else if (q.passedAICheck) {
+			} else if (q.checkedByAI) {
 				buf.append("<div id='AIAnswerContainer'>&#x2705; Checked by AI. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
 			} else {
 				buf.append("<div id='AIAnswerContainer'>&#x26A0;&#xFE0F; Needs attention. <a href='#' onClick=\"validateQuestionWithAI(this,'" + parameterSeed + "')\">recheck</a></div><br/>");
@@ -635,7 +635,7 @@ public class Homework extends HttpServlet {
 		if (q.id != null) {
 			Question saved = ofy().load().type(Question.class).id(q.id).now();
 			if (saved != null) {
-				saved.passedAICheck = isCorrect;
+				saved.checkedByAI = isCorrect;
 				ofy().save().entity(saved).now();
 			}
 		}
