@@ -178,6 +178,12 @@ public class Homework extends HttpServlet {
 				ofy().save().entity(a).now();
 				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
+			case "Set Scoring Method":
+				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
+				a.scoreWork = Boolean.parseBoolean(request.getParameter("ScoreWork"));
+				ofy().save().entity(a).now();
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				break;
 			case "Save Question":
 				saveQuestion(user,request);
 				out.println(Subject.header("ChemVantage Instructor Page") + selectQuestionsForm(user,a,request) + Subject.footer);
@@ -343,7 +349,15 @@ public class Homework extends HttpServlet {
 					+ "<label>Attempts allowed:&nbsp;<input type=text size=10 name=AttemptsAllowed " 
 					+ (a.attemptsAllowed==null?"placeholder=unlimited":"value=" + a.attemptsAllowed) + " /></label> "
 					+ "<input type=submit name=UserRequest value='Set Allowed Attempts' />"
-					+ "</form><br/>\n");
+					+ "</form><br/>\n"
+				);
+			buf.append("Numeric questions are currently scored on " + (a.scoreWork?"the final answer AND the work shown.":"the final answer only.") + "<br/>"
+					+ "<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<label><input type=radio name=ScoreWork value=false " + (a.scoreWork?"":"checked") + " /> Final answer only</label>&nbsp;"
+					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>&nbsp;"
+					+ "<input type=submit name=UserRequest value='Set Scoring Method' />"
+					+ "</form><br/>\n"
+			);
 			
 			Map<Key<Question>, Question> questionMap = ofy().load().keys(a.questionKeys);
 			
@@ -674,6 +688,9 @@ public class Homework extends HttpServlet {
 			if (hwa.attemptsAllowed==null)
 				buf.append("<LI>You may rework problems and resubmit answers as many times as you wish, to improve your score.</LI>");
 			else buf.append("<LI>For each problem you are allowed " + hwa.attemptsAllowed + (hwa.attemptsAllowed==1?" attempt.":" attempts.") + "</LI>");
+			if (hwa.scoreWork) 
+				buf.append("<LI>You must show your work for each numeric problem to receive credit for the correct answer.</LI>");
+			else buf.append("<LI>Numeric problems include a \"Show your work\" box that serves as optional scratch space for you.</LI>");
 			buf.append("<LI>There is a retry delay of " + retryDelayMinutes + " minute" +(retryDelayMinutes==1?"":"s") + " between answer submissions for any single question.</LI>");
 			buf.append("<LI>Most questions are customized, so the correct answers are different for each student.</LI>");
 			if (!user.isAnonymous()) buf.append("\n<LI>A checkmark will appear to the left of each correctly solved problem.</LI>");
@@ -1021,7 +1038,6 @@ public class Homework extends HttpServlet {
 
 			// Check to see if the retry delay has expired
 			String showWork = request.getParameter("ShowWork"+q.id);
-			if (showWork==null) showWork="";  // required because later we check to see if showWork.isEmpty()
 			String attemptTooSoon = attemptTooSoon(user,hwa,q,qn,qAnchor,showWork,studentAnswer);
 			if (attemptTooSoon != null) {
 				buf.append(attemptTooSoon);
@@ -1030,6 +1046,10 @@ public class Homework extends HttpServlet {
 			debug.append("1");
 			// Everything is OK, score the studentAnswer
 			switch (q.getQuestionType()) {
+				case 5:  // Handle numeric response
+				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
+				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
+				break;
 			case 6:  // Handle five-star rating response
 				studentScore = q.pointValue;  // full marks for submitting a response
 				break;
@@ -1115,7 +1135,7 @@ public class Homework extends HttpServlet {
 			}
 			debug.append("2");
 			
-			if (!user.isAnonymous()) {
+			if (!user.isAnonymous() && hwa != null) {
 				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),now,studentScore,hwa.id,q.pointValue,showWork);
 				ht.studentAnswer = studentAnswer;
 				ht.correctAnswer = q.getCorrectAnswer();				
@@ -1162,14 +1182,18 @@ public class Homework extends HttpServlet {
 					try {
 						@SuppressWarnings("unused")
 						double dAnswer = Double.parseDouble(q.parseString(studentAnswer));  // throws exception for non-numeric answer
-						if (!q.agreesToRequiredPrecision(studentAnswer)) buf.append("<div class='status-text'>Incorrect Answer</div>"
+						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
 								+ "</p>");
-						else if (!q.hasCorrectSigFigs(studentAnswer)) buf.append("<div class='status-text'>Almost There!</div>"
+						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
 								+ "<p class='explanation-text'>"
 								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
 								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
+								+ "</p>");
+						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
+								+ "<p class='explanation-text'>"
+								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
 								+ "</p>");
 					}
 					catch (Exception e2) {
@@ -1303,7 +1327,7 @@ public class Homework extends HttpServlet {
 			}
 			buf.append("<div class='badge-container'>"
 					+ "<img src='https://images.chemvantage.org/badges/" + badgeName + ".png' height=260px width=260px alt='Fun cartoon character'>"
-					+ "<span style='font-weight: bold;'>Your score is " + s.getPctScore() + "%<br/>" + badgeName + "</span>"
+					+ "<span style='font-weight: bold;'>Your overall score on this assignment is " + s.getPctScore() + "%<br/>" + badgeName + "</span>"
 					+ "</div>");
 		}
 		
@@ -1427,7 +1451,6 @@ public class Homework extends HttpServlet {
 				buf.append("</td></tr>");
 			}
 			buf.append("</table><br/>");
-			//buf.append(ajaxJavaScript(user.getTokenSignature()));
 		} catch (Exception e) {
 			buf.append("Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>" + debug.toString());
 		}

@@ -41,6 +41,7 @@ import com.googlecode.objectify.Key;
 public class ManageMessages extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 1L;
+	private static final String SCHEDULER_SERVICE_ACCOUNT = "cloud-run-scheduler-invoker@dev-vantage-hrd.iam.gserviceaccount.com";
 	
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		doPost(request,response);
@@ -291,7 +292,8 @@ public class ManageMessages extends HttpServlet {
 	}
 
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
-		return Utilities.isAdminAuthenticated(request);
+		return Utilities.isAdminAuthenticated(request)
+				|| Utilities.isAuthenticatedEmail(request, SCHEDULER_SERVICE_ACCOUNT);
 	}
 
 	/**

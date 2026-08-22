@@ -51,6 +51,7 @@ import com.googlecode.objectify.Key;
 public class DataStoreCleaner extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 137L;
+	private static final String SCHEDULER_SERVICE_ACCOUNT = "cloud-run-scheduler-invoker@dev-vantage-hrd.iam.gserviceaccount.com";
 	Date sixMonthsAgo;
 	Date oneYearAgo;
 	Date threeYearsAgo;
@@ -718,10 +719,11 @@ public class DataStoreCleaner extends HttpServlet {
 	}
 	
 	/**
-	 * Verify the request is from the ChemVantage admin account.
+	 * Verify the request is from the ChemVantage admin account or scheduler service account.
 	 */
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
-		return Utilities.isAdminAuthenticated(request);
+		return Utilities.isAdminAuthenticated(request)
+				|| Utilities.isAuthenticatedEmail(request, SCHEDULER_SERVICE_ACCOUNT);
 	}
 
 	/**

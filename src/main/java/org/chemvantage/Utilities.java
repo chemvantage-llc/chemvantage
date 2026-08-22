@@ -8,6 +8,8 @@ import java.time.Instant;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
+import com.google.api.client.json.webtoken.JsonWebSignature;
+import com.google.auth.oauth2.TokenVerifier;
 import com.google.cloud.tasks.v2.CloudTasksClient;
 import com.google.cloud.tasks.v2.HttpRequest;
 import com.google.cloud.tasks.v2.HttpMethod;
@@ -101,6 +103,31 @@ public class Utilities {
 			if (!userService.isUserLoggedIn()) return false;
 			User currentUser = userService.getCurrentUser();
 			return currentUser != null && ADMIN_EMAIL.equalsIgnoreCase(currentUser.getEmail());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	public static boolean isAuthenticatedEmail(jakarta.servlet.http.HttpServletRequest request, String email) {
+		if (request == null || email == null || email.isBlank()) return false;
+		String authenticatedEmail = getAuthenticatedEmail(request);
+		if (authenticatedEmail != null && email.equalsIgnoreCase(authenticatedEmail)) return true;
+		return isBearerTokenEmail(request, email);
+	}
+
+	private static boolean isBearerTokenEmail(jakarta.servlet.http.HttpServletRequest request, String email) {
+		try {
+			String authorization = request.getHeader("Authorization");
+			if (authorization == null || !authorization.regionMatches(true, 0, "Bearer ", 0, 7)) return false;
+			String token = authorization.substring(7).trim();
+			if (token.isEmpty()) return false;
+			String audience = "https://" + request.getServerName();
+			JsonWebSignature verifiedToken = TokenVerifier.newBuilder()
+					.setAudience(audience)
+					.build()
+					.verify(token);
+			Object tokenEmail = verifiedToken.getPayload().get("email");
+			return tokenEmail != null && email.equalsIgnoreCase(tokenEmail.toString());
 		} catch (Exception e) {
 			return false;
 		}
