@@ -138,7 +138,7 @@ public class VideoQuiz extends HttpServlet {
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				Utilities.synchronizeScores(user,a);
+				//Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
@@ -723,6 +723,12 @@ public class VideoQuiz extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
+				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+						+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
