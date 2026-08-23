@@ -5,11 +5,11 @@
 #
 # Example invocation (dev):
 # gcloud builds submit --config cloudbuild.yaml \
-#   --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=$(git rev-parse --short HEAD),_TASKS_OIDC_SERVICE_ACCOUNT=SERVICE_ACCOUNT_EMAIL
+#   --substitutions _PROJECT_ID=dev-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-dev,_IMAGE_TAG=$(git rev-parse --short HEAD),_TASKS_OIDC_SERVICE_ACCOUNT=SERVICE_ACCOUNT_EMAIL,_TASKS_TARGET_BASE_URL=SERVICE_URL
 
 # Example invocation (prod):
 # gcloud builds submit --config cloudbuild.yaml \
-#   --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-prod,_IMAGE_TAG=$(git rev-parse --short HEAD),_TASKS_OIDC_SERVICE_ACCOUNT=SERVICE_ACCOUNT_EMAIL
+#   --substitutions _PROJECT_ID=chem-vantage-hrd,_REGION=us-central1,_REPOSITORY=chemvantage,_SERVICE=chemvantage-prod,_IMAGE_TAG=$(git rev-parse --short HEAD),_TASKS_OIDC_SERVICE_ACCOUNT=SERVICE_ACCOUNT_EMAIL,_TASKS_TARGET_BASE_URL=SERVICE_URL
 
 substitutions:
   _PROJECT_ID: dev-vantage-hrd
@@ -18,6 +18,7 @@ substitutions:
   _SERVICE: chemvantage-dev
   _IMAGE_TAG: dev
   _TASKS_OIDC_SERVICE_ACCOUNT: ""
+  _TASKS_TARGET_BASE_URL: ""
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -49,7 +50,7 @@ steps:
       - --port=8080
       - --min-instances=1
       - --max-instances=5
-      - --set-env-vars=ENFORCE_HTTPS=true,CLOUD_TASKS_OIDC_SERVICE_ACCOUNT=${_TASKS_OIDC_SERVICE_ACCOUNT}
+      - --set-env-vars=ENFORCE_HTTPS=true,CLOUD_TASKS_OIDC_SERVICE_ACCOUNT=${_TASKS_OIDC_SERVICE_ACCOUNT},CLOUD_TASKS_TARGET_BASE_URL=${_TASKS_TARGET_BASE_URL}
 
 images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}

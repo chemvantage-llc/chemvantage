@@ -76,6 +76,12 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-tasks</artifactId>
     </dependency>
+
+  <!-- Google Cloud Secret Manager -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-secretmanager</artifactId>
+    </dependency>
     
   <!-- Google Cloud Service Account -->
     <dependency>

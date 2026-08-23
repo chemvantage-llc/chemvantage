@@ -21,11 +21,17 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.security.MessageDigest;
 import java.text.DecimalFormat;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.cloud.ServiceOptions;
+import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
+import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
+import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.googlecode.objectify.NotFoundException;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -36,17 +42,14 @@ public class Subject {
 	private static final int REFRESH_RETRY_LIMIT = 5;
 	private static final long REFRESH_RETRY_DELAY_MS = 200L;
 	private static final String PRIVACY_BANNER_EXPIRY_DATE = "2026-05-16"; // 30 days from policy update
+	private static final Map<String,String> secrets = new ConcurrentHashMap<>();
+	private static final Set<String> secretWarnings = ConcurrentHashMap.newKeySet();
 
 	@Id Long id;
 	private static Subject s;
 	
 	private String title;
-	private String HMAC256Secret;
-	private String reCaptchaKey;
-	private String openai_key;
-	private String salt;
 	private String announcement;
-	private String sendGridAPIKey;
 	private int nStarReports;
 	private double avgStars;
 	private String projectId;
@@ -55,7 +58,6 @@ public class Subject {
 	private String gemModel;  // e.g. "gemini-3.5-flash-lite"
 	private String gemModelLocation;  // e.g. "us"
 	private String payPalClientId;
-	private String payPalClientSecret;
 	
 	private Subject() {}
 
@@ -63,16 +65,10 @@ public class Subject {
 		Subject fallback = new Subject();
 		fallback.id = 1L;
 		fallback.title = "General Chemistry";
-		fallback.HMAC256Secret = "ChangeMeInTheDatastoreManuallyForYourProtection";
-		fallback.salt = "ChangeMeInTheDatastoreManuallyForYourProtection";
-		fallback.reCaptchaKey = "changeMe";
-		fallback.openai_key = "changeMe";
 		fallback.gptModel = "changeMe";
 		fallback.gemModel = "changeMe";
 		fallback.gemModelLocation = "changeMe";
-		fallback.sendGridAPIKey = "changeMe";
 		fallback.payPalClientId = "changeMe";
-		fallback.payPalClientSecret = "changeMe";
 		fallback.projectId = ServiceOptions.getDefaultProjectId();
 		if (fallback.projectId == null || fallback.projectId.isBlank()) fallback.projectId = "localhost";
 		fallback.serverUrl = switch (fallback.projectId) {
@@ -122,18 +118,15 @@ public class Subject {
 	}
 	
 	static String getHMAC256Secret() { 
-		if (s==null) refresh();
-		return s.HMAC256Secret; 
+		return getSecret("HMAC256Secret"); 
 	}
 
 	static String getReCaptchaKey() {
-		if (s==null) refresh();
-		return s.reCaptchaKey;
+		return getSecret("reCaptchaKey");
 	}
 	
 	static String getSalt() { 
-		if (s==null) refresh();
-		return s.salt; 
+		return getSecret("salt"); 
 	}
 	
 	static String getAnnouncement() { 
@@ -142,8 +135,7 @@ public class Subject {
 	}
 	
 	static String getSendGridKey() {
-		if (s==null) refresh();
-		return s.sendGridAPIKey;
+		return getSecret("sendGridAPIKey");
 	}
 	
 	static String getPayPalClientId() {
@@ -152,8 +144,7 @@ public class Subject {
 	}
 	
 	static String getPayPalClientSecret() {
-		if (s==null) refresh();
-		return s.payPalClientSecret;
+		return getSecret("payPalClientSecret");
 	}
 	
 	static int getNStarReports() { 
@@ -184,7 +175,7 @@ public class Subject {
 		try {
 			if (s==null) refresh();
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
-        	byte[] bytes = md.digest((userId + s.salt).getBytes("UTF-8"));
+	    	byte[] bytes = md.digest((userId + getSalt()).getBytes("UTF-8"));
         	StringBuilder sb = new StringBuilder();
             for (byte b : bytes) {
                 sb.append("%02x".formatted(b));
@@ -211,8 +202,27 @@ public class Subject {
 	}
 
 	static String getOpenAIKey() {
-		if (s==null) refresh();
-		return s.openai_key;
+		return getSecret("openai_key");
+	}
+
+	private static String getSecret(String secretId) {
+		String cachedSecret = secrets.get(secretId);
+		if (cachedSecret != null) return cachedSecret;
+		String projectId = getProjectId();
+		if (projectId != null && !projectId.isBlank() && !"localhost".equals(projectId)) {
+			try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
+				SecretVersionName secretVersionName = SecretVersionName.of(projectId, secretId, "latest");
+				AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
+				String secret = response.getPayload().getData().toStringUtf8();
+				if (secret != null && !secret.isBlank()) {
+					secrets.put(secretId, secret);
+					return secret;
+				}
+			} catch (Exception e) {
+				if (secretWarnings.add(secretId)) logger.log(Level.WARNING, "Unable to access Secret Manager secret: " + secretId, e);
+			}
+		}
+		return null;
 	}
 	
 	static String getProjectId() {

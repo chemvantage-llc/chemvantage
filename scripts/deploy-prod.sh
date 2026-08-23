@@ -7,6 +7,7 @@ REPOSITORY="${REPOSITORY:-chemvantage}"
 SERVICE="${SERVICE:-chemvantage-prod}"
 IMAGE_TAG="${1:-$(git rev-parse --short HEAD)}"
 TASKS_OIDC_SERVICE_ACCOUNT="${TASKS_OIDC_SERVICE_ACCOUNT:-}"
+TASKS_TARGET_BASE_URL="${TASKS_TARGET_BASE_URL:-}"
 SKIP_STATIC_SYNC="${SKIP_STATIC_SYNC:-false}"
 
 echo "Deploying production service ${SERVICE} to project ${PROJECT_ID} (region: ${REGION}, tag: ${IMAGE_TAG})"
@@ -20,6 +21,6 @@ fi
 gcloud builds submit \
   --project "${PROJECT_ID}" \
   --config cloudbuild.yaml \
-  --substitutions _PROJECT_ID="${PROJECT_ID}",_REGION="${REGION}",_REPOSITORY="${REPOSITORY}",_SERVICE="${SERVICE}",_IMAGE_TAG="${IMAGE_TAG}",_TASKS_OIDC_SERVICE_ACCOUNT="${TASKS_OIDC_SERVICE_ACCOUNT}"
+  --substitutions _PROJECT_ID="${PROJECT_ID}",_REGION="${REGION}",_REPOSITORY="${REPOSITORY}",_SERVICE="${SERVICE}",_IMAGE_TAG="${IMAGE_TAG}",_TASKS_OIDC_SERVICE_ACCOUNT="${TASKS_OIDC_SERVICE_ACCOUNT}",_TASKS_TARGET_BASE_URL="${TASKS_TARGET_BASE_URL}"
 
 echo "Deployment submitted."
