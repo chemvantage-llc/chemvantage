@@ -744,7 +744,7 @@ public class Homework extends HttpServlet {
 						+ "<input type=hidden name=QuestionType value='" + q.getQuestionType() + "' />"
 						+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 						+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
-						+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining) 
+						+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining,hwa.scoreWork) 
 						+ (q.id == hintQuestionId?"Hint:<br>" + q.getHint():"")
 						+ "<INPUT id=sub" + q.id + " role='button' aria-label='submit this answer for scoring' aria-disabled='true' disabled TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'>"
 						+ "<div id=submsg" + q.id + " style='font-size:0.9em;color:#666;margin-top:6px;'>Provide an answer to enable submit.</div><p>"
@@ -789,7 +789,7 @@ public class Homework extends HttpServlet {
 							+ "<input type=hidden name=QuestionType value='" + q.getQuestionType() + "' />"
 							+ (hwa==null?"":"<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" + hwa.id + "'>")
 							+ "<div style='display:table-cell;vertical-align:text-top;padding-right:10px;'><b>" + i + ".</b></div>"
-							+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining) 
+							+ "<div style='display:table-cell'>" + q.print(workStrings.get(q.id),"",attemptsRemaining,hwa.scoreWork) 
 							+ (q.id == hintQuestionId?"Hint:<br>" + q.getHint():"")
 							+ "<INPUT id=sub" + q.id + " role='button' aria-disabled='true' disabled TYPE=SUBMIT class='btn btn-primary' VALUE='Grade This Exercise'>"
 							+ "<div id=submsg" + q.id + " style='font-size:0.9em;color:#666;margin-top:6px;'>Provide an answer to enable submit.</div><p>"
@@ -1354,7 +1354,7 @@ public class Homework extends HttpServlet {
 				+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>" 
 				+ (qAnchor==null||qAnchor.isBlank()?"":"<input type=hidden name=QAnchor value='" + qAnchor + "' />")
 				+ (qn==null?"":"<input type=hidden name=QNumber value=" + qn + " />")  // this is the assigned question number on the page
-				+ q.print(showWork,studentAnswer) + "<br>");
+				+ q.print(showWork,studentAnswer,null,hwa.scoreWork) + "<br>");
 
 		buf.append("<INPUT TYPE='submit' id='RetryButton' class='btn btn-primary' DISABLED=true VALUE='Please wait' /></FORM><br/><br/>");
 		buf.append("<script>"

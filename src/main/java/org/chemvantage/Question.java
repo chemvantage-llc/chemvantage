@@ -309,10 +309,14 @@ public class Question implements Serializable, Cloneable {
 	}
 	
 	public String print(String showWork,String studentAnswer) {
-		return print(showWork,studentAnswer,null);
+		return print(showWork,studentAnswer,null,false);
 	}
 	
 	public String print(String showWork,String studentAnswer,Integer attemptsRemaining) {
+		return print(showWork,studentAnswer,attemptsRemaining,false);
+	}
+	
+	public String print(String showWork,String studentAnswer,Integer attemptsRemaining,boolean scoreWork) {
 		StringBuffer buf = new StringBuffer();
 		String placeholder = attemptsRemaining==null?"":(" (" + attemptsRemaining + " attempt" + (attemptsRemaining==1?"":"s") + " remaining)");
 		char choice = 'a';
@@ -362,7 +366,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/>");
 			buf.append("<div id=showWork" + this.id + " style='display:none'>"
 					+ "<label for=ShowWork'" + this.id + "'>Show your work:</label><br/><TEXTAREA NAME=ShowWork" + this.id + " ROWS=5 COLS=50 WRAP=SOFT "
-					+ "maxlength=500 placeholder='Show your work here" + (showWork==null?" (optional).":". You must show clear evidence of sound thinking to receive credit for a correct answer.") + "' "
+					+ "maxlength=500 placeholder='Show your work here" + (scoreWork?". You must show clear evidence of sound thinking to receive credit for a correct answer.":" (optional).") + "' "
 					+ "aria-label='show your work here'>" + (showWork==null?"":showWork) + "</TEXTAREA>"
 					+ "<br/></div>"
 					+ "<label for='answer" + this.id + "'>");
