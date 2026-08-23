@@ -199,12 +199,12 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Synchronize Scores":
-				if (synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
-				else out.println("Synchronization request failed.");
+				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				else out.println("Synchronization request failed for assignment " + aId + ".");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				synchronizeScores(user,a);
+				Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
@@ -1768,40 +1768,6 @@ public class Homework extends HttpServlet {
 		return "Failed. Check assignment settings in the LMS.";
 	}
 
-	boolean synchronizeScores(User user,Assignment a) {
-		// This method looks for assignment scores that are different from the LMS scores and resubmits the score to the LMS
-		try {
-			if (!user.isInstructor()) throw new Exception();  // only instructors can use this function
-			if (a==null) throw new Exception();  // can only do this for a known assignment
-			if (a.lti_ags_lineitem_url == null || a.lti_nrps_context_memberships_url == null) throw new Exception(); // need both of these to work
-			Map<String,String> scores = LTIMessage.readMembershipScores(a);
-			if (scores==null || scores.size()==0) throw new Exception();  // this only works if we can get info from the LMS
-			Map<String,String[]> membership = LTIMessage.getMembership(a);
-			if (membership==null || membership.size()==0) throw new Exception();  // there must be some members of this class
-			Map<String,Key<Score>> keys = new HashMap<String,Key<Score>>();
-			Deployment d = ofy().load().type(Deployment.class).id(a.domain).safe();
-			String platform_id = d.getPlatformId() + "/";
-			for (String id : membership.keySet()) {
-				String hashedUserId = Subject.hashId(platform_id + id);
-				keys.put(id,key(key(User.class,hashedUserId),Score.class,a.id));
-			}
-			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
-			for (Map.Entry<String,String[]> entry : membership.entrySet()) {
-				if (entry == null) continue;
-				Score cvScore = cvScores.get(keys.get(entry.getKey()));
-				if (cvScore==null) continue;
-				String s = scores.get(entry.getKey());
-				if (String.valueOf(cvScore.getPctScore()).equals(s)) continue;  // the scores match (good!)
-				String payload = "AssignmentId=" + a.id + "&UserId=" + URLEncoder.encode(platform_id + entry.getKey(),"UTF-8");
-				Utilities.createTask("/ReportScore",payload);
-				//QueueFactory.getDefaultQueue().add(withUrl("/ReportScore").param("AssignmentId",String.valueOf(a.id)).param("UserId",URLEncoder.encode(platform_id + entry.getKey(),"UTF-8")));  // put report into the Task Queue
-			}
-		} catch (Exception e) {
-			return false;
-		}
-		return true;
-	}
-	
 	boolean isFinalAttempt(User user, Assignment hwa, Long questionId) {
 		if (hwa==null || user.isInstructor() || hwa.attemptsAllowed == null || !hwa.questionKeys.contains(key(Question.class,questionId))) return false;
 		int nAttempts = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).filter("questionId",questionId).count();

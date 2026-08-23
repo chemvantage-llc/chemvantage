@@ -133,12 +133,12 @@ public class VideoQuiz extends HttpServlet {
 			
 			switch (userRequest) {
 			case "Synchronize Scores":
-				if (synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				else out.println("Synchronization request failed.");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				synchronizeScores(user,a);
+				Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;

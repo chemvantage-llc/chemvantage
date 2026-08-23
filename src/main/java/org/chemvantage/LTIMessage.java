@@ -387,7 +387,10 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		
 		try {		
 			String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
-			String bearerAuth = "Bearer " + getAccessToken(a.domain,scope);
+			String accessToken = getAccessToken(a.domain,scope);
+			if (accessToken == null || accessToken.startsWith("Failed AuthToken Request"))
+				throw new Exception(accessToken == null ? "Access token was not granted" : accessToken);
+			String bearerAuth = "Bearer " + accessToken;
 
 			if (a.lti_ags_lineitem_url==null) throw new Exception("the lineitem URL for this assignment is unknown");
 			
@@ -421,6 +424,8 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 						String userId = result.get("userId").getAsString();
 						scores.put(userId,String.valueOf(Math.round(1000.*result.get("resultScore").getAsDouble()/result.get("resultMaximum").getAsDouble())/10.));
 					}
+				} else {
+					scores.put("Error", "LMS returned HTTP " + responseCode + " for the assignment results request");
 				}
 				next_url = null;
 				try {  // per LTI AGS specs, this section looks for a HttpLink to the next page of results

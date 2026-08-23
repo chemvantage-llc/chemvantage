@@ -112,12 +112,12 @@ public class SmartText extends HttpServlet {
                 out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a,"Changes saved successfully.") + Subject.footer);
                 break;
             case "Synchronize Scores":
-                if (synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+                if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
                 else out.println("Synchronization request failed.");
                 break;
             case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				synchronizeScores(user,a);
+                Utilities.synchronizeScores(user,a);
 				reviewScores(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;

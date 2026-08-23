@@ -198,6 +198,24 @@ public class Admin extends HttpServlet {
 					return;
 				} catch (Exception e) {}
 				break;
+			case "Synchronize Scores":
+				try {
+					Long assignmentId = Long.parseLong(request.getParameter("AssignmentId"));
+					Assignment a = ofy().load().type(Assignment.class).id(assignmentId).safe();
+					user.setAssignment(a.id);
+					out.println(Subject.header()
+						+ "<form id='synchronizeScoresForm' method=post action='/" + a.assignmentType + "'>"
+						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+						+ "<input type=hidden name=sig value='" + user.getTokenSignature() + "' />"
+						+ "</form>"
+						+ "<script>document.getElementById('synchronizeScoresForm').submit();</script>"
+						+ Subject.footer);
+				} catch (Exception e) {
+					out.println(Subject.getHeader(user) + "<h1>Synchronize Assignment Scores</h1>"
+							+ "Error: " + e.getMessage()
+							+ Subject.footer);
+				}
+				break;
 			}
 			out.println(Subject.getHeader(user) + mainAdminForm(user,userRequest,searchString,cursor) + Subject.footer);
 		} catch (Exception e) {
@@ -382,6 +400,12 @@ public class Admin extends HttpServlet {
 			buf.append("<a href='https://test-vantage.appspot.com/' target='_blank'>Run regression tests interactively</a><br/>");
 			buf.append(getRegressionTestStatusReport());
 
+			// Synchronize Assignment Scores
+			buf.append("<h2>Synchronize Assignment Scores</h2>");
+			buf.append("<form method=post>"
+					+ "AssignmentID: <input type=text name=AssignmentId />"
+					+ "<input type=submit name=UserRequest value='Synchronize Scores' />"
+					+ "</form><p>");
 			
 		} catch (Exception e) {
 			buf.append("<p>" + e.toString());

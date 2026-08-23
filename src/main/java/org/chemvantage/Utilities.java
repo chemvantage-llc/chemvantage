@@ -1,9 +1,15 @@
 package org.chemvantage;
 
+import static com.googlecode.objectify.ObjectifyService.key;
+import static com.googlecode.objectify.ObjectifyService.ofy;
+
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
@@ -18,6 +24,8 @@ import com.google.cloud.tasks.v2.QueueName;
 import com.google.cloud.tasks.v2.Task;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import com.googlecode.objectify.Key;
+import com.google.gson.JsonObject;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -73,6 +81,56 @@ public class Utilities {
 			client.createTask(queuePath, taskBuilder.build());  // returns Task entity
 			//System.out.println("Task created: " + task.getName());
 		}
+	}
+
+	public static boolean synchronizeScores(org.chemvantage.User user, Assignment assignment) throws Exception {
+		if (user == null || !user.isInstructor() || assignment == null) throw new Exception("Instructor access required to synchronize scores.");
+		Deployment deployment = ofy().load().type(Deployment.class).id(assignment.domain).safe();
+		if (assignment.lti_ags_lineitem_url == null
+				&& assignment.lti_ags_lineitems_url != null
+				&& assignment.resourceLinkId != null) {
+			JsonObject lineItem = LTIMessage.getLineItem(deployment, assignment.resourceLinkId,
+					assignment.lti_ags_lineitems_url);
+			if (lineItem != null && lineItem.has("id")) {
+				assignment.lti_ags_lineitem_url = lineItem.get("id").getAsString();
+				ofy().save().entity(assignment).now();
+			}
+		}
+		if (assignment.lti_ags_lineitem_url == null) throw new Exception("Assignment does not have a valid LTI Advantage line item URL.");
+
+		Map<String, String> lmsScores = LTIMessage.readMembershipScores(assignment);
+		if (lmsScores == null || lmsScores.containsKey("Error")) throw new Exception("Failed to read scores from LMS: " + (lmsScores != null ? lmsScores.get("Error") : "Unknown error"));
+		Map<String, String[]> membership = assignment.lti_nrps_context_memberships_url == null
+				? new HashMap<>() : LTIMessage.getMembership(assignment);
+		if (membership == null) membership = new HashMap<>();
+		if (membership.isEmpty()) {
+			for (String userId : lmsScores.keySet()) {
+				if (!"Error".equals(userId)) membership.put(userId, new String[] {"Learner"});
+			}
+		}
+		if (membership.isEmpty()) return true;
+
+		String platformId = deployment.getPlatformId() + "/";
+		for (Map.Entry<String, String[]> entry : membership.entrySet()) {
+			if (entry.getValue() == null || entry.getValue().length == 0
+					|| !"Learner".equals(entry.getValue()[0])) continue;
+			try {
+				String userId = platformId + entry.getKey();
+				Key<Score> scoreKey = key(key(org.chemvantage.User.class,
+						Subject.hashId(userId)), Score.class, assignment.id);
+				Score cvScore = ofy().load().key(scoreKey).now();
+				if (cvScore == null) {
+					cvScore = Score.getInstance(userId, assignment);
+					if (!"-".equals(cvScore.getScore())) ofy().save().entity(cvScore).now();
+				}
+				if (String.valueOf(cvScore.getPctScore()).equals(lmsScores.get(entry.getKey()))) continue;
+				String payload = "AssignmentId=" + assignment.id + "&UserId="
+						+ URLEncoder.encode(userId, "UTF-8");
+				createTask("/ReportScore", payload);
+			} catch (Exception e) {
+			}
+		}
+		return true;
 	}
 
 	private static String getTaskOidcServiceAccount() {

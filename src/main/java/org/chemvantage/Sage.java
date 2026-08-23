@@ -190,12 +190,12 @@ public class Sage extends HttpServlet {
 				}
 				break;
 			case "Synchronize Scores":
-				if (synchronizeScores(user,a)) out.println(instructorPage(user,a));
+				if (Utilities.synchronizeScores(user,a)) out.println(instructorPage(user,a));
 				else out.println("Synchronization request failed.");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				synchronizeScores(user,a);
+				Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
