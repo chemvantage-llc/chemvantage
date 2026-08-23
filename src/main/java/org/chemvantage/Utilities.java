@@ -39,7 +39,7 @@ public class Utilities {
 		String projectId = Subject.getProjectId();
 		String location = "us-central1";
 		String queueName = "default";
-		String baseUrl = Subject.getServerUrl();
+		String baseUrl = getTaskBaseUrl();
 		String taskUrl = buildTaskUrl(baseUrl, relativeUri);
 		String oidcServiceAccount = getTaskOidcServiceAccount();
 		// Instantiates a client.
@@ -81,6 +81,14 @@ public class Utilities {
 			configured = System.getenv("CV_TASKS_OIDC_SERVICE_ACCOUNT");
 		}
 		return configured;
+	}
+
+	private static String getTaskBaseUrl() {
+		String configured = System.getenv("CLOUD_TASKS_TARGET_BASE_URL");
+		if (configured == null || configured.isBlank()) {
+			configured = System.getenv("CV_TASKS_TARGET_BASE_URL");
+		}
+		return configured == null || configured.isBlank() ? Subject.getServerUrl() : configured;
 	}
 
 	private static String buildTaskUrl(String baseUrl, String relativeUri) {

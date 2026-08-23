@@ -37,6 +37,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class ReportScore extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 137L;
+	private static final String DEV_TASKS_SERVICE_ACCOUNT = "890312835091-compute@developer.gserviceaccount.com";
 	
 	public String getServletInfo() {
 		return "ChemVantage servlet reports a single Score object back to a user's LMS as a Task "
@@ -125,7 +126,11 @@ public class ReportScore extends HttpServlet {
 	}
 
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
-		return Utilities.isAdminAuthenticated(request);
+		String tasksServiceAccount = System.getenv("CLOUD_TASKS_OIDC_SERVICE_ACCOUNT");
+		if (tasksServiceAccount == null || tasksServiceAccount.isBlank()) tasksServiceAccount = System.getenv("CV_TASKS_OIDC_SERVICE_ACCOUNT");
+		if (tasksServiceAccount == null || tasksServiceAccount.isBlank()) tasksServiceAccount = DEV_TASKS_SERVICE_ACCOUNT;
+		return Utilities.isAdminAuthenticated(request)
+				|| Utilities.isAuthenticatedEmail(request, tasksServiceAccount);
 	}
 
 	/**
