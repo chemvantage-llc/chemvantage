@@ -1719,7 +1719,12 @@ public class Homework extends HttpServlet {
 				lmsScoreString = (lmsScoreString==null?" - ":lmsScoreString + "%");
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
-				if ("Learner".equals(entry.getValue()[0]) && !cvScoreString.equals(lmsScoreString)) nMismatched++;
+
+				if ("Learner".equals(entry.getValue()[0]) // must be a Learner to be counted as a mismatched score
+					&& !cvScoreString.equals(lmsScoreString) // the scores are different
+					&& !(cvScoreString.equals(" - ") && Double.valueOf(scores.get(entry.getKey())) == 0.0) // except: 
+				) nMismatched++;
+				
 				if (showDetails)
 					buf.append("<tr><td>" + i + ". </td>"
 						+ "<td>" + entry.getValue()[1] + "</td>"
