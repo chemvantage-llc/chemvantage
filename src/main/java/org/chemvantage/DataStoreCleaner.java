@@ -51,7 +51,9 @@ import com.googlecode.objectify.Key;
 public class DataStoreCleaner extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 137L;
-	private static final String SCHEDULER_SERVICE_ACCOUNT = "cloud-run-scheduler-invoker@dev-vantage-hrd.iam.gserviceaccount.com";
+	private static String schedulerServiceAccount() {
+		return "cloud-run-scheduler-invoker@" + Subject.getProjectId() + ".iam.gserviceaccount.com";
+	}
 	Date sixMonthsAgo;
 	Date oneYearAgo;
 	Date threeYearsAgo;
@@ -723,7 +725,7 @@ public class DataStoreCleaner extends HttpServlet {
 	 */
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
 		return Utilities.isAdminAuthenticated(request)
-				|| Utilities.isAuthenticatedEmail(request, SCHEDULER_SERVICE_ACCOUNT);
+				|| Utilities.isAuthenticatedEmail(request, schedulerServiceAccount());
 	}
 
 	/**
