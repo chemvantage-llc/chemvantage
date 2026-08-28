@@ -1700,20 +1700,22 @@ public class Homework extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
+			//if (showDetails)
+				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
 			
 			int i=0;
 			int nMismatched = 0;
-			String instructorEmail = null;
-			String currentUserLmsId = user.getId()==null?null:user.getId().substring(user.getId().lastIndexOf("/")+1);
+			//String instructorEmail = null;
+			//String currentUserLmsId = user.getId()==null?null:user.getId().substring(user.getId().lastIndexOf("/")+1);
 			
 			for (Map.Entry<String,String[]> entry : membership.entrySet()) {
 				if (entry == null) continue;
+				/* 
 				if (currentUserLmsId != null && currentUserLmsId.equals(entry.getKey()) && entry.getValue()!=null && entry.getValue().length>2) { // this is the current user, so save their email address for later
 					String role = entry.getValue()[0];
 					if (role != null && (role.contains("Instructor") || role.contains("Administrator"))) instructorEmail = entry.getValue()[2];
 				}
+				*/
 				i++;
 				String lmsScoreString = scores.get(entry.getKey());
 				lmsScoreString = (lmsScoreString==null?" - ":lmsScoreString + "%");
@@ -1725,16 +1727,17 @@ public class Homework extends HttpServlet {
 					&& !(cvScoreString.equals(" - ") && Double.valueOf(scores.get(entry.getKey())) == 0.0) // except: 
 				) nMismatched++;
 				
-				if (showDetails)
+				//if (showDetails)
 					buf.append("<tr><td>" + i + ". </td>"
 						+ "<td>" + entry.getValue()[1] + "</td>"
 						+ "<td>" + entry.getValue()[2] + "</td>"
 						+ "<td>" + entry.getValue()[0] + "</td>"
 						+ "<td>" + lmsScoreString + "</td>"
 						+ "<td>" + cvScoreString + "</td>"
+						+ "<td><a href='/Homework?UserRequest=Review&ForUserName=" + URLEncoder.encode(entry.getValue()[1], "UTF-8") + "&ForUserId=" + platform_id + entry.getKey() + "&sig=" + user.getTokenSignature() + "'>View</a></td>"
 						+ "</tr>");
 			}
-			if (showDetails)
+			//if (showDetails)
 				buf.append("</table><br/>");
 			
 			if (nMismatched > 0) {
@@ -1743,14 +1746,15 @@ public class Homework extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+				//if (!showDetails) 
+					buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
 						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
 						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
 						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
 						+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
-
+/* 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
@@ -1764,6 +1768,7 @@ public class Homework extends HttpServlet {
 						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
 						.append("</form>");
 			} 
+*/
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}
