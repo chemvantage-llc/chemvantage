@@ -1701,7 +1701,7 @@ public class Homework extends HttpServlet {
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
 			//if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
+				buf.append("<table style='text-align: center;'><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
 			
 			int i=0;
 			int nMismatched = 0;
