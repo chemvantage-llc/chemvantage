@@ -54,6 +54,11 @@ public class DataStoreCleaner extends HttpServlet {
 	private static String schedulerServiceAccount() {
 		return "cloud-run-scheduler-invoker@" + Subject.getProjectId() + ".iam.gserviceaccount.com";
 	}
+	private static String tasksServiceAccount() {
+		String sa = System.getenv("CLOUD_TASKS_OIDC_SERVICE_ACCOUNT");
+		if (sa == null || sa.isBlank()) sa = System.getenv("CV_TASKS_OIDC_SERVICE_ACCOUNT");
+		return sa;
+	}
 	Date sixMonthsAgo;
 	Date oneYearAgo;
 	Date threeYearsAgo;
@@ -725,7 +730,8 @@ public class DataStoreCleaner extends HttpServlet {
 	 */
 	private boolean isAdminAuthenticated(HttpServletRequest request) {
 		return Utilities.isAdminAuthenticated(request)
-				|| Utilities.isAuthenticatedEmail(request, schedulerServiceAccount());
+				|| Utilities.isAuthenticatedEmail(request, schedulerServiceAccount())
+				|| Utilities.isAuthenticatedEmail(request, tasksServiceAccount());
 	}
 
 	/**
