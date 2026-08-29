@@ -741,12 +741,12 @@ public class LTIRegistration extends HttpServlet {
 		    ext.addProperty("platform", "canvas.instructure.com");
 		      JsonObject settings = new JsonObject();
 		      settings.addProperty("text", "ChemVantage" + (iss.contains("dev")?" Development":""));
-		      settings.addProperty("icon_url", "https://images.chemvantage.org/CVLogo_thumb.png");
+		      settings.addProperty("icon_url", iss + "/images/CVLogo_thumb.png");
 		        JsonArray placements = new JsonArray();
 		         JsonObject plcmnt1 = new JsonObject();
 		          plcmnt1.addProperty("text", "ChemVantage" + (iss.contains("dev")?" Development":""));
 		          plcmnt1.addProperty("enabled", true);
-		          plcmnt1.addProperty("icon_url", "https://images.chemvantage.org/CVLogo_thumb.png");
+		          plcmnt1.addProperty("icon_url", iss + "/images/CVLogo_thumb.png");
 		          plcmnt1.addProperty("placement", "assignment_selection");
 		          plcmnt1.addProperty("message_type", "LtiDeepLinkingRequest");
 		          plcmnt1.addProperty("target_link_uri", iss + "/lti/deeplinks");
@@ -754,7 +754,7 @@ public class LTIRegistration extends HttpServlet {
 		         JsonObject plcmnt2 = new JsonObject();
 		          plcmnt2.addProperty("text", "ChemVantage" + (iss.contains("dev")?" Development":""));
 		          plcmnt2.addProperty("enabled", true);
-		          plcmnt2.addProperty("icon_url", "https://images.chemvantage.org/CVLogo_thumb.png");
+		          plcmnt2.addProperty("icon_url", iss + "/images/CVLogo_thumb.png");
 		          plcmnt2.addProperty("placement", "editor_button");
 		          plcmnt2.addProperty("message_type", "LtiDeepLinkingRequest");
 		          plcmnt2.addProperty("target_link_uri", iss + "/lti/deeplinks");
@@ -762,7 +762,7 @@ public class LTIRegistration extends HttpServlet {
 		         JsonObject plcmnt3 = new JsonObject();
 		          plcmnt3.addProperty("text", "ChemVantage" + (iss.contains("dev")?" Development":""));
 		          plcmnt3.addProperty("enabled", true);
-		          plcmnt3.addProperty("icon_url", "https://images.chemvantage.org/CVLogo_thumb.png");
+		          plcmnt3.addProperty("icon_url", iss + "/images/CVLogo_thumb.png");
 		          plcmnt3.addProperty("placement", "link_selection");
 		          plcmnt3.addProperty("message_type", "LtiDeepLinkingRequest");
 		          plcmnt3.addProperty("target_link_uri", iss + "/lti/deeplinks");
@@ -843,7 +843,7 @@ public class LTIRegistration extends HttpServlet {
 			regJson.addProperty("initiate_login_uri", iss + "/auth/token");
 			regJson.addProperty("client_name", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
 			regJson.addProperty("jwks_uri", iss + "/jwks");
-			regJson.addProperty("logo_uri", "https://images.chemvantage.org/CVLogo_thumb.png");
+			regJson.addProperty("logo_uri", iss + "/images/CVLogo_thumb.png");
 			regJson.addProperty("token_endpoint_auth_method", "private_key_jwt");
 			JsonArray contactEmails = new JsonArray();
 			contactEmails.add("admin@chemvantage.org");
@@ -869,7 +869,7 @@ public class LTIRegistration extends HttpServlet {
 			JsonObject deepLinking = new JsonObject();
 			deepLinking.addProperty("type",  "LtiDeepLinkingRequest");
 			deepLinking.addProperty("target_link_uri", iss + "/lti/deeplinks");
-			deepLinking.addProperty("label", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
+			deepLinking.addProperty("label", "ChemVantage" + (iss.contains("dev")?" Development":""));
 		debug.append("c");
 		try {
 			JsonArray messagesSupported = openIdConfiguration.get("https://purl.imsglobal.org/spec/lti-platform-configuration").getAsJsonObject().get("messages_supported").getAsJsonArray();
@@ -889,7 +889,7 @@ public class LTIRegistration extends HttpServlet {
 		JsonObject resourceLaunch = new JsonObject();
 		resourceLaunch.addProperty("type",  "LtiResourceLinkRequest");
 		resourceLaunch.addProperty("target_link_uri", iss + "/lti/launch");
-			resourceLaunch.addProperty("label", "ChemVantage" + (iss.contains("dev.chemvantage.org")?" Development":""));
+			resourceLaunch.addProperty("label", "ChemVantage" + (iss.contains("dev")?" Development":""));
 			debug.append("e");
 			try {
 				JsonArray messagesSupported = openIdConfiguration.get("https://purl.imsglobal.org/spec/lti-platform-configuration").getAsJsonObject().get("messages_supported").getAsJsonArray();

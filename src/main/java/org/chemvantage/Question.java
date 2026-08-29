@@ -392,7 +392,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<input type=hidden id='rated" + this.id + "' name='RatingSelected" + this.id + "' value='" + (initialStars > 0?"true":"false") + "' />");
 						
 			for (int i=1;i<6;i++) {
-				buf.append("<img src='https://images.chemvantage.org/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
+				buf.append("<img src='/images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
 						+ "onmouseover=showStars" + this.id + "(" + i + ") onmouseout=showStars" + this.id + "(0) onclick=showStars" + this.id + "(" + i + ",true) />" ); // mouse actions
 			}
 			
@@ -403,7 +403,7 @@ public class Question implements Serializable, Cloneable {
 					+ "function showStars" + this.id + "(nStars,clicked=false) {"
 					+ "  if (fixed" + this.id + " && !clicked) return;"
 					+ "  document.getElementById('vote" + this.id + "').innerHTML=(nStars==0?'(click a star)':nStars+(nStars>1?' stars':' star'));"  // unary operator + converts string to int
-					+ "  for (i=1;i<6;i++) document.getElementById('star'+i+'" + this.id + "').src = (nStars<i?'https://images.chemvantage.org/star1.gif':'https://images.chemvantage.org/star2.gif');"
+					+ "  for (i=1;i<6;i++) document.getElementById('star'+i+'" + this.id + "').src = (nStars<i?'/images/star1.gif':'/images/star2.gif');"
 					+ "  fixed" + this.id + " = clicked;"
 					+ "  if (clicked) {"
 					+ "    document.getElementById('" + this.id + "').value=nStars;"
@@ -519,7 +519,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<script src='/js/star-rating.js'></script>\n");
 						
 			for (int i=1;i<6;i++) {
-				buf.append("<img src='https://images.chemvantage.org/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
+				buf.append("<img src='/images/star1.gif' id='star" + i + String.valueOf(this.id) + "' style='width:30px; height:30px;' alt='star " + i + " for rating' "        // properties
 						+ "onmouseover=\"showStarsRating(" + this.id + "," + i + ")\" onmouseout=\"showStarsRating(" + this.id + ",0)\" onclick=\"showStarsRating(" + this.id + "," + i + ",true)\" />" ); // mouse actions
 			}
 			
@@ -627,7 +627,7 @@ public class Question implements Serializable, Cloneable {
 				nStars = Integer.parseInt(studentAnswer);
 			} catch (Exception e) {}
 			for (int i=1;i<6;i++) {
-				buf.append("<img " + (i<=nStars?"src='https://images.chemvantage.org/star2.gif'":"src='https://images.chemvantage.org/star1.gif'") + " style='width:30px; height:30px;' alt='star" + i + "' />");
+				buf.append("<img " + (i<=nStars?"src='/images/star2.gif'":"src='/images/star1.gif'") + " style='width:30px; height:30px;' alt='star" + i + "' />");
 			}
 			if (studentAnswer!=null) buf.append("&nbsp;(" + nStars +  (nStars==1?" star":" stars)"));
 			buf.append("<br/>");
@@ -652,17 +652,17 @@ public class Question implements Serializable, Cloneable {
 			switch (getQuestionType()) {
 			case 5: // Numeric Answer
 				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
-				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
 				else if (!correctValue) // check if the value is wrong
-						buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>"
+						buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>"
 						+ "<br/>Your answer must be within " + requiredPrecision + "% of the correct answer.");
 				else if (!correctSigFigs) // check if the sig figs are wrong
-						buf.append("<IMG SRC=https://images.chemvantage.org/partCredit.png ALT='wrong number of sig figs' align=middle>"
+						buf.append("<IMG SRC=/images/partCredit.png ALT='wrong number of sig figs' align=middle>"
 						+ "<br/>Your answer must have exactly " + significantFigures + " significant digits.<br/>If your answer ends in a zero, then it must also have a decimal point to indicate which digits are significant.");
 				else if (!correctWork) // check if the work is wrong
-						buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>"
+						buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>"
 						+ "<br/>Your answer must show your work to receive credit.");
-				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				break;
 			case 6: // FIVE_STAR rating
 				buf.append("<b>The rating submitted was: " + studentAnswer + "</b>&nbsp;");
@@ -672,13 +672,13 @@ public class Question implements Serializable, Cloneable {
 				break;
 			case 8: // Chemical Structure
 				buf.append("<b>The structure submitted was:</b><br/>" + renderChemicalStructurePreview(studentAnswer, "Submitted structure", true));
-				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
-				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
+				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				break;
 			default: // Multiple Choice, True/False, Select Multiple, Fill-in-Word
 				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
-				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=https://images.chemvantage.org/checkmark.png ALT='Check mark' align=bottom>");
-				else buf.append("<IMG SRC=https://images.chemvantage.org/xmark.png ALT='X mark' align=middle>");
+				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
+				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				buf.append("<br/><br/>");
 				break;
 			}
@@ -1042,7 +1042,7 @@ public class Question implements Serializable, Cloneable {
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
 				buf.append("<span id='vote' style='color:#990000;font-size:small;'>(click a star):</span><br/>");
 				for (int istar=1;istar<6;istar++) {
-					buf.append("<img src='https://images.chemvantage.org/star1.gif' id='" + istar + "' style='width:30px; height:30px;' alt='empty star' />");
+					buf.append("<img src='/images/star1.gif' id='" + istar + "' style='width:30px; height:30px;' alt='empty star' />");
 				}
 				buf.append("<br/>");
 				break;

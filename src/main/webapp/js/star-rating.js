@@ -22,7 +22,7 @@ function showStarsRating(elementId, nStars, clicked) {
     for (let i = 1; i < 6; i++) {
         var starElement = document.getElementById('star' + i + elementId);
         if (starElement) {
-            starElement.src = (nStars < i ? 'https://images.chemvantage.org/star1.gif' : 'https://images.chemvantage.org/star2.gif');
+            starElement.src = (nStars < i ? '/images/star1.gif' : '/images/star2.gif');
         }
     }
     

@@ -319,7 +319,7 @@ public class Subject {
 			  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />
 			  <meta http-equiv='Pragma' content='no-cache' />
 			  <meta http-equiv='Expires' content='0' />
-			%s  <link rel='icon' href='https://images.chemvantage.org/logo_sq.png'>
+			%s  <link rel='icon' href='/images/logo_sq.png'>
 			  <link rel='preconnect' href='https://fonts.googleapis.com' crossorigin>
 			  <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
 			  <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'>
@@ -334,7 +334,7 @@ public class Subject {
 			    <nav class='navbar navbar-expand-lg navbar-light bg-white border-bottom cv-navbar' aria-label='Primary'>
 			      <div class='container'>
 			        <a class='navbar-brand d-flex align-items-center gap-2' href='/' aria-label='ChemVantage home'>
-			          <img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
+			          <img src='/images/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
 			          <span class='fw-bold'>ChemVantage</span>
 			        </a>
 			        <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#primaryNav' aria-controls='primaryNav' aria-expanded='false' aria-label='Toggle navigation'>
@@ -372,7 +372,7 @@ public class Subject {
 			      <div class='row g-3 align-items-center'>
 			        <div class='col-md-6'>
 			          <a class='d-inline-flex align-items-center gap-2 mb-2 text-decoration-none text-body' href='/' aria-label='ChemVantage home'>
-			            <img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
+			            <img src='/images/CVLogo_thumb.png' alt='ChemVantage logo' height='35' />
 			            <span class='fw-bold'>ChemVantage</span>
 			          </a>
 			          <p class='mb-0 small text-muted'>&copy; <span id='year'>2026</span> ChemVantage LLC.</p>
@@ -449,7 +449,7 @@ public class Subject {
 		+ "<main id='main-content'>");
 	}
 	
-	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='https://images.chemvantage.org/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
+	static String banner = "<div style='font-size:2em;font-weight:bold;color:#000080;'><img src='/images/CVLogo_thumb.png' alt='ChemVantage Logo' style='vertical-align:middle;width:60px;'> ChemVantage</div>";
 	
 	static String privacyPolicyBanner() {
 		try {
@@ -488,7 +488,7 @@ public class Subject {
 			
 			</main>
 			<footer id=footer style='max-width: 600px;'><hr/>\
-			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=https://images.chemvantage.org/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
+			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=/images/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
 			<a href=/terms_and_conditions.html>Terms and Conditions</a> | \
 			<a href=/privacy.html>Privacy</a> | \
 			<a href=/copyright.html>Copyright</a></footer>\
