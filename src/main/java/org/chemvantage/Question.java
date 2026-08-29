@@ -366,7 +366,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/>");
 			buf.append("<div id=showWork" + this.id + " style='display:none'>"
 					+ "<label for=ShowWork'" + this.id + "'>Show your work:</label><br/><TEXTAREA NAME=ShowWork" + this.id + " ROWS=5 COLS=50 WRAP=SOFT "
-					+ "maxlength=500 placeholder='Show your work here" + (scoreWork?". You must show clear evidence of sound thinking to receive credit for a correct answer.":" (optional).") + "' "
+					+ "maxlength=500 placeholder='Show your work here. " + (scoreWork?"You must show clear evidence of sound thinking to receive credit for a correct answer.":"This will not affect your score, but it will be visible to your instructor.") + "' "
 					+ "aria-label='show your work here'>" + (showWork==null?"":showWork) + "</TEXTAREA>"
 					+ "<br/></div>"
 					+ "<label for='answer" + this.id + "'>");
