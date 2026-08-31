@@ -51,6 +51,14 @@ public class OneQuestion extends HttpServlet {
 			}
 		} catch (Exception e) {}
 
+		buf.append("<section class='bg-gradient-primary text-white' style='max-width:800px'>"
+				+ "      <div class='container py-5'>"
+				+ "          <div class='col-lg-7'>"
+				+ "            <h1 class='display-5 fw-semibold mb-3'>Homework&nbsp;Question</h1>"
+				+ "			 </div>"
+				+ "        </div>"
+				+ "    </section><p>");
+		
 		if (questionId==null) 
 			buf.append("<br/><br/><br/><form method=get>QuestionId: <input type=text size=10 name=q />"
 					+ "&nbsp;<input type=submit value='Submit' /></form>");
@@ -59,15 +67,18 @@ public class OneQuestion extends HttpServlet {
 				Question q = ofy().load().type(Question.class).id(questionId).safe();
 				if (parameter == null) parameter = new Date().getTime();
 				q.setParameters(parameter);
+				q.correctWork = true;
 
-				buf.append("<br/><br/><div style='max-width:700px'>"
+				buf.append("<br/><br/><div style='max-width:800px'>"
 						+ "<img src=/images/thoughtful_parrot.png alt='thoughtful parrot' style='float:right;padding:10px;height:200px;vertical-align:text-top;' />"
 						+ "<form method=post action=/item onsubmit=waitForScore(); >"
 						+ "<input type=hidden name=p value=" + parameter + " />"
-						+ q.print() + "<input id=SubmitButton type=submit value='Grade This Exercise' class='btn btn-primary'/>" 
+						+ q.print("","",null,true) + "<input id=SubmitButton type=submit value='Grade This Exercise' class='btn btn-primary'/>" 
 						+ "</form>"
 						+ "</div>");
 				buf.append("<SCRIPT>"
+						+ "var qid = " + questionId + ";"
+						+ "document.getElementById('showWork'+qid).style.display='';"
 						+ "function waitForScore() {"
 						+ " let b = document.getElementById('SubmitButton');"
 						+ " b.disabled = true;"
@@ -75,7 +86,7 @@ public class OneQuestion extends HttpServlet {
 						+ "}"
 						+ "</SCRIPT>");
 			} catch (Exception e){
-				buf.append("<br/><br/>Not found.");
+				response.sendError(404);
 			}
 		}
 		buf.append("<br/><br/>");  // Put some space at the bottom
@@ -85,6 +96,14 @@ public class OneQuestion extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String signature = new User().getTokenSignature();
 		StringBuffer buf = new StringBuffer(Subject.header() + ajaxJavaScript(signature));
+		buf.append("<section class='bg-gradient-primary text-white' style='max-width:800px'>"
+				+ "      <div class='container py-5'>"
+				+ "          <div class='col-lg-7'>"
+				+ "            <h1 class='display-5 fw-semibold mb-3'>Homework&nbsp;Question</h1>"
+				+ "			 </div>"
+				+ "      </div>"
+				+ " </section><p>");
+		
 		try {
 			long qid=0L;
 			for (Enumeration<?> e = request.getParameterNames();e.hasMoreElements();) {
@@ -97,13 +116,18 @@ public class OneQuestion extends HttpServlet {
 			long p = Long.parseLong(request.getParameter("p"));
 			q.setParameters(p);
 			String answer = orderResponses(request.getParameterValues(String.valueOf(qid)));
-			
+			String showWork = request.getParameter("ShowWork"+q.id);
+			q.setShowWork(showWork==null?"":showWork);
+
 			if (q.isCorrect(answer)) {
-				buf.append("<h2>Congratulations! Your answer is correct.</h2>" 
+				buf.append("<div style='max-width:800px'>"
+						+ "<h2>Congratulations! Your answer is correct.</h2>" 
+						+ "<img src='/images/parrot.png' alt='cartoon image of professor parrot' style='float:right;padding:10px;max-width:30%;height:auto'  />"
 						+ q.printAllToStudents(answer,true) 
+						+ "</div>"
 						+ " <p>\n"
 						+ " <div id=explanation style='max-width:800px'>"
-						+ " <button id=explainThis class=btn onclick=getExplanation();>Please explain this answer</button>"
+						+ " <button id=explainThis class='btn btn-primary' onclick=getExplanation();>Please explain this answer</button>"
 						+ " </div>\n"
 						+ "<script>\n"
 						+ "function getExplanation() {\n"
@@ -128,28 +152,40 @@ public class OneQuestion extends HttpServlet {
 						+ "  xmlhttp.send(null);\n"
 						+ "}\n"
 						+ "</script>\n"
-						+ "</div><p>\n");
-				//buf.append("<a href=/item?q=" + q.id + ">Try another version of this question</a><br/><br/>");
+						+ "<p>\n");
 			} else if (answer.isEmpty()) { 
-				buf.append("<h3>The answer to the question was left blank.</h3>");
-				buf.append("<form method=post action=/item><input type=hidden name=p value=" + p + " />"
-						+ q.print() + "<br/><input type=submit />" + "</form><br/><br/>");
-				//buf.append("<a href=/>Learn more about ChemVantage here</a><br/><br/>");
+				buf.append("<h2>The answer to the question was left blank.</h2>");
 			} else {
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question
+					buf.append("<div style='max-width:800px'>");
 					try {
 						Double.parseDouble(q.parseString(answer));  // throws exception for non-numeric answer
-						if (!q.agreesToRequiredPrecision(answer)) buf.append("<h3>Your answer was not correct.</h3>");
-						else if (!q.hasCorrectSigFigs(answer)) buf.append("<h3>Oh, so close!</h3>It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
-								+ "If your answer ends with a zero, be sure to include a decimal point to indicate which digits are significant.<br/><br/>");
+						if (!q.correctValue) buf.append("<h2>Your Answer Is Incorrect</h2>"
+								+ "<p class='explanation-text'>"
+								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
+								+ "</p>");
+						else if (!q.correctSigFigs) buf.append("<h2>Almost There!</h2>"
+								+ "<p class='explanation-text'>"
+								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
+								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
+								+ "</p>");
+						else if (!q.correctWork) buf.append("<h2>Show Your Work!</h2>"
+								+ "<p class='explanation-text'>"
+								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
+								+ "</p>");
 					}
 					catch (Exception e2) {
-						buf.append("<h3>Your answer has the wrong format.</h3>This question requires a numeric response expressed as an integer, decimal number, "
-								+ "or number in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the program was unable to recognize "
-								+ "your answer as one of these types.<br/><br/>");
+						buf.append("<h2>Wrong Format</h2>"
+								+ "<p class='explanation-text'>"
+								+ "This question requires a numeric response expressed as an integer, decimal number, "
+								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
+								+ "was unable to recognize your answer as one of these types.<br/>"
+								+ "</p>");
 					}
+					
 					buf.append("The answer submitted was: <b>" + answer + "</b><br/><br/>");
+					buf.append("</div>");
 					break;
 				case 6:  // Five-star rating submission
 					buf.append("<h3>Thank you for the rating.</h3>");
@@ -251,6 +287,9 @@ public class OneQuestion extends HttpServlet {
 					buf.append("The answer submitted was: <b>" + answer + "</b><br/><br/>");
 				}
 			}
+			
+			buf.append("<br/><a href=/item?q=" + q.id + ">Try another version of this question</a><br/><br/>");
+			
 			/*
 			List<Key<Question>> questionKeys = ofy().load().type(Question.class).filter("conceptId",q.conceptId).keys().list();
 			int i = new Random().nextInt(questionKeys.size());
