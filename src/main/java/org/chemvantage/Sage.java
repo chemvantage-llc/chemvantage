@@ -216,7 +216,8 @@ public class Sage extends HttpServlet {
 				+ "<input type=hidden name=ConceptId value='" + conceptId + "' />"
 				+ "<input type=hidden name=UserRequest value='Ask Sage' />"
 				+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-				+ "<textarea rows=4 cols=80 name=UserPrompt ></textarea><br/>"
+				+ "<label for=UserPrompt>Your question:</label><br/>"
+				+ "<textarea id=UserPrompt rows=4 cols=80 name=UserPrompt ></textarea><br/>"
 				+ "<input id=ask type=submit class='btn btn-primary' value='Ask Sage' />"
 				+ "</form><p>"
 				+ "</div>\n");

@@ -599,8 +599,8 @@ public class PlacementExam extends HttpServlet {
 			buf.append("<b>Your score on this placement exam is " + score + " out of a possible " + possibleScore + " points.</b><p>");
 			if (score > 0 && score == possibleScore) buf.append ("<h2>Congratulations on a perfect score!</h2>");
 			else {
-				buf.append("<TABLE><TR><TD><b>Topic</b></TD><TD><b>Score</b></TD>"
-						+ "<TD><b>Possible</b></TD><TD><b>Percent</b></TD><TD></TD></TR>");
+				buf.append("<TABLE><TR><TH><b>Topic</b></TH><TH><b>Score</b></TH>"
+						+ "<TH><b>Possible</b></TH><TH><b>Percent</b></TH><TH>Bar Graph</TH></TR>");
 				int pct = 0;
 				for (int i=0;i<a.conceptIds.size();i++) {
 					if (pt.possibleScores[i]>0) pct = (int)Math.round(pt.scores[i]*100./pt.possibleScores[i]);
@@ -680,7 +680,7 @@ public class PlacementExam extends HttpServlet {
 					}
 				}
 			}
-			debug.append("f");
+			//debug.append("f");
 			
 			buf.append("<table><tr><th>Downloaded</th><th>Placement Exam Score (percent)</th></tr>");
 			for (PlacementExamTransaction pet : pets) {
