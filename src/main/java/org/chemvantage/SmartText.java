@@ -157,8 +157,6 @@ public class SmartText extends HttpServlet {
             buf.append("<h3>Text: " + text.title + "<br/>");
             buf.append("Chapter " + chapter.chapterNumber + ": " + chapter.title + "</h3>");
             
-            buf.append("Select/unselect the key concepts to include in this assignment:<br/>");
-
             // Build a form with checkboxes for concepts in this chapter
             buf.append("<form method=post action=/SmartText>");
             buf.append("<input type=hidden name=sig value='" + user.getTokenSignature() + "' />");
@@ -169,6 +167,7 @@ public class SmartText extends HttpServlet {
             if (chapter.conceptIds.isEmpty()) {
                 buf.append("<p><b>This chapter has no concepts available.</b></p>");
             } else {
+                buf.append("<fieldset><legend>Select/unselect the key concepts to include in this assignment:</legend>");
                 for (Long conceptId : chapter.conceptIds) {
                     Concept c = conceptMap.get(conceptId);
                     if (c != null) {
@@ -176,6 +175,7 @@ public class SmartText extends HttpServlet {
                         + (a.conceptIds.contains(conceptId)?"checked ":"") + "/> " + c.title + "</label></div>");
                     }
                 }
+                buf.append("</fieldset>");
                 buf.append("<span id=successMsg>" + msg + "</span><br/>"
                 + "<input type=submit value='Save Changes' class='btn btn-secondary' onclick='showSuccess()' />");
             }
@@ -228,6 +228,8 @@ public class SmartText extends HttpServlet {
                 }
             }
             if (chapter==null) return "Sorry, we were unable to find the assigned chapter for this textbook.";
+            
+            buf.append("<div style='max-width:800px'>");
             buf.append(printTextHeader(text,chapter));
             buf.append("<hr>");
     
@@ -340,6 +342,8 @@ public class SmartText extends HttpServlet {
         } catch (Exception e) {
             buf.append("Error: " + (e.getMessage()==null?e.toString():e.getMessage()));
         }
+
+        buf.append("</div>");
         return buf.toString();
     }
     

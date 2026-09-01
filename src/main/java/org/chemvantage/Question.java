@@ -423,7 +423,6 @@ public class Question implements Serializable, Cloneable {
 			break;
 		case 8: // Chemical Structure
 			buf.append(text + "<br/>");
-			//buf.append("<span style='color:#B20000;font-size: small;'>Draw the requested chemical structure in the window below, or enter a SMILES string using the keyboard-only option. For help with the drawing tool, see the <a href='https://github.com/epam/ketcher/blob/v3.15.0/documentation/help.md#ketcher-molecules-mode' target='_blank'>Ketcher Help Page</a>.</span><br/>");
 			buf.append(renderChemicalStructureComposer(String.valueOf(this.id), studentAnswer, false, false));
 			if (!placeholder.isEmpty()) buf.append("<span style='color: gray; font-size: 0.8em;'>" + placeholder + "</span><br/>");
 			break;
@@ -1126,7 +1125,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<textarea id='" + textareaId + "'" + (fieldName==null?"":" name='" + fieldName + "'") + (readOnly?" readonly":"") + " rows=12 cols=80 wrap=off placeholder='Structure molfile data is synchronized automatically.'>" + safeMolfile + "</textarea>");
 			buf.append("</details>");
 		} else {
-			buf.append("<textarea id='" + textareaId + "'" + (fieldName==null?"":" name='" + fieldName + "'") + (readOnly?" readonly":"") + " style='display:none' aria-hidden='true'>" + safeMolfile + "</textarea>");
+			buf.append("<textarea id='" + textareaId + "'" + (fieldName==null?"":" name='" + fieldName + "'") + (readOnly?" readonly":"") + " style='display:none' aria-hidden='true' aria-label='Chemical structure molfile data' tabindex='-1'>" + safeMolfile + "</textarea>");
 		}
 	}
 
@@ -1203,7 +1202,12 @@ public class Question implements Serializable, Cloneable {
 		if (svg == null || svg.isEmpty()) buf.append("<div style='color:#990000;'>Unable to render this structure. The raw molfile is shown below.</div>");
 		else buf.append(svg);
 		buf.append("</div>");
-		if (showMolfileData) buf.append("<details><summary>View molfile data</summary><textarea rows=12 cols=80 wrap=off readonly>" + amp2html(molfile) + "</textarea></details>");
+		if (showMolfileData) {
+			String textareaId = "structurePreview_" + Long.toHexString(Double.doubleToLongBits(Math.random()));
+			buf.append("<details><summary>View molfile data</summary>"
+					+ "<label for='" + textareaId + "'>" + (caption == null || caption.isEmpty() ? "Molfile data" : caption + " molfile data") + ":</label><br/>"
+					+ "<textarea id='" + textareaId + "' rows=12 cols=80 wrap=off readonly>" + amp2html(molfile) + "</textarea></details>");
+		}
 		return buf.toString();
 	}
 

@@ -217,7 +217,7 @@ public class Poll extends HttpServlet {
 		
 		if (a.questionKeys.size()==0) return editPage(user,a,0);
 		else {
-			buf.append("You may review and edit the questions for this poll by <a href=/Poll?UserRequest=EditPoll&sig=" + user.getTokenSignature() + ">clicking this link</a>.<br/><br/>");
+			buf.append("<a class='btn' href=/Poll?UserRequest=EditPoll&sig=" + user.getTokenSignature() + ">Review/Edit Questions For This Poll</a>.<br/><br/>");
 		}
 		
 		buf.append("This Poll assignment allows you to pose questions to your class and get real-time responses without the use of clicker devices. "
@@ -796,52 +796,44 @@ public class Poll extends HttpServlet {
 
 					buf.append("<div id=chart_div" + i + " style='display: table-cell;vertical-align: top;'><br/>");  // histogram cell
 					if (totalValues>0) {
-						// Print a histogram as a table containing a horizontal bar graph:
+						// Print a histogram as a div-based layout containing horizontal bar graphs:
 						switch (q.getQuestionType()) {
 						case Question.MULTIPLE_CHOICE:
 						case Question.TRUE_FALSE:
 						case Question.SELECT_MULTIPLE:
 							buf.append("Summary&nbsp;of&nbsp;responses&nbsp;received&nbsp;for&nbsp;this&nbsp;question:<p></p>");
-							buf.append("<table>");
+							buf.append("<div>");
 							for (Entry<String,Integer> e : histogram.entrySet()) {
-								buf.append("<tr><td>");
-								buf.append(e.getKey() + "&nbsp;");
-								buf.append("</td><td>");
+								buf.append("<div style='display:flex;align-items:center;margin-bottom:4px;'>");
+								buf.append("<div style='width:80px;'>" + e.getKey() + "&nbsp;</div>");
+								buf.append("<div style='display:flex;align-items:center;gap:8px;'>");
 								buf.append("<div style='background-color: blue;display: inline-block; width: " + 150*e.getValue()/(totalValues+1) + "px;'>&nbsp;</div>");
-								buf.append("&nbsp;" + e.getValue() + "</td></tr>");
+								buf.append("<span>" + e.getValue() + "</span></div></div>");
 							}
-							buf.append("</table>");
+							buf.append("</div>");
 							break;
 						case Question.FILL_IN_WORD:
 						case Question.NUMERIC:
 							buf.append("Summary&nbsp;of&nbsp;responses&nbsp;received&nbsp;for&nbsp;this&nbsp;question:<p></p>");
 							if (q.hasACorrectAnswer()) {
-								buf.append("<table>");
-								buf.append("<tr><td>");
-								buf.append("correct" + "&nbsp;");
-								buf.append("</td><td>");
-								buf.append("<div style='background-color: blue;display: inline-block; width: " + 150*histogram.get("correct")/(totalValues+1) + "px;'>&nbsp;</div>");
-								buf.append("&nbsp;" + histogram.get("correct") + "</td></tr>");
-								buf.append("<tr><td>");
-								buf.append("incorrect" + "&nbsp;");
-								buf.append("</td><td>");
-								buf.append("<div style='background-color: blue;display: inline-block; width: " + 150*histogram.get("incorrect")/(totalValues+1) + "px;'>&nbsp;</div>");
-								buf.append("&nbsp;" + histogram.get("incorrect") + "</td></tr>");
-								if (otherResponses != null) buf.append("<tr><td colspan=2><br />Incorrect Responses: " + otherResponses + "</td></tr>");							
-								buf.append("</table>");
+								buf.append("<div>");
+								buf.append("<div style='display:flex;align-items:center;margin-bottom:4px;'><div style='width:80px;'>correct&nbsp;</div><div style='display:flex;align-items:center;gap:8px;'><div style='background-color: blue;display: inline-block; width: " + 150*histogram.get("correct")/(totalValues+1) + "px;'>&nbsp;</div><span>" + histogram.get("correct") + "</span></div></div>");
+								buf.append("<div style='display:flex;align-items:center;margin-bottom:4px;'><div style='width:80px;'>incorrect&nbsp;</div><div style='display:flex;align-items:center;gap:8px;'><div style='background-color: blue;display: inline-block; width: " + 150*histogram.get("incorrect")/(totalValues+1) + "px;'>&nbsp;</div><span>" + histogram.get("incorrect") + "</span></div></div>");
+								if (otherResponses != null) buf.append("<div><br />Incorrect Responses: " + otherResponses + "</div>");
+								buf.append("</div>");
 							} else buf.append(otherResponses);
-							break;	
+							break;
 						case Question.FIVE_STAR:
 							buf.append("Summary&nbsp;of&nbsp;responses&nbsp;received&nbsp;for&nbsp;this&nbsp;question:<p></p>");
-							buf.append("<table>");
+							buf.append("<div>");
 							for (char nStars='5'; nStars>='1'; nStars--) {
-								buf.append("<tr><td>");
-								buf.append(String.valueOf(nStars) + (nStars=='1'?"&nbsp;star":"&nbsp;stars") + "&nbsp;");
-								buf.append("</td><td>");
+								buf.append("<div style='display:flex;align-items:center;margin-bottom:4px;'>");
+								buf.append("<div style='width:80px;'>" + String.valueOf(nStars) + (nStars=='1'?"&nbsp;star":"&nbsp;stars") + "&nbsp;</div>");
+								buf.append("<div style='display:flex;align-items:center;gap:8px;'>");
 								buf.append("<div style='background-color: blue;display: inline-block; width: " + 150*histogram.get(String.valueOf(nStars))/(totalValues+1) + "px;'>&nbsp;</div>");
-								buf.append("&nbsp;" + histogram.get(String.valueOf(nStars)) + "</td></tr>");
+								buf.append("<span>" + histogram.get(String.valueOf(nStars)) + "</span></div></div>");
 							}
-							buf.append("</table>");
+							buf.append("</div>");
 							break;
 						case Question.ESSAY:
 							buf.append(histogram.get("N") + (histogram.get("N")==1?" response was ":" responses were ") + "submitted for this question.");

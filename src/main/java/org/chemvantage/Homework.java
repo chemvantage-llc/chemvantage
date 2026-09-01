@@ -353,8 +353,10 @@ public class Homework extends HttpServlet {
 				);
 			buf.append("Numeric questions are currently scored on " + (a.scoreWork?"the final answer AND the work shown.":"the final answer only.") + "<br/>"
 					+ "<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<fieldset><legend>Scoring method for numeric questions:</legend>"
 					+ "<label><input type=radio name=ScoreWork value=false " + (a.scoreWork?"":"checked") + " /> Final answer only</label>&nbsp;"
 					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>&nbsp;"
+					+ "</fieldset>"
 					+ "<input type=submit name=UserRequest value='Set Scoring Method' />"
 					+ "</form><br/>\n"
 			);
@@ -427,15 +429,15 @@ public class Homework extends HttpServlet {
 			buf.append("<form method=post action=/Homework>"
 					+ "<input type=hidden name=sig value='" + user.getTokenSignature() + "' />"
 					+ "<input type=hidden name=UserRequest value=AddKeyConcept />"
-					+ "<label>You may include additional question items from: "
-					+ "<select name=ConceptId><option value='Select'>Select a key concept</option>");
+					+ "<label for=ConceptIdSelect>You may include additional question items from:</label> "
+					+ "<select id=ConceptIdSelect name=ConceptId><option value='Select'>Select a key concept</option>");
 			for (Concept c : conceptList) {
 				try {
 					if (a.conceptIds.contains(c.id) || c.orderBy.startsWith(" 0")) continue;  // skip current and hidden conceptIds
 					buf.append("<option value='" + c.id + "'>" + c.title + "</option>");
 				} catch (Exception e) {}
 			}
-			buf.append("</select></label><input type=submit value='Add Concept' /></form><br/>");
+			buf.append("</select><input type=submit value='Add Concept' /></form><br/>");
 			
 			// Link to review student scores if membership service is supported
 			boolean supportsMembership = a.lti_nrps_context_memberships_url != null;

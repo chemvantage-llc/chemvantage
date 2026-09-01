@@ -209,7 +209,7 @@ public class Feedback extends HttpServlet {
 				}\
 				</style>""");
 		
-		buf.append("<br/><div id=star-rating display='flex'><fieldset>Please rate ChemVantage: ");
+		buf.append("<br/><div id=star-rating display='flex'><fieldset><legend>Please rate ChemVantage: </legend>");
 		for (int istar=1;istar<6;istar++) {
 			buf.append("<div class='radio-star-container'>"
 					+ "<input type='radio' id='radio" + istar + "' name='StarSelection' class='radioStar' value='" + istar + "' "

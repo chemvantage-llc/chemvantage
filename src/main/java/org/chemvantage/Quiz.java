@@ -260,8 +260,8 @@ public class Quiz extends HttpServlet {
 			buf.append("<form method=post action=/Quiz>"
 					+ "<input type=hidden name=sig value='" + user.getTokenSignature() + "' />"
 					+ "<input type=hidden name=UserRequest value=AddKeyConcept />"
-					+ "<label>You may include additional question items from: "
-					+ "<select name=ConceptId><option value='Select'>Select a key concept</option>");
+					+ "<label for='ConceptId'>You may include additional question items from:</label> "
+					+ "<select id='ConceptId' name=ConceptId><option value='Select'>Select a key concept</option>");
 			for (Concept c : conceptList) {
 				try {
 					if (a.conceptIds.contains(c.id) || c.orderBy.startsWith(" 0")) continue;  // skip current and hidden conceptIds
