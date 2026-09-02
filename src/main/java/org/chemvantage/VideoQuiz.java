@@ -211,13 +211,21 @@ public class VideoQuiz extends HttpServlet {
 
 			buf.append("""
 					<h1>Video</h1>
+					<div id='videoQuizPage' hidden data-video-id='""" + videoId
+					+ "' data-video-serial-number='" + org.springframework.web.util.HtmlUtils.htmlEscape(videoSerialNumber)
+					+ "' data-signature='" + org.springframework.web.util.HtmlUtils.htmlEscape(user.getTokenSignature())
+					+ "' data-segment='" + segment
+					+ "' data-breaks='" + org.springframework.web.util.HtmlUtils.htmlEscape(breaks)
+					+ "' data-start='" + start
+					+ "' data-end='" + end + "'></div>"
+					+ """
 					<div id=video_div style='width:560px;height:315px'></div>
 					<br>
 					<div id=quiz_div style='width:560px;background-color:white;min-height:315;display:none'></div><br/>\
 					<div style='font-size:small'>If the YouTube screen is black, try using the player controls to show full screen.</div>
 					<p>""");
 			buf.append("<script src='/js/five_star_radios.js?v=3'></script>\n");
-			buf.append("<script type=text/javascript>\n"
+			buf.append("<template id='legacy-video-quiz-controller'>\n"
 					+ "var tag = document.createElement('script'); tag.src='https://www.youtube.com/iframe_api';\n"
 					+ "var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);\n"
 					+ "var player;\n"
@@ -334,7 +342,8 @@ public class VideoQuiz extends HttpServlet {
 					+ "    return params.toString();\n"
 					+ "}\n"
 					+ "function showWorkBox(qid) {}\n"
-					+ "</script>");
+					+ "</template>");
+			buf.append("<script src='/js/video-quiz-page.js?v=1'></script>");
 		} catch (Exception e) {
 			return (e.getMessage()==null?e.toString():e.getMessage()) + debug.toString();
 		}
@@ -389,7 +398,7 @@ public class VideoQuiz extends HttpServlet {
 		
 		//buf.append("Questions to be presented="+nQuestions+".<hr>");
 		
-		buf.append("<form id=quizlet method=post action='/VideoQuiz' onSubmit=\"document.getElementById('submitButton').disabled=true;return ajaxSubmitQuiz();\" >");
+		buf.append("<form id=quizlet method=post action='/VideoQuiz' >");
 				
 		int i = 0;
 		buf.append("<style>"

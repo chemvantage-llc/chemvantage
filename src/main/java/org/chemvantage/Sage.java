@@ -171,9 +171,7 @@ public class Sage extends HttpServlet {
 							+ "<h1>Sorry, Sage cannot answer your question.</h1>"
 							+ (e.getMessage()==null?e.toString():e.getMessage()) + "<p>"
 							+ "Your session will continue in a moment."
-							+ "<script>"
-							+ " setTimeout(() => { window.location.replace('/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + (concept != null ? concept.id : 0) + "'); }, 2000);"  // pause, then continue
-							+ "</script>"
+							+ "<div data-sage-auto-redirect='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + (concept != null ? concept.id : 0) + "' data-sage-redirect-delay='2000'></div>"
 							+ Subject.footer);
 				}
 				break;
@@ -208,10 +206,10 @@ public class Sage extends HttpServlet {
 
 	static String askAQuestion(User user, Long conceptId, String nonce) {
 		StringBuffer buf = new StringBuffer();
-		buf.append("<button id=askButton class='btn btn-primary' onClick=showAskForm(); >Ask Sage a Question</button>");
+		buf.append("<button id=askButton class='btn btn-primary' type='button'>Ask Sage a Question</button>");
 		buf.append("<div id=askForm style='display:none;' >"
 				+ "If you have any question for Sage about <b>" + conceptMap.get(conceptId).title + "</b> you may ask it here:<br/>"
-				+ "<form method=post action=/Sage onsubmit='waitForScore();'>"
+				+ "<form method=post action=/Sage data-sage-ask-form>"
 				+ "<input type=hidden name=Nonce value='" + nonce + "' />"
 				+ "<input type=hidden name=ConceptId value='" + conceptId + "' />"
 				+ "<input type=hidden name=UserRequest value='Ask Sage' />"
@@ -222,19 +220,6 @@ public class Sage extends HttpServlet {
 				+ "</form><p>"
 				+ "</div>\n");
 		
-		buf.append("""
-				<script>\
-				function showAskForm() {\
-				 document.getElementById('askButton').style='display:none;';\
-				 document.getElementById('askForm').style='display:inline;';\
-				}\
-				function waitForScore() {
-				 let b = document.getElementById('ask');
-				 b.disabled = true;
-				 b.value = 'Please wait a moment for Sage to answer.';
-				}
-				</script>"""); 
-				
 		return buf.toString();
 	}
 
@@ -340,29 +325,14 @@ public class Sage extends HttpServlet {
 		buf.append("<h1>Sage Response</h1>");
 
 		buf.append("<div style='width:800px;' >");
-		buf.append("<img src=/images/sage.png alt='Confucius Parrot' style='margin-left:20px;float:right;' />" + sage_answer);	
+		buf.append("<img src=/images/sage.png alt='Confucius Parrot' style='margin-left:20px;float:right;' />" + Question.sanitizeExplanationHtml(sage_answer));	
 		buf.append("</div>");
 		buf.append("<div id=helpful>"
 				+ "<span><b>Was this answer helpful?</b></span> " 
-				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
-				+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
+				+ "<a role='button' href='#' data-sage-helpful='true' style='vertical-align:middle'><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
+				+ "<a role='button' href='#' data-sage-helpful='false' style='vertical-align:middle'><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
 				+ "</div><p>");
-		// include some javascript to process the response
-		buf.append("<script>"
-				+ "var mathjax = document.createElement('script');\n"
-				+ "mathjax.type = 'text/javascript';\n"
-				+ "mathjax.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';\n"
-				+ "document.head.appendChild(mathjax);\n"
-				+ "function wasHelpful(response) {"
-				+ " document.getElementById('helpful').innerHTML='<br/><b>Thank you for the feedback.</b>';"
-				+ " setTimeout(() => { window.location.replace('/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + (score==100?"&UserRequest=menu":"") + "'); }, 1000);"  // pause, then continue
-				+ " try {"
-				+ "  var xmlhttp = new XMLHttpRequest();"
-				+ "  xmlhttp.open('GET','/feedback?UserRequest=HelpfulAnswer&Response=' + response,true);"
-				+ "  xmlhttp.send(null);"
-				+ " } catch (error) {}"
-				+ "}"
-				+ "</script>");
+		buf.append("<div data-sage-feedback-url='/feedback?UserRequest=HelpfulAnswer' data-sage-redirect='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + (score==100?"&UserRequest=menu":"") + "' data-sage-redirect-delay='1000'></div>");
 		return buf.toString() + Subject.footer;
 	}
 	
@@ -594,13 +564,7 @@ public class Sage extends HttpServlet {
 					+ (supportsMembership?"<LI><a href='/Sage?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "'>Review your students' Sage scores</a></LI>":"")
 					+ "</UL><br/>");
 			
-			buf.append("<script>"
-					+ "function wait() {"
-					+ "  let b = document.getElementById('showAssignment');"
-					+ "  b.innerHTML = 'Preparing your assignment...';"
-					+ "}"
-					+ "</script>");
-			buf.append("<a id=showAssignment href='/Sage?UserRequest=menu&sig=" + user.getTokenSignature() + "' class='btn btn-primary' onclick=wait();>Show This Assignment</a><br/><br/>");
+			buf.append("<a id=showAssignment href='/Sage?UserRequest=menu&sig=" + user.getTokenSignature() + "' class='btn btn-primary' data-sage-wait-label='Preparing your assignment...'>Show This Assignment</a><br/><br/>");
 			
 			buf.append("Need help? Please <a href=/Feedback?sig=" + user.getTokenSignature() + "&AssignmentId=" + a.id + ">submit a comment, question or request here</a>.<br/><br/>");			
 			
@@ -673,61 +637,34 @@ public class Sage extends HttpServlet {
 				
 				buf.append("<div id=helpful>"
 						+ "<span><b>Is this helpful?</b></span> " 
-						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(true);><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
-						+ "<a role='button' href=#  style='vertical-align:middle' onclick=wasHelpful(false);><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
+						+ "<a role='button' href='#' data-sage-helpful='true' style='vertical-align:middle'><img src=/images/thumbs_up.png alt='thumbs up' style='height:30px' /></a>&nbsp;"
+						+ "<a role='button' href='#' data-sage-helpful='false' style='vertical-align:middle'><img src=/images/thumbs_down.png alt='thumbs down' style='height:30px' /></a>"
 						+ "</div><p>");
 				// include some javascript to process the response
-				buf.append("<script>"
-						+ "function wasHelpful(response) {"
-						+ " document.getElementById('helpful').innerHTML='<br/>Thank you for the feedback. ' "
-						+ "  + (response?'I&apos;m always happy to help.':'I&apos;ll try to do better next time.');"
-						+ " try {"
-						+ "  var xmlhttp = new XMLHttpRequest();"
-						+ "  xmlhttp.open('GET','/feedback?UserRequest=HelpfulHint&QuestionId=" + q.id + "&Response=' + response,true);"
-						+ "  xmlhttp.send(null);"
-						+ " } catch (error) { console.error(error); }"
-						+ "}"
-						+ "</script>");
+				buf.append("<div data-sage-feedback-url='/feedback?UserRequest=HelpfulHint&QuestionId=" + q.id + "'></div>");
 			} else {
 				buf.append("<div>"
 						+ "Please submit your answer to the question below.<p>"
 						+ "If you get stuck, I am here to help you, but your score will be higher if you do it by yourself.<p>"
-						+ "<a id=help class='btn btn-primary' role=button href=/Sage?sig=" + user.getTokenSignature() + "&Help=true&ConceptId=" + concept.id + "&p=" + st.random + " onclick=waitForHelp(); >Please help me with this question</a>"
+						+ "<a id=help class='btn btn-primary' role=button href=/Sage?sig=" + user.getTokenSignature() + "&Help=true&ConceptId=" + concept.id + "&p=" + st.random + " data-sage-wait-label='Please wait a moment for Sage to answer.'>Please help me with this question</a>"
 						+ "</div>"
 						+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right'>"
 						+ "</div>");
-				// include some javascript to change the submit button
-				buf.append("<script>"
-						+ "function waitForHelp() {"
-						+ " let a = document.getElementById('help');"
-						+ " a.innerHTML = 'Please wait a moment for Sage to answer.';"
-						+ "}"
-						+ "function showWorkBox(qid) {return;}"  // do nothing
-						+ "</script>");
 				}
 			
 			buf.append("<hr style='width:800px;margin-left:0'>");  // break between Sage helper panel and question panel
 			debug.append("d");
 			
 			// Print the question for the student
-			buf.append("<form method=post style='max-width:800px;' onsubmit='waitForScore();' >"
+			buf.append("<form method=post style='max-width:800px;' data-sage-score-form>"
 					+ "<input type=hidden name=QuestionId value='" + q.id + "' />"
 					+ "<input type=hidden name=ConceptId value='" + q.conceptId + "' />"
 					+ "<input type=hidden name=Parameter value='" + st.random + "' />"
 					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 					+ "<input type=hidden name=UserRequest value='Score This Response' />"
 					+ q.print()
-					+ "<input role='button' aria-label='submit button' id='sub" + q.id + "' type=submit class='btn btn-primary' />"
+					+ "<input role='button' aria-label='submit button' id='sub" + q.id + "' type=submit class='btn btn-primary' data-sage-score-button />"
 					+ "</form><p>");
-			
-			// include some javascript to change the submit button
-			buf.append("<script>"
-					+ "function waitForScore() {\n"
-					+ " let b = document.getElementById('sub" + q.id + "');\n"
-					+ " b.disabled = true;\n"
-					+ " b.value = 'Please wait a moment while we score your response.';\n"
-					+ "}\n"
-					+ "</script>");
 		} catch (Exception e) {
 			buf.append("<p>Error: " + e.getMessage()==null?e.toString():e.getMessage() + "<p>");  // + debug.toString());
 		}
@@ -738,19 +675,12 @@ public class Sage extends HttpServlet {
 		StringBuffer buf = new StringBuffer(Subject.header("Sage"));
 		try {
 			if (concept == null) throw new Exception("No concept was specified for this requeat.");
-			buf.append("""
-					<script id='Mathjax-script' async src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>\
-					<script>\
-					function wait() {\
-					  let b = document.getElementById('continueButton');\
-					  b.innerHTML = 'Preparing your assignment...';\
-					}
-					</script>""");
+			buf.append("<script id='Mathjax-script' async src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'></script>");
 			buf.append("<h1>" + org.springframework.web.util.HtmlUtils.htmlEscape(concept.title) + "</h1>"
 					+ "<div style='max-width:800px'>"
 					+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right;margin:20px;'>"
 					+ concept.getSummary() + "<p>"
-					+ "<a class='btn btn-primary' id=continueButton onclick=wait(); href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + concept.id + "'>Continue</a>"
+					+ "<a class='btn btn-primary' id=continueButton data-sage-wait-label='Preparing your assignment...' href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + concept.id + "'>Continue</a>"
 					+ "</div>");
 	
 		} catch (Exception e) {
@@ -770,19 +700,9 @@ public class Sage extends HttpServlet {
 		String[] responses = request.getParameterValues(Long.toString(questionId));
 		String studentAnswer = orderResponses(responses);
 		
-		buf.append("""
-				
-				<script>\
-				function wait(buttonId,message) {
-				  let b = document.getElementById(buttonId);
-				  b.innerHTML = message;
-				}
-				</script>
-				""");
-		
 		if (studentAnswer == null || studentAnswer.isEmpty()) {
 			buf.append("<h1>No answer was submitted</h1>\n"
-					+ "<a id=tryAgain class='btn btn-primary' onclick=wait('tryAgain','Here we go!'); href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + "'>Try Again</a><p>");
+					+ "<a id=tryAgain class='btn btn-primary' data-sage-wait-label='Here we go!' href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + "'>Try Again</a><p>");
 			return buf.toString() + Subject.footer;
 		};
 		
@@ -804,44 +724,13 @@ public class Sage extends HttpServlet {
 		case 4:
 		case 5:
 			rawScore = q.isCorrect(studentAnswer)?2:q.agreesToRequiredPrecision(studentAnswer)?1:0;
-			showMeLink.append("""
-					<script>\
-					function showAnswer() {
-					  document.getElementById('link').style.display='none';
-					  document.getElementById('shortAnswer').style.display='inline';
-					}
-					</script>
-					""");
-			showMeLink.append("<a id=link class='btn btn-primary' role='button' href=# onclick=showAnswer();>Show Me</a>\n");
+			showMeLink.append("<a id=link class='btn btn-primary' role='button' href='#' data-sage-show-answer='shortAnswer'>Show Me</a>\n");
 			showMeLink.append("<div id=shortAnswer style='display:none';>\n"
 					+ q.printAllToStudents(studentAnswer)
 					+ " <p>\n"
 					+ " <div id=explanation>"
-					+ " <button id=explainThis class='btn btn-primary' onclick=getExplanation();>Please explain this answer</button>"
+					+ " <button id=explainThis class='btn btn-primary' type='button' data-sage-explanation-url='/Sage?sig=" + user.getTokenSignature() + "&UserRequest=GetExplanation&QuestionId=" + q.id + "&Parameter=" + p + "'>Please explain this answer</button>"
 					+ " </div>\n"
-					+ "<script>\n"
-					+ "function getExplanation() {\n"
-					+ "  document.getElementById('explainThis').innerHTML='Please wait a moment for Sage to respond.';\n"
-					+ "  try {\n"
-					+ "    var xmlhttp = GetXmlHttpObject();\n"
-					+ "    if (xmlhttp==null) {\n"
-					+ "      alert('Sorry, your browser does not support AJAX!');\n"
-					+ "	     return false;\n"
-					+ "    }\n"
-					+ "	   xmlhttp.onreadystatechange=function() {\n"
-					+ "      if (xmlhttp.readyState==4) {\n"
-					+ "        document.getElementById('explanation').innerHTML = xmlhttp.responseText;\n"  // Sage explanation
-					+ "        var mathjax = document.createElement('script');\n"
-					+ "        mathjax.type = 'text/javascript';\n"
-					+ "        mathjax.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';\n"
-					+ "        document.head.appendChild(mathjax);\n"
-					+ "      }\n"
-					+ "    }\n"
-					+ "  } catch (error) {}\n"
-					+ "  xmlhttp.open('GET','/Sage?sig=" + user.getTokenSignature() + "&UserRequest=GetExplanation&QuestionId=" + q.id + "&Parameter=" + p + "',true);\n"
-					+ "  xmlhttp.send(null);\n"
-					+ "}\n"
-					+ "</script>\n"
 					+ "</div><p>\n");
 			break;
 		case 6:  // Handle five-star rating response
@@ -919,7 +808,7 @@ public class Sage extends HttpServlet {
 				buf.append("<p><b>Your current score on this concept is " + score + "%.</b>&nbsp;");
 			}
 			// print a button to continue
-			buf.append("<a id=continue class='btn btn-primary' onclick=wait('continue','Please wait a moment...'); href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + (score==100?"&UserRequest=menu":"") + "'>Continue</a><p>");
+			buf.append("<a id=continue class='btn btn-primary' data-sage-wait-label='Please wait a moment...' href='/Sage?sig=" + user.getTokenSignature() + "&ConceptId=" + conceptId + (score==100?"&UserRequest=menu":"") + "'>Continue</a><p>");
 		} catch (Exception e) {
 			buf.append("<p>" + e.getMessage()==null?e.toString():e.getMessage());
 		}
