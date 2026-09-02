@@ -192,12 +192,12 @@ public class Quiz extends HttpServlet {
 		try {
 			buf.append(Subject.privacyPolicyBanner());
 			buf.append("<h1>Quiz</h1>"
-					+ "<h2>" + a.title + "</h2>"
+					+ "<h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>"
 					+ "<h3>Instructor Page</h3>"
 					+ "<a href='/Quiz?sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Show This Assignment</a><br/><br/>"
 					+ "<form action=/Quiz method=post>"
 					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-					+ "<label><b>Title:</b>&nbsp;Quiz - <input type=text size=25 name=AssignmentTitle value='" + a.title + "' /></label>&nbsp;"
+					+ "<label><b>Title:</b>&nbsp;Quiz - <input type=text size=25 name=AssignmentTitle value='" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "' /></label>&nbsp;"
 					+ "<input type=submit name=UserRequest value='Save New Title' /></form><br/>\n"
 					+ "The number of attempts allowed for this quiz is " + (a.attemptsAllowed==null?"unlimited":a.attemptsAllowed) + ".<br/>"
 					+ "<form action=/Quiz method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
@@ -249,7 +249,7 @@ public class Quiz extends HttpServlet {
 				int nQuestions = conceptQuestionCounts.get(cId)==null?0:conceptQuestionCounts.get(cId);
 				int nTotalQuestions = ofy().load().type(Question.class).filter("assignmentType","Quiz").filter("conceptId",cId).count();
 				buf.append("<tr>"
-						+ "<td>" + (c==null?"(deleted concept)":c.title) + "</td>"
+						+ "<td>" + (c==null?"(deleted concept)":org.springframework.web.util.HtmlUtils.htmlEscape(c.title)) + "</td>"
 						+ "<td align=center>" + nQuestions + " of " + nTotalQuestions + "</td>"
 						+ "<td align=center><a href='/Quiz?UserRequest=AssignQuizQuestions&sig=" + user.getTokenSignature() + "&ConceptId=" + cId + "'>Select Questions</a></td>"
 						+ "</tr>");
@@ -265,7 +265,7 @@ public class Quiz extends HttpServlet {
 			for (Concept c : conceptList) {
 				try {
 					if (a.conceptIds.contains(c.id) || c.orderBy.startsWith(" 0")) continue;  // skip current and hidden conceptIds
-					buf.append("<option value='" + c.id + "'>" + c.title + "</option>");
+					buf.append("<option value='" + c.id + "'>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</option>");
 				} catch (Exception e) {}
 			}
 			buf.append("</select></label><input type=submit value='Add Concept' /></form><br/>");
@@ -345,7 +345,7 @@ public class Quiz extends HttpServlet {
 			debug.append("3");
 
 			buf.append("<h1>Quiz</h1>"
-					+ "<h2>" + qa.title + "</h2>");
+					+ "<h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(qa.title) + "</h2>");
 
 			buf.append("Quiz Rules"
 					+ "	<ul>"
@@ -461,7 +461,7 @@ public class Quiz extends HttpServlet {
 			int studentScore = 0;
 			int wrongAnswers = 0;
 
-			buf.append("<h1>Quiz Results</h1><h2>" + qa.title + "</h2>");
+			buf.append("<h1>Quiz Results</h1><h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(qa.title) + "</h2>");
 			
 			buf.append(df.format(now) + "<br/>");
 			
@@ -598,7 +598,7 @@ public class Quiz extends HttpServlet {
 			return buf.toString();
 		}
 			
-		buf.append("<h2>Concept: " + c.title + "</h2>");
+		buf.append("<h2>Concept: " + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</h2>");
 		buf.append("<a href='/Quiz?UserRequest=Instructor&sig=" + user.getTokenSignature() + "'>Return to the Instructor Page</a><br/><br/>");
 		
 		List<Question> questions =  ofy().load().type(Question.class).filter("assignmentType","Quiz").filter("conceptId",c.id).list();
@@ -683,7 +683,7 @@ public class Quiz extends HttpServlet {
 			buf.append("<h1>Customize Quiz</h1>");
 			buf.append("<form action=/Quiz method=post>"
 					+ "<input type=hidden name=sig value='" + user.getTokenSignature() + "' />"
-					+ "<label><b>Title:</b>&nbsp;<input type=text size=25 name=AssignmentTitle value='" + a.title + "' />&nbsp;"
+					+ "<label><b>Title:</b>&nbsp;<input type=text size=25 name=AssignmentTitle value='" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "' />&nbsp;"
 					+ "<input type=submit name=UserRequest value='Save New Title' /></label></form><br/>");
 					
 			if (a.timeAllowed==null) a.timeAllowed = 900; // default time for completing the exam
@@ -793,7 +793,7 @@ public class Quiz extends HttpServlet {
 			QuizTransaction qt = ofy().load().type(QuizTransaction.class).id(qtId).safe();
 			
 			buf.append("<h1>Quiz Results</h1>");
-			buf.append("Topic: " + a.title + "<br/>");
+			buf.append("Topic: " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Submitted: " + qt.graded + "<br/>");
 			buf.append("Score: " + String.valueOf(qt.score>0?qt.score*100/qt.possibleScore:0)+"%<br/>");
 			
@@ -826,7 +826,7 @@ public class Quiz extends HttpServlet {
 		try {
 			buf.append("<h1>Quiz Transactions</h1>");
 			if (for_user_name != null) buf.append("Name: " + for_user_name + "<br/>");
-			buf.append("<h2>Topic: "+ a.title + "</h2>");
+			buf.append("<h2>Topic: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			DateFormat df = DateFormat.getDateTimeInstance(DateFormat.LONG,DateFormat.FULL);
 			buf.append("Valid: " + df.format(new Date()) + "<p>");
@@ -872,7 +872,7 @@ public class Quiz extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Quiz Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			
@@ -962,7 +962,7 @@ public class Quiz extends HttpServlet {
 		
 		if (a.lti_ags_lineitem_url != null && a.lti_nrps_context_memberships_url != null) {
 			try { 
-				buf.append("<h1>Quiz</h1><h2>" + a.title + "</h2>");
+				buf.append("<h1>Quiz</h1><h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>");
 				buf.append("Assignment ID: " + a.id + "<br>");
 				buf.append("Valid: " + new Date() + "<p>");
 				buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "

@@ -162,7 +162,7 @@ public class VideoQuiz extends HttpServlet {
 			
 			boolean supportsMembership = a.lti_nrps_context_memberships_url != null;
 			
-			buf.append("<h1>General Chemistry Video</h1><h2>" + v.title + "</h2><h3>Instructor Page</h3>");
+			buf.append("<h1>General Chemistry Video</h1><h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(v.title) + "</h2><h3>Instructor Page</h3>");
 			
 			if (supportsMembership) buf.append("From here, you may<UL>"
 					+ "<LI><a href='/VideoQuiz?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "'>Review your students' video scores</a></LI>"
@@ -313,7 +313,7 @@ public class VideoQuiz extends HttpServlet {
 					+ "	  var formData = new FormData(document.getElementById('quizlet'));\n"
 					+ "	  xmlhttp.send(urlencodeFormData(formData));\n"
 					+ "  } catch (e) {\n"
-					+ "	  quiz_div.innerHTML = e.message;  \n"
+					+ "	  quiz_div.textContent = e.message;  \n"
 					+ "  }\n"
 					+ "  segment++;\n"
 					+ "  start = breaks[segment-1];\n"
@@ -602,7 +602,7 @@ public class VideoQuiz extends HttpServlet {
 		try {
 			buf.append("Assignment Number: " + a.id + "<br>");
 			Video v = ofy().load().type(Video.class).id(a.videoId).safe();
-			buf.append("Title: "+ v.title + "<br>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(v.title) + "<br>");
 			buf.append("Valid: " + df.format(now) + "<p>");
 			
 			List<VideoTransaction> vts = ofy().load().type(VideoTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",a.id).order("downloaded").list();
@@ -669,7 +669,7 @@ public class VideoQuiz extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Video Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			
@@ -761,7 +761,7 @@ public class VideoQuiz extends HttpServlet {
 			if (a.lti_nrps_context_memberships_url==null) throw new Exception("No Names and Roles Provisioning support.");
 
 			buf.append("<h1>Video Scores</h1>");
-			if (a.title!=null) buf.append("Title: " + a.title + "<br/>");
+			if (a.title!=null) buf.append("Title: " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<p>");
 			buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "
@@ -891,7 +891,7 @@ public class VideoQuiz extends HttpServlet {
 
 		if (a.lti_ags_lineitem_url != null && a.lti_nrps_context_memberships_url != null) {
 			try { // code for LTI version 1.3
-				buf.append("<h3>" + a.assignmentType + " - " + v.title + "</h3>");
+				buf.append("<h3>" + a.assignmentType + " - " + org.springframework.web.util.HtmlUtils.htmlEscape(v.title) + "</h3>");
 				buf.append("Assignment ID: " + a.id + "<br>");
 				buf.append("Valid: " + new Date() + "<p>");
 				buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "

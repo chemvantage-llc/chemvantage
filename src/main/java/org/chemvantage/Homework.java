@@ -336,13 +336,13 @@ public class Homework extends HttpServlet {
 		try {
 			buf.append(Subject.privacyPolicyBanner());
 			buf.append("<h1>Homework</h1>"
-					+ "<h2>" + a.title + "</h2>"
+					+ "<h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>"
 					+ "<h3>Instructor Page</h3>"
 					+ "<a href='/Homework?sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Show This Assignment</a><br/><br/>"
 					+ "Assignment ID: " + a.id + "<br/>"
 					+ "<form action=/Homework method=post>"
 					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-					+ "<label><b>Title:</b>&nbspHomework - <input type=text size=25 name=AssignmentTitle value='" + a.title + "' /></label>&nbsp;"
+					+ "<label><b>Title:</b>&nbspHomework - <input type=text size=25 name=AssignmentTitle value='" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "' /></label>&nbsp;"
 					+ "<input type=submit name=UserRequest value='Save New Title' /></form><br/>\n"
 					+ "Currently, the number of attempts allowed for each question is " + (a.attemptsAllowed==null?"unlimited":a.attemptsAllowed) + ".<br/>"
 					+ "<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
@@ -410,7 +410,7 @@ public class Homework extends HttpServlet {
 				int nQuestions = conceptQuestionCounts.get(cId)==null?0:conceptQuestionCounts.get(cId);
 				int nTotalQuestions = ofy().load().type(Question.class).filter("assignmentType","Homework").filter("conceptId",cId).count();
 				buf.append("<tr>"
-						+ "<td>" + (c==null?"(deleted concept)":c.title) + "</td>"
+						+ "<td>" + (c==null?"(deleted concept)":org.springframework.web.util.HtmlUtils.htmlEscape(c.title)) + "</td>"
 						+ "<td align=center>" + nQuestions + " of " + nTotalQuestions + "</td>"
 						+ "<td align=center><a href='/Homework?UserRequest=AssignHomeworkQuestions&AssignmentType=Homework&sig=" + user.getTokenSignature() + "&ConceptId=" + cId + "'>Select Questions</a></td>"
 						+ "</tr>");
@@ -434,7 +434,7 @@ public class Homework extends HttpServlet {
 			for (Concept c : conceptList) {
 				try {
 					if (a.conceptIds.contains(c.id) || c.orderBy.startsWith(" 0")) continue;  // skip current and hidden conceptIds
-					buf.append("<option value='" + c.id + "'>" + c.title + "</option>");
+					buf.append("<option value='" + c.id + "'>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</option>");
 				} catch (Exception e) {}
 			}
 			buf.append("</select><input type=submit value='Add Concept' /></form><br/>");
@@ -684,7 +684,7 @@ public class Homework extends HttpServlet {
 			}
 						
 			// START the presentation of the Homework assignment
-			buf.append("<h1>Homework Exercises</h1><h2>" + hwa.title + "</h2>");
+			buf.append("<h1>Homework Exercises</h1><h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(hwa.title) + "</h2>");
 			debug.append("User exp: " + new Date(User.encode(user.sig)) + "<br/>");
 			buf.append("Homework Rules<UL>");
 			if (hwa.attemptsAllowed==null)
@@ -1391,7 +1391,7 @@ public class Homework extends HttpServlet {
 		List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
 		for (Concept c : concepts) {
 			if (c.orderBy.startsWith(" 0")) continue;  // skip the "hidden" concepts
-			buf.append("<OPTION VALUE=" + c.id + (c.id.equals(conceptId)?" SELECTED>":">") + c.title + "</OPTION>");
+			buf.append("<OPTION VALUE=" + c.id + (c.id.equals(conceptId)?" SELECTED>":">") + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 		}
 		buf.append("</SELECT>");
 		return buf.toString();
@@ -1409,7 +1409,7 @@ public class Homework extends HttpServlet {
 			
 			buf.append("<h1>Homework Submissions</h1>"
 					+ (forUserName==null || forUserName.isEmpty()?"":"Name: " + forUserName + "<br/>")
-					+ "Assignment: " + a.title + "<br/>"
+					+ "Assignment: " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>"
 					+ "Date: " + new Date() + "<br/><br/>");
 			debug.append("0");
 			
@@ -1614,7 +1614,7 @@ public class Homework extends HttpServlet {
 		Date now = new Date();
 		
 		try {
-			buf.append("<h2>Topic: "+ a.title + "</h2>");
+			buf.append("<h2>Topic: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>");
 			buf.append("Assignment Number: " + a.id + "<br>");
 			buf.append("Valid: " + df.format(now) + "<p>");
 			
@@ -1686,7 +1686,7 @@ public class Homework extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Homework Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			

@@ -304,7 +304,7 @@ public class Feedback extends HttpServlet {
 		buf.append("Thank you for your feedback" + (stars>0?" (" + stars + " stars)":"") + ". ");
 		
 		if (comments.length() > 0) {
-			buf.append("Your comment was: <p><font color=red>" + comments + "</font><p>");
+			buf.append("Your comment was: <p><font color=red>" + HtmlUtils.htmlEscape(comments) + "</font><p>");
 		
 			if (email==null) buf.append("We will review your comment, but we're unable to provide a response because you did not provide a valid email address.<p>");
 			else buf.append("We will review your comment. Any response will be sent to " + email + ".<p>");

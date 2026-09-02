@@ -46,7 +46,7 @@ public class OneQuestion extends HttpServlet {
 			case "GetExplanation":
 				Question q = ofy().load().type(Question.class).id(questionId).now();
 				if (q.requiresParser()) q.setParameters(parameter);
-				out.println(q.getExplanation());
+				out.println(Question.sanitizeExplanationHtml(q.getExplanation()));
 				return;		
 			}
 		} catch (Exception e) {}

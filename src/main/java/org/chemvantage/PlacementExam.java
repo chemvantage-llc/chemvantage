@@ -866,7 +866,7 @@ public class PlacementExam extends HttpServlet {
 					+ "Assignment ID: " + a.id + "<br>"
 					+ "Created: " + a.created + "<br>"
 					+ "Topics covered:<ol>");
-			for (Concept c : concepts) buf.append("<li>" + c.title + "</li>");
+			for (Concept c : concepts) buf.append("<li>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</li>");
 			buf.append("</ol>");
 
 			// Get all of the PlacementExamTransactions associated with this assignment:
@@ -1152,7 +1152,7 @@ public class PlacementExam extends HttpServlet {
 			Assignment a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
 			List<Concept> concepts = new ArrayList<Concept>(ofy().load().type(Concept.class).ids(a.conceptIds).values());
 			buf.append("Topics covered:<ol>");
-			for (Concept c : concepts) buf.append("<li>" + c.title + "</li>");
+			for (Concept c : concepts) buf.append("<li>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</li>");
 			buf.append("</ol>");
 
 			buf.append("<form action=/PlacementExam method=post>"
@@ -1286,7 +1286,7 @@ public class PlacementExam extends HttpServlet {
 			
 			List<Concept> concepts = new ArrayList<Concept>(ofy().load().type(Concept.class).ids(a.conceptIds).values());
 			buf.append("Topics covered:<OL>");
-			for (Concept c : concepts) buf.append("<LI>" + c.title + "</LI>");
+			for (Concept c : concepts) buf.append("<LI>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</LI>");
 			buf.append("</OL>");
 
 			if (a.timeAllowed==null) a.timeAllowed = 3600; // default time for completing the exam

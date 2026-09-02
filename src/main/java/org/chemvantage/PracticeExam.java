@@ -659,7 +659,7 @@ public class PracticeExam extends HttpServlet {
 		if (!user.isInstructor()) for_user_id = user.getId();
 		try {
 			buf.append("<h1>General Chemistry Exam</h1><h2>Transactions</h2>"
-					+ "Exam: " + a.title + "<br/>"
+					+ "Exam: " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>"
 					+ "Date: " + new Date() + "<br/><br/>");
 			String for_user_hashed_id = Subject.hashId(for_user_id);
 			List<PracticeExamTransaction> pets = ofy().load().type(PracticeExamTransaction.class).filter("userId",for_user_hashed_id).filter("assignmentId",a.id).order("downloaded").list();			
@@ -810,7 +810,7 @@ public class PracticeExam extends HttpServlet {
 			Map<Long,Concept> concepts = ofy().load().type(Concept.class).ids(a.conceptIds);
 			for (Long cId : a.conceptIds) {
 				Concept c = concepts.get(cId);
-				if (c != null) buf.append("<li>" + c.title + "</li>");
+				if (c != null) buf.append("<li>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</li>");
 			}
 			buf.append("</ol>");
 			
@@ -1005,7 +1005,7 @@ public class PracticeExam extends HttpServlet {
 				for (Long cId : a.conceptIds) {
 					Concept c = keyConcepts.get(key(Concept.class,cId));
 					try {
-						buf.append("<li>" + c.title + "</li>");
+						buf.append("<li>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</li>");
 					} catch (Exception e) {
 						a.conceptIds.remove(cId);  // remove id for null Concept
 					}

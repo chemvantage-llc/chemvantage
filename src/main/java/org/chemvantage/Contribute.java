@@ -411,7 +411,7 @@ public class Contribute extends HttpServlet {
 
 				if (request.getParameter("QuestionText")!=null) {  // preview the formatted question
 					Concept concept = ofy().load().type(Concept.class).id(conceptId).now();
-					buf.append("<h2>" + assignmentType + " Question Preview</h2>Topic: " + concept.title + "<p>");
+					buf.append("<h2>" + assignmentType + " Question Preview</h2>Topic: " + org.springframework.web.util.HtmlUtils.htmlEscape(concept.title) + "<p>");
 					preview = true;
 					q.setParameters();
 					buf.append(q.printAll());
@@ -437,13 +437,13 @@ public class Contribute extends HttpServlet {
 			
 			if (conceptId>0L) {
 				Concept c = ofy().load().type(Concept.class).id(conceptId).now();
-				buf.append(c.title + "<input type=hidden name=ConceptId value=" + c.id + " /><br/>");
+				buf.append(org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "<input type=hidden name=ConceptId value=" + c.id + " /><br/>");
 			} else {
 				List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
 				buf.append("<SELECT NAME=ConceptId><OPTION VALUE=0>Select a key concept:</OPTION>");
 				for (Concept c : concepts) {
 					if (c.orderBy.startsWith(" 0")) continue;
-					buf.append("<OPTION VALUE='" + c.id + "'>" + c.title + "</OPTION>");
+					buf.append("<OPTION VALUE='" + c.id + "'>" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 				}
 				buf.append("</SELECT><br/><br/>");
 			}

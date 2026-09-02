@@ -66,7 +66,7 @@
       }
     })
     .catch(error => {
-      selectPaymentMethod.innerHTML = "<h2>Sorry, an error occurred.</h2>"   + error.message;
+      selectPaymentMethod.textContent = "Sorry, an error occurred. " + error.message;
       console.error(error);
     });
   }
@@ -117,20 +117,20 @@
       if (data.error) {
         throw new Error(data.error);
       }
-  	  selectPaymentMethod.innerHTML = "<h2>Thank you</h2>Your voucher was redeemed successfully.<br/>Your subscription expires on " + data.exp;
+    selectPaymentMethod.textContent = "Thank you. Your voucher was redeemed successfully. Your subscription expires on " + data.exp;
   	  proceed.style = "display: inline";
   	})
   	.catch(error => {
   	  logoutUser(sig);
-      selectPaymentMethod.innerHTML = "<h2>Error</h2>"   + error.message
-      + "<br/><b>You are now logged out of ChemVantage</b>. To proceed, please click the assignment link in your LMS.";
+      selectPaymentMethod.textContent = "Error. " + error.message
+      + " You are now logged out of ChemVantage. To proceed, please click the assignment link in your LMS.";
   	});
   }
   
   function startCheckout() {
     nmonths = document.getElementById('nmonths').value;
     let value = price * (nmonths - Math.floor(nmonths/3));
-    selectPaymentMethod.innerHTML = "<h2>" + nmonths + "-month ChemVantage subscription: $" + value + ".00 USD" + "</h2>";
+    selectPaymentMethod.textContent = nmonths + "-month ChemVantage subscription: $" + value + ".00 USD";
     payment_div.style = "display: inline";
   }
    
@@ -176,11 +176,10 @@
           let amount = order_details.payment ? order_details.payment.amount : (price * (nmonths - Math.floor(nmonths/3)));
           let currency = order_details.payment ? order_details.payment.currency : "USD";
           
-          selectPaymentMethod.innerHTML = "<h2>Thank you for your purchase:</h2> "
-            + amount + " " + currency + "<br/>"
-            + "Your " + nmonths + "-month ChemVantage subscription is now active and expires on " + order_details.expires + ".<br/>"
-            + "OrderId: " + order_id + "<br/>"
-            + "Please print a copy of this page for your records.";
+          selectPaymentMethod.textContent = "Thank you for your purchase: "
+            + amount + " " + currency + ". "
+            + "Your " + nmonths + "-month ChemVantage subscription is now active and expires on " + order_details.expires + ". "
+            + "OrderId: " + order_id + ". Please print a copy of this page for your records.";
           
           document.getElementById('proceed').style = "display: inline";
             

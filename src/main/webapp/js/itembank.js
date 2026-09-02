@@ -7,7 +7,7 @@ function getTopics() {
 	for (const [index, a] of options.entries()) {
   const opt = document.createElement('option');
   		opt.value = index;
-  		opt.innerHTML = a;
+    opt.textContent = a;
   		selector.appendChild(opt);
 	}
   }

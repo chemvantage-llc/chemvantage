@@ -113,7 +113,7 @@ function synchronizeScore(forUserId,sig,path) {
         document.getElementById('cell'+forUserId).innerHTML='OK. Check grade book settings.';
         setTimeout(() => {location.reload();}, 500);
       } else {
-        document.getElementById('cell'+forUserId).innerHTML=xmlhttp.responseText;
+        document.getElementById('cell'+forUserId).textContent=xmlhttp.responseText;
       }
     }
   }

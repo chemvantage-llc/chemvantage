@@ -129,7 +129,7 @@ public class Help extends HttpServlet {
 		String title = "<h3>Homework Assignment</h3>";
 		try {
 			Assignment a = ofy().load().type(Assignment.class).id(hwt.assignmentId).safe();
-			title = "<h3>Assignment: Homework - " + a.title + "</h3>";
+			title = "<h3>Assignment: Homework - " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h3>";
 		} catch (Exception e) {}		
 		buf.append(title);
 

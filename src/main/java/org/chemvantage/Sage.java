@@ -60,7 +60,7 @@ public class Sage extends HttpServlet {
 				long parameter = Long.parseLong(request.getParameter("Parameter"));
 				Question q = ofy().load().type(Question.class).id(questionId).now();
 				if (q.requiresParser()) q.setParameters(parameter);
-				out.println(q.getExplanation());
+				out.println(Question.sanitizeExplanationHtml(q.getExplanation()));
 				return;
 			}
 			
@@ -369,7 +369,7 @@ public class Sage extends HttpServlet {
 	static String assignConcepts(User user, Assignment a) {
 		StringBuffer buf = new StringBuffer(Subject.header("Sage"));
 		try {
-			buf.append("<h1>" + a.title + "</h1>"
+			buf.append("<h1>" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h1>"
 					+ "<h2>Select Key Concepts For This Assignment</h2>"
 					+ "The key concepts covered in this Sage tutoring assignment are listed below. "
 					+ "You may delete any of these or add new concepts to customize this assignment "
@@ -380,7 +380,7 @@ public class Sage extends HttpServlet {
 			else {
 				for (Long conceptId : a.conceptIds) {
 					buf.append("<li>"
-							+ "<form method=post action=/Sage>" + conceptMap.get(conceptId).title + "&nbsp;"
+							+ "<form method=post action=/Sage>" + org.springframework.web.util.HtmlUtils.htmlEscape(conceptMap.get(conceptId).title) + "&nbsp;"
 							+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 							+ "<input type=hidden name=ConceptId value=" + conceptId + " />"
 							+ "<input type=hidden name=UserRequest value=DeleteConcept />"
@@ -397,7 +397,7 @@ public class Sage extends HttpServlet {
 			buf.append("<select name=ConceptId><option>Select a concept</option>");
 			for (Concept c : conceptList) {
 				if (a.conceptIds.contains(c.id)) continue;
-				buf.append("<option value=" + c.id + ">" + c.title + "</option>");
+				buf.append("<option value=" + c.id + ">" + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</option>");
 			}
 			buf.append("</select>&nbsp;"
 					+ "<input type=submit value='Add' class='btn btn-primary' />"
@@ -580,7 +580,7 @@ public class Sage extends HttpServlet {
 			}
 			boolean supportsMembership = a.lti_nrps_context_memberships_url != null;
 			
-			buf.append("<h1>Sage Tutor</1><h2>" + a.title + "</h2>");
+			buf.append("<h1>Sage Tutor</1><h2>" + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "</h2>");
 			buf.append("<h3>Instructor Page</h3>"
 					+ "Sage is an intelligent tutoring app for General Chemistry. You may customize this assignment by selecting the "
 					+ "key concepts that will be covered by the tutoring sessions. Students will be introduced to each concept and then "
@@ -660,7 +660,7 @@ public class Sage extends HttpServlet {
 			q.setParameters(st.random);
 			debug.append("c");
 			
-			buf.append("<h1>" + concept.title + "</h1>");
+			buf.append("<h1>" + org.springframework.web.util.HtmlUtils.htmlEscape(concept.title) + "</h1>");
 			
 			buf.append("<div style='width:800px; height=300px; overflow=auto; display:flex; align-items:center;'>");
 			if (getHelp) {
@@ -746,7 +746,7 @@ public class Sage extends HttpServlet {
 					  b.innerHTML = 'Preparing your assignment...';\
 					}
 					</script>""");
-			buf.append("<h1>" + concept.title + "</h1>"
+			buf.append("<h1>" + org.springframework.web.util.HtmlUtils.htmlEscape(concept.title) + "</h1>"
 					+ "<div style='max-width:800px'>"
 					+ "<img src=/images/sage.png alt='Confucius Parrot' style='float:right;margin:20px;'>"
 					+ concept.getSummary() + "<p>"
@@ -1068,7 +1068,7 @@ public class Sage extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Sage Tutor Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			
@@ -1159,7 +1159,7 @@ public class Sage extends HttpServlet {
 			if (a.lti_nrps_context_memberships_url==null) throw new Exception("No Names and Roles Provisioning support.");
 
 			buf.append("<h1>Sage Tutor Scores</h1>");
-			buf.append("Title: " + a.title + "<br/>");
+			buf.append("Title: " + org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<p>");
 			buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "

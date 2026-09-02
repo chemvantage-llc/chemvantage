@@ -38,6 +38,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.googlecode.objectify.Key;
+import org.springframework.web.util.HtmlUtils;
 
 @WebServlet(urlPatterns={"/lti/deeplinks","/lti/deeplinks/"})
 public class LTIDeepLinks extends HttpServlet {
@@ -81,20 +82,17 @@ public class LTIDeepLinks extends HttpServlet {
 			}
 		} catch (Exception e) {	 
 			Enumeration<String> parameterNames = request.getParameterNames();
-			String message = "<h1>LTI DeepLinking Failed. Status 401</h1>" + e.getMessage()==null?e.toString():e.getMessage();
-			message += "<br/>To: " + request.getServerName();
-			message += "<br/>From: " + request.getRemoteHost();
+			String diagnostic = "LTI DeepLinking Failed. Status 401<br/>"
+					+ "To: " + HtmlUtils.htmlEscape(request.getServerName())
+					+ "<br/>From: " + HtmlUtils.htmlEscape(request.getRemoteHost())
+					+ "<br/>Error: " + HtmlUtils.htmlEscape(e.getMessage() == null ? e.toString() : e.getMessage());
 			while (parameterNames.hasMoreElements()) {
 				String name = parameterNames.nextElement();
-				message += "<br />" + name + ": " + request.getParameter(name);
+				diagnostic += "<br/>" + HtmlUtils.htmlEscape(name) + ": " + HtmlUtils.htmlEscape(request.getParameter(name));
 			}
-			message += "<br/>" + debug.toString();
-			if (Subject.getProjectId().equals("dev-vantage-hrd")) Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Deep Linking Error",message);
-			//if (!message.contains("Unauthorized")) Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Deep Linking Error",message);
-			//Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Deep Linking Error",message);
-			
-			out.println(message);
-			//response.sendError(401,e.getMessage()==null?e.toString():e.getMessage());
+			diagnostic += "<br/>" + HtmlUtils.htmlEscape(debug.toString());
+			if (Subject.getProjectId().equals("dev-vantage-hrd")) Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Deep Linking Error",diagnostic);
+			out.println("<h1>LTI DeepLinking Failed. Status 401</h1>Please check your LMS configuration and try again. Contact admin@chemvantage.org for assistance.");
 		}
 	}
 
@@ -233,7 +231,7 @@ public class LTIDeepLinks extends HttpServlet {
 		buf.append("<h1>Assignment Setup Page</h1>");
 
 		buf.append("<form name=AssignmentForm action=/lti/deeplinks method=POST>");
-		buf.append("<input type=hidden name=id_token value='" + request.getParameter("id_token") + "' />");
+		buf.append("<input type=hidden name=id_token value='" + HtmlUtils.htmlEscape(request.getParameter("id_token")) + "' />");
 		buf.append("<input type=hidden name=sig value='" + user.getTokenSignature() + "' />");
 		buf.append("<input type=hidden name=UserRequest value='Select assignment' />");
 		buf.append("<input type=hidden name=Refresh id=refresh value=true />");
@@ -283,7 +281,7 @@ public class LTIDeepLinks extends HttpServlet {
 				buf.append("<div>Please select one of the available ChemVantage smart textbooks below:</div>");
 				for (Text txt : texts) {
 					if (txt.id==textId) text = txt;
-					buf.append("<div><label><input type=radio name=TextId value=" + txt.id + (textId==txt.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + txt.title + "</label></div>");
+					buf.append("<div><label><input type=radio name=TextId value=" + txt.id + (textId==txt.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + HtmlUtils.htmlEscape(txt.title) + "</label></div>");
 				}
 				buf.append("<br/>");
 			if (text != null) {
@@ -302,7 +300,7 @@ public class LTIDeepLinks extends HttpServlet {
 			} catch (Exception e) {
 				buf.append("<div style='color:red'>Please select one of the available ChemVantage smart textbooks below:</div>");
 				if (texts != null) {
-					for (Text txt : texts) buf.append("<div><label><input type=radio name=TextId value=" + txt.id + " onclick=this.form.submit(); />&nbsp;" + txt.title + "</label></div>");
+					for (Text txt : texts) buf.append("<div><label><input type=radio name=TextId value=" + txt.id + " onclick=this.form.submit(); />&nbsp;" + HtmlUtils.htmlEscape(txt.title) + "</label></div>");
 				}
 			}		
 			buf.append("<br/>");
@@ -322,9 +320,9 @@ public class LTIDeepLinks extends HttpServlet {
 						allTopics = txt;
 						continue;
 					}
-					buf.append("<div><label><input type=radio name=TextId value=" + txt.id + (textId==txt.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + txt.title + "</label></div>");
+					buf.append("<div><label><input type=radio name=TextId value=" + txt.id + (textId==txt.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + HtmlUtils.htmlEscape(txt.title) + "</label></div>");
 				}
-				if (allTopics != null) buf.append("<div><label><input type=radio name=TextId value=" + allTopics.id + (textId==allTopics.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + allTopics.title + "</label></div><br/>");
+				if (allTopics != null) buf.append("<div><label><input type=radio name=TextId value=" + allTopics.id + (textId==allTopics.id?" checked ":" ") + "onclick=this.form.submit(); />&nbsp;" + HtmlUtils.htmlEscape(allTopics.title) + "</label></div><br/>");
 				
 			if (text != null) {
 				buf.append("<div style='color:red'>Select " + (acceptsMultiple?"at least ":"") + "one of the topics below for this assignment.</div>");
@@ -419,7 +417,7 @@ public class LTIDeepLinks extends HttpServlet {
 				if (v.orderBy.equals("Hide")) continue;
 				if (i==oneThird || i==2*oneThird) buf.append("</div><div style=display:table-cell>");
 				i++;
-				buf.append("<div><label><input type=" + (acceptsMultiple?"checkbox":"radio") + " name=VideoId value=" + v.id + " onClick=countChecks('VideoQuiz'); />&nbsp;" + v.title + (v.breaks==null?"":"*") + "</label></div>");
+				buf.append("<div><label><input type=" + (acceptsMultiple?"checkbox":"radio") + " name=VideoId value=" + v.id + " onClick=countChecks('VideoQuiz'); />&nbsp;" + org.springframework.web.util.HtmlUtils.htmlEscape(v.title) + (v.breaks==null?"":"*") + "</label></div>");
 			}
 			buf.append("</div></div></div>");
 			buf.append("<input type=submit id=vidsub disabled=true onClick=\"document.getElementById('refresh').value=false\" value='Select" + (acceptsMultiple?" at least":"") + " one topic' />");

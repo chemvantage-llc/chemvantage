@@ -474,7 +474,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		concepts = ofy().load().type(Concept.class).order("orderBy").list();
 	}
 	buf.append("<SELECT id=selectConcept NAME=ConceptId onChange=javascript:enableSubmit(); ><OPTION VALUE=0>Select a key concept</OPTION>");
-	for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + ">" + c.title + "</OPTION>");
+	for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + ">" + HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 	buf.append("</SELECT>");
 	
 	return buf.toString();
@@ -484,7 +484,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<select name=ConceptId>"
 				+ "<option>Select a concept</option>");
 		List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
-		for (Concept c : concepts) buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + c.title + "</option>");
+		for (Concept c : concepts) buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + HtmlUtils.htmlEscape(c.title) + "</option>");
 		buf.append("</select>");
 		return buf.toString();
 	}
@@ -496,7 +496,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		}
 		buf.append("<SELECT NAME=ConceptId><OPTION VALUE=0>Select a key concept</OPTION>");
 		for (Concept c : concepts) if (t.conceptIds.contains(c.id)) 
-			buf.append("<OPTION VALUE=" + c.id + (c.id==conceptId?" SELECTED>":">") + c.title + "</OPTION>");
+			buf.append("<OPTION VALUE=" + c.id + (c.id==conceptId?" SELECTED>":">") + HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 		buf.append("</SELECT>");
 		
 		return buf.toString();
@@ -508,7 +508,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			concepts = ofy().load().type(Concept.class).order("orderBy").list();
 		}
 		buf.append("<SELECT NAME=ConceptId SIZE=4 MULTIPLE>");
-		for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + (t.conceptIds.contains(c.id)?" SELECTED>":">") + c.title + "</OPTION>");
+		for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + (t.conceptIds.contains(c.id)?" SELECTED>":">") + HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 		buf.append("</SELECT>");
 		return buf.toString();
 	}
@@ -520,7 +520,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			concepts = ofy().load().type(Concept.class).order("orderBy").list();
 		}
 		buf.append("<SELECT NAME=ConceptId SIZE=4 MULTIPLE>");
-		for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + (ch.conceptIds.contains(c.id)?" SELECTED>":">") + c.title + "</OPTION>");
+		for (Concept c : concepts) buf.append("<OPTION VALUE=" + c.id + (ch.conceptIds.contains(c.id)?" SELECTED>":">") + HtmlUtils.htmlEscape(c.title) + "</OPTION>");
 		buf.append("</SELECT>");
 		return buf.toString();
 	}
@@ -771,7 +771,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			if (q.requiresParser()) q.setParameters(parameterSeed);
 			buf.append("<h2>Current Question</h2>");
 			buf.append("Assignment Type: " + q.assignmentType + " (" + q.pointValue + (q.pointValue>1?" points":" point") + ")<br>");
-			buf.append(c==null?"":"Concept: " + c.title + "<br/>");
+			buf.append(c==null?"":"Concept: " + HtmlUtils.htmlEscape(c.title) + "<br/>");
 			if (q.learn_more_url != null && !q.learn_more_url.isEmpty()) buf.append("Learn more at: " + q.learn_more_url + "</br>");
 			buf.append("Author: " + q.authorId + "<br>");
 			buf.append("Editor: " + q.editorId + "<br>");
@@ -877,7 +877,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		try {
 			buf.append("<h2>Embed quiz questions in a video</h2>");
 
-			buf.append("Video: " + v.title + "<p>");
+			buf.append("Video: " + HtmlUtils.htmlEscape(v.title) + "<p>");
 			
 			buf.append("Use the form below to create or edit breakpoints in this video where 2-question quizlets will be "
 					+ "presented to the viewer. Each segment must be edited separately, and breakpoints must be created in "
@@ -1091,7 +1091,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 							allTopics = t;
 							continue;
 						}
-						buf.append("<option value=" + t.id + (t.id.equals(textId)?" selected>":">") + t.title + "</option>");
+						buf.append("<option value=" + t.id + (t.id.equals(textId)?" selected>":">") + HtmlUtils.htmlEscape(t.title) + "</option>");
 					}
 					if (allTopics != null) buf.append("<option value=" + allTopics.id + (allTopics.id.equals(textId)?" selected>":">") + allTopics.title + "</option>");
 					buf.append("</select>"
@@ -1130,7 +1130,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 						buf.append("<select id=csel name=ConceptId onchange=document.getElementById('tsel').value='null';this.form.submit()><option>Select a concept</option>");
 						for (Key<Concept> k : conceptKeys) {
 							Concept c = concepts.get(k);
-							buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + c.title + "</option>");
+							buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + HtmlUtils.htmlEscape(c.title) + "</option>");
 						}
 						buf.append("</select>"
 								+ "<button type=button onclick=document.getElementById('csel').value='null';this.form.submit();>Reset</button>");
@@ -1141,7 +1141,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				buf.append("</div></div><br/>"); // end row,table
 
 				if (concept != null) {
-					buf.append("<h2>Questions for Concept: " + concept.title + "</h2>");
+					buf.append("<h2>Questions for Concept: " + HtmlUtils.htmlEscape(concept.title) + "</h2>");
 					buf.append("<FORM NAME=NewQuestion METHOD=GET ACTION=/Edit>New: "
 							+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE=NewQuestionForm />"
 							+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + concept.id + "'>"
@@ -1331,7 +1331,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		Topic topic = null;
 		try {
 			topic = ofy().load().type(Topic.class).id(orphan.topicId).safe();
-			buf.append("Topic: " + topic.title + "<br/>");
+			buf.append("Topic: " + HtmlUtils.htmlEscape(topic.title) + "<br/>");
 		} catch (Exception e) {
 			buf.append("Topic: unknown<br/>");
 		}
@@ -1372,13 +1372,13 @@ void assignToConcept(User user, HttpServletRequest request) {
 		comp.append("Assignment Type: " + prev.assignmentType + "<br/>");
 		try {
 			Topic t = ofy().load().type(Topic.class).id(prev.topicId).safe();
-			comp.append("Topic: " + t.title + "<br/>");
+			comp.append("Topic: " + HtmlUtils.htmlEscape(t.title) + "<br/>");
 		} catch (Exception e) {
 			comp.append("Topic: unknown<br/>");
 		}
 		try {
 			Concept c = ofy().load().type(Concept.class).id(prev.conceptId).safe();
-			comp.append("Concept: " + c.title + "<br/>");
+			comp.append("Concept: " + HtmlUtils.htmlEscape(c.title) + "<br/>");
 		} catch (Exception e) {}
 		comp.append("Question ID: " + prev.id + "<br/>");
 		comp.append(prev.printAll());
@@ -1392,13 +1392,13 @@ void assignToConcept(User user, HttpServletRequest request) {
 		comp.append("Assignment Type: " + next.assignmentType + "<br/>");
 		try {
 			Topic t = ofy().load().type(Topic.class).id(next.topicId).safe();
-			comp.append("Topic: " + t.title + "<br/>");
+			comp.append("Topic: " + HtmlUtils.htmlEscape(t.title) + "<br/>");
 		} catch (Exception e) {
 			comp.append("Topic: unknown<br/>");
 		}
 		try {
 			Concept c = ofy().load().type(Concept.class).id(next.conceptId).safe();
-			comp.append("Concept: " + c.title + "<br/>");
+			comp.append("Concept: " + HtmlUtils.htmlEscape(c.title) + "<br/>");
 		} catch (Exception e) {}
 		comp.append("Question ID: " + next.id + "<br/>");
 		comp.append(next.printAll());
@@ -1553,7 +1553,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				buf.append(" (1 point)<br>");
 			}
 			Concept c = conceptId==null?null:ofy().load().type(Concept.class).id(conceptId).now();
-			buf.append(c==null?"":"Concept: " + c.title + "<br/>");
+			buf.append(c==null?"":"Concept: " + HtmlUtils.htmlEscape(c.title) + "<br/>");
 			buf.append("Author: " + q.authorId + "<br/>");
 			buf.append("Editor: " + user.getId() + "<br/>");
 			buf.append((q.checkedByAI==null?"":(q.checkedByAI?"&#x2705; Validated<br/>":"&#x26A0;&#xFE0F; Flagged by AI<br/>")) + "<br/>");
@@ -1741,7 +1741,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			if (q.conceptId != null) c = ofy().load().type(Concept.class).id(q.conceptId).now();
 			if (q.authorId == null) q.authorId = "ChatGPT";
 			
-			buf.append("Concept: " + (c==null?"null":c.title) + "<br>");
+			buf.append("Concept: " + (c==null?"null":HtmlUtils.htmlEscape(c.title)) + "<br>");
 			buf.append("Assignment Type: " + q.assignmentType + " (" + q.pointValue + (q.pointValue>1?" points":" point") + ")<br>");
 			buf.append("Author: " + q.authorId + "<p>");
 			buf.append("<FORM id=review Action=Edit METHOD=GET>");
@@ -1790,10 +1790,10 @@ void assignToConcept(User user, HttpServletRequest request) {
 			Text t = ofy().load().type(Text.class).id(textId).safe();
 			buf.append("<h2>Manage Chapters</h2>");
 			buf.append("<a href=/Edit?UserRequest=ManageTexts>Return to Manage Texts</a><br/><br/>");
-			buf.append("Title: " + t.title + "<br/>"
-				+ "Author: " + t.author + "<br/>"
-				+ "Publisher: " + t.publisher + "<br/>"
-				+ "URL: " + t.URL + "<br/><br/>");
+			buf.append("Title: " + HtmlUtils.htmlEscape(t.title) + "<br/>"
+				+ "Author: " + HtmlUtils.htmlEscape(t.author) + "<br/>"
+				+ "Publisher: " + HtmlUtils.htmlEscape(t.publisher) + "<br/>"
+				+ "URL: " + HtmlUtils.htmlEscape(t.URL) + "<br/><br/>");
 			
 			if (t.chapters==null) t.chapters = new ArrayList<Chapter>();
 			
@@ -1804,8 +1804,8 @@ void assignToConcept(User user, HttpServletRequest request) {
 					+ "<input type=hidden name=TextId value=" + textId + " />"
 					+ "<input type=hidden name=ChapterIndex value=" + t.chapters.indexOf(c) + " />"
 					+ "<td><input type=text size=4 name=ChapterNumber value='" + c.chapterNumber + "' /></td>"
-					+ "<td><input type=text size=20 name=ChapterTitle value='" + c.title + "' /></td>"
-					+ "<td><input type=text size=20 name=ChapterUrl value='" + c.url + "' /></td>"
+					+ "<td><input type=text size=20 name=ChapterTitle value='" + HtmlUtils.htmlEscape(c.title) + "' /></td>"
+					+ "<td><input type=text size=20 name=ChapterUrl value='" + HtmlUtils.htmlEscape(c.url) + "' /></td>"
 					+ "<td>" + conceptsDropDownBox(c) + "</td>"
 					+ "<td><input type=submit name=UserRequest value='Update Chapter'/><input type=submit name=UserRequest value='Delete Chapter'/></td>"
 					+ "</form></tr>");
@@ -1835,9 +1835,9 @@ void assignToConcept(User user, HttpServletRequest request) {
 						+ "<TR><TD><INPUT TYPE=TEXT NAME=Title VALUE='" + HtmlUtils.htmlEscape(text.title) + "' /></TD>"
 						+ "<TD><INPUT TYPE=TEXT NAME=Author VALUE='" + HtmlUtils.htmlEscape(text.author) + "' /></TD>"
 						+ "<TD><INPUT TYPE=TEXT NAME=Publisher VALUE='" + HtmlUtils.htmlEscape(text.publisher) + "' /></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=URL VALUE='" + text.URL + "' /></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=ImgURL VALUE='" + text.imgUrl + "' /></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=PrintCopyURL VALUE='" + text.printCopyUrl + "' /></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=URL VALUE='" + HtmlUtils.htmlEscape(text.URL) + "' /></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=ImgURL VALUE='" + HtmlUtils.htmlEscape(text.imgUrl) + "' /></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=PrintCopyURL VALUE='" + HtmlUtils.htmlEscape(text.printCopyUrl) + "' /></TD>"
 						+ "<TD style=text-align:center><INPUT TYPE=CHECKBOX NAME=SmartText VALUE=True " + (text.smartText?"CHECKED ":"") + " /></TD>"
 						+ "<TD><INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Update Text'/ > "
 						+ "<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Delete Text' /> "
@@ -1939,7 +1939,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		Query<Topic> topics = ofy().load().type(Topic.class).order("orderBy");
 		for (Topic t : topics) {
 			buf.append("<OPTION VALUE=" + t.id + (t.id.equals(topicId)?" SELECTED>":">")
-					+ t.title + "</OPTION>\n");
+					+ HtmlUtils.htmlEscape(t.title) + "</OPTION>\n");
 		}
 		buf.append("</SELECT>");
 		return buf.toString();
@@ -2058,7 +2058,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 		
 		try {
 			v= ofy().load().type(Video.class).id(Long.parseLong(request.getParameter("VideoId"))).safe();
-			buf.append("Video: " + v.title + "<br>");
+			buf.append("Video: " + HtmlUtils.htmlEscape(v.title) + "<br>");
 			
 			String stringTopicId = request.getParameter("TopicId");
 			if (stringTopicId != null) v.topicId = Long.parseLong(stringTopicId);

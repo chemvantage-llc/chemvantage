@@ -957,7 +957,7 @@ public class LTIv1p3Launch extends HttpServlet {
 				if (v.orderBy.equals("Hide")) continue;
 				if (i==oneThird || i==2*oneThird) buf.append("</div><div style=display:table-cell>");
 				i++;
-				buf.append("<div><label><input type=" + (acceptsMultiple?"checkbox":"radio") + " name=VideoId value=" + v.id + " onClick=countChecks('VideoQuiz'); />&nbsp;" + v.title + (v.breaks==null?"":"*") + "</label></div>");
+				buf.append("<div><label><input type=" + (acceptsMultiple?"checkbox":"radio") + " name=VideoId value=" + v.id + " onClick=countChecks('VideoQuiz'); />&nbsp;" + org.springframework.web.util.HtmlUtils.htmlEscape(v.title) + (v.breaks==null?"":"*") + "</label></div>");
 			}
 			buf.append("</div></div></div>");
 			buf.append("<input type=submit id=vidsub disabled=true onClick=\"document.getElementById('refresh').value=false\" value='Select" + (acceptsMultiple?" at least":"") + " one topic' />");

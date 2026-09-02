@@ -6,6 +6,7 @@ import static com.googlecode.objectify.ObjectifyService.key;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serial;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.googlecode.objectify.Key;
+import org.springframework.web.util.HtmlUtils;
 
 @WebServlet("/SmartText")
 public class SmartText extends HttpServlet {
@@ -154,8 +156,8 @@ public class SmartText extends HttpServlet {
             buf.append("<h1>Reading Assignment</h1>");
             buf.append("<h2>Instructor Page</h2>");
             buf.append("<a href='/SmartText?sig=" + user.getTokenSignature() + "' class='btn btn-primary'>View This Assignment</a><br/><br/>");     
-            buf.append("<h3>Text: " + text.title + "<br/>");
-            buf.append("Chapter " + chapter.chapterNumber + ": " + chapter.title + "</h3>");
+            buf.append("<h3>Text: " + HtmlUtils.htmlEscape(text.title) + "<br/>");
+            buf.append("Chapter " + chapter.chapterNumber + ": " + HtmlUtils.htmlEscape(chapter.title) + "</h3>");
             
             // Build a form with checkboxes for concepts in this chapter
             buf.append("<form method=post action=/SmartText>");
@@ -172,7 +174,7 @@ public class SmartText extends HttpServlet {
                     Concept c = conceptMap.get(conceptId);
                     if (c != null) {
                         buf.append("<div><label><input type=checkbox name=ConceptId value='" + conceptId + "' "
-                        + (a.conceptIds.contains(conceptId)?"checked ":"") + "/> " + c.title + "</label></div>");
+                        + (a.conceptIds.contains(conceptId)?"checked ":"") + "/> " + HtmlUtils.htmlEscape(c.title) + "</label></div>");
                     }
                 }
                 buf.append("</fieldset>");
@@ -201,18 +203,30 @@ public class SmartText extends HttpServlet {
         StringBuffer buf = new StringBuffer();
         buf.append("<div style=display:table><div style='display:table-row;'><div style='display:table-cell;vertical-align:top;width:450px;padding-right:20px'>");
         buf.append("<h1>Reading Assignment</h1>");
-        buf.append("Textbook: <b>" + t.title + "</b><br/>"
-            + "Author: " + t.author + "<br/>"
-            + "<h2>Chapter " + c.chapterNumber + ": " + c.title + "</h2>");
+        buf.append("Textbook: <b>" + HtmlUtils.htmlEscape(t.title == null ? "" : t.title) + "</b><br/>"
+            + "Author: " + HtmlUtils.htmlEscape(t.author == null ? "" : t.author) + "<br/>"
+            + "<h2>Chapter " + c.chapterNumber + ": " + HtmlUtils.htmlEscape(c.title == null ? "" : c.title) + "</h2>");
         buf.append("<ul>");
-        if (c.url != null) buf.append("<li><a aria-label='Opens in a new tab' href='" + c.url + "' target=_blank>Read this chapter online</a></li>");
-        buf.append("<li><a aria-label='Opens in a new tab' href='" + t.printCopyUrl + "' target=_blank>Order a print copy of this book</a></li>");
+        String chapterUrl = safeExternalUrl(c.url);
+        String printCopyUrl = safeExternalUrl(t.printCopyUrl);
+        if (chapterUrl != null) buf.append("<li><a aria-label='Opens in a new tab' href='" + HtmlUtils.htmlEscape(chapterUrl) + "' target=_blank rel='noopener noreferrer'>Read this chapter online</a></li>");
+        if (printCopyUrl != null) buf.append("<li><a aria-label='Opens in a new tab' href='" + HtmlUtils.htmlEscape(printCopyUrl) + "' target=_blank rel='noopener noreferrer'>Order a print copy of this book</a></li>");
         buf.append("</ul>");
         buf.append("</div><div style='display:table-cell;vertical-align:top;'>");
-        buf.append("<img src='" + t.imgUrl + "' alt='Textbook cover art'>");
+        String imageUrl = safeExternalUrl(t.imgUrl);
+        if (imageUrl != null) buf.append("<img src='" + HtmlUtils.htmlEscape(imageUrl) + "' alt='Textbook cover art'>");
         buf.append("</div></div></div>");
 
         return buf.toString();
+    }
+
+    private static String safeExternalUrl(String value) {
+        try {
+            URI uri = new URI(value);
+            return ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme())) ? value : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     static String printQuestion(User user,Assignment a) {
@@ -440,10 +454,11 @@ public class SmartText extends HttpServlet {
                 buf.append(continueButton);
             } else { // missed 2 questions; go back to the text
                 Concept c = ofy().load().type(Concept.class).id(conceptId).safe();
-                buf.append("You missed 2 questions on the key concept: <b>" + c.title + "</b>.<br/><br/>");
+                buf.append("You missed 2 questions on the key concept: <b>" + HtmlUtils.htmlEscape(c.title) + "</b>.<br/><br/>");
                 //     + "Please return to the textbook and review this chapter. ");
                 if (chapter != null) {
-                    buf.append("<a href='" + chapter.url + "' target=_blank>"
+                    String chapterUrl = safeExternalUrl(chapter.url);
+                    if (chapterUrl != null) buf.append("<a href='" + HtmlUtils.htmlEscape(chapterUrl) + "' target=_blank rel='noopener noreferrer'>"
                         + "<button style='border: none; color: white; padding: 10px 10px; margin: 4px 2px; font-size: 16px; cursor: pointer; border-radius: 10px; background-color: blue;'>"
                         + "To continue, click here to review this chapter in the textbook."
                         + "</button>"
@@ -506,7 +521,7 @@ public class SmartText extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>SmartText Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+            buf.append("Title: "+ HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			

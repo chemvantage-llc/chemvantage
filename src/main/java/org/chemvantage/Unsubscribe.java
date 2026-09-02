@@ -4,6 +4,8 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
 import java.io.Serial;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -40,7 +42,8 @@ public class Unsubscribe extends HttpServlet {
 					ofy().save().entity(c);
 					buf.append("<h2>You have been successfully unsubscribed from ChemVantage messages.</h2>");
 				}
-				buf.append("<a href=/unsubscribe?k=" + request.getParameter("k") + "&s=true>Wait! I changed my mind. Please sign me up again.</a><br/><br/>");
+				String keyParameter = URLEncoder.encode(request.getParameter("k"), StandardCharsets.UTF_8);
+				buf.append("<a href='/unsubscribe?k=" + keyParameter + "&amp;s=true'>Wait! I changed my mind. Please sign me up again.</a><br/><br/>");
 			}
 		} catch (Exception e) {
 			buf.append("<h2>Sorry, we were unable to find your record in our system.</h2>");

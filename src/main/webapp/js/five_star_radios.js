@@ -18,10 +18,10 @@ async function submitStars(event,sig) {
 	const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 	const resultString = await response.text();
-	document.getElementById('star-rating').innerHTML = resultString;
+  document.getElementById('star-rating').textContent = resultString;
     return;
   } catch (error) {
-    document.getElementById('star-rating').innerHTML = 'Error recording rating: ' + error.message;
+    document.getElementById('star-rating').textContent = 'Error recording rating: ' + error.message;
 	return;
   }
 }

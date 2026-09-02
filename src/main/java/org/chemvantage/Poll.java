@@ -878,7 +878,7 @@ public class Poll extends HttpServlet {
 				+ "<select name=ConceptId><option value=0>Select a key concept</option>");
 		for (Concept c : concepts) {
 			if (c.orderBy.startsWith(" 0")) continue; // skip reserved concepts
-			buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + c.title + "</option>");
+			buf.append("<option value=" + c.id + (c.id.equals(conceptId)?" selected>":">") + org.springframework.web.util.HtmlUtils.htmlEscape(c.title) + "</option>");
 		}
 		buf.append("</select></label><input type=submit value='Add Questions' /></form>");
 
@@ -1272,7 +1272,7 @@ public class Poll extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Class Poll Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Title: "+ org.springframework.web.util.HtmlUtils.htmlEscape(a.title) + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			

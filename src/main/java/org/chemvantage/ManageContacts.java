@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.springframework.web.util.HtmlUtils;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -273,9 +275,9 @@ public class ManageContacts extends HttpServlet {
 	String editExistingContact(Contact c) {
 		return "<h4>Edit Contact</h4>"
 				+ "<form method=post action=/contacts>"
-				+ "<input type=text name=FirstName value='" + c.firstName + "' /> "
-				+ "<input type=text name=LastName value='" + c.lastName + "' />"
-				+ "<input type=text name=Email value='" + c.email + "' /><br/>"
+				+ "<input type=text name=FirstName value='" + HtmlUtils.htmlEscape(c.firstName == null ? "" : c.firstName) + "' /> "
+				+ "<input type=text name=LastName value='" + HtmlUtils.htmlEscape(c.lastName == null ? "" : c.lastName) + "' />"
+				+ "<input type=text name=Email value='" + HtmlUtils.htmlEscape(c.email == null ? "" : c.email) + "' /><br/>"
 				+ "Role: <select name=Role>"
 				+ "<option value=''>Unknown</option>"
 				+ "<option value='faculty'" + ("faculty".equals(c.role)?" selected":"") + ">Faculty</option>"
