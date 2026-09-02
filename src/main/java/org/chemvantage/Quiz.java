@@ -547,7 +547,7 @@ public class Quiz extends HttpServlet {
 					}
 					
 					if (nAnswersEligible > 0) {
-						buf.append("<a id=wrongAnsLink role='button' class='btn btn-primary' href=# onClick=document.getElementById('wrongAnsLink').style='display:none';document.getElementById('wrongAnsDiv').style='display:inline'>show me</a> ");
+						buf.append("<a id=wrongAnsLink role='button' class='btn btn-primary' href='#' data-quiz-show-answers='wrongAnsDiv'>show me</a> ");
 						buf.append("<div id=wrongAnsDiv style='display:none'>");
 						buf.append("The correct answer" + (nAnswersEligible>1?"s ":" ") + (nAnswersEligible<wrongAnswers?"to " + nAnswersEligible + " of these ":"") + (nAnswersEligible==1?"is":"are") + " shown below. ");
 						if (nAnswersEligible < wrongAnswers) buf.append("The more questions you answer correctly, the more correct answers to missed questions will be displayed.");
@@ -558,6 +558,7 @@ public class Quiz extends HttpServlet {
 						}
 						buf.append("</OL>");
 						buf.append("</div>");
+						buf.append("<script src='/js/quiz-results.js?v=1'></script>");
 					}  else buf.append("You must answer at least one question correctly to view the correct answers to questions that you missed. ");
 				}
 				buf.append("<br/><br/>");
