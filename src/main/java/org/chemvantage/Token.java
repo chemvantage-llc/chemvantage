@@ -7,6 +7,8 @@ import java.io.PrintWriter;
 import java.io.Serial;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
@@ -81,25 +83,17 @@ public class Token extends HttpServlet {
 					+ "&response_mode=form_post"
 					+ "&scope=openid"
 					+ "&prompt=none"
-					+ "&login_hint=" + login_hint
-					+ "&redirect_uri=" + redirect_uri
-					+ (lti_message_hint==null?"":"&lti_message_hint=" + lti_message_hint)
-					+ "&client_id=" + d.client_id
-					+ "&state=" + token
-					+ "&nonce=" + nonce;
+					+ "&login_hint=" + URLEncoder.encode(login_hint, StandardCharsets.UTF_8)
+					+ "&redirect_uri=" + URLEncoder.encode(redirect_uri, StandardCharsets.UTF_8)
+					+ (lti_message_hint==null?"":"&lti_message_hint=" + URLEncoder.encode(lti_message_hint, StandardCharsets.UTF_8))
+					+ "&client_id=" + URLEncoder.encode(d.client_id, StandardCharsets.UTF_8)
+					+ "&state=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
+					+ "&nonce=" + URLEncoder.encode(nonce, StandardCharsets.UTF_8);
 			
 			debug.append("Sending token: " + oidc_auth_url + "<p>");
 			
-			StringBuffer buf = new StringBuffer();
-			buf.append(Subject.header());
-			//buf.append("<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;'><img src='/images/logo.png' alt='ChemVantage logo'></div>");
-			buf.append("<script>"
-				+ "window.location.replace('" + oidc_auth_url + "');"
-				//+ "setTimeout(function(){window.location.replace('" + oidc_auth_url + "');},1000);"
-				+ "</script>");
-			buf.append(Subject.footer);
 			//if (oidc_auth_url.contains("imc")) Utilities.sendEmail("ChemVantage", "admin@chemvantage.org", "IMC OIDC Auth URL", oidc_auth_url);
-			out.println(buf.toString());
+			response.sendRedirect(oidc_auth_url);
 		} catch (Exception e) {
 			Enumeration<String> parameterNames = request.getParameterNames();
 			while (parameterNames.hasMoreElements()) {

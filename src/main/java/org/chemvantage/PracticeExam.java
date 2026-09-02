@@ -345,7 +345,6 @@ public class PracticeExam extends HttpServlet {
 			while (questionKeys_15pt.size()> 2) questionKeys_15pt.remove(rand.nextInt(questionKeys_15pt.size()));
 			debug.append("8");
 			
-			buf.append("<script>function showWorkBox(qid){}</script>");  // prevents javascript error from Question.print()
 			debug.append("9");
 			
 			buf.append("<h1>General Chemistry Exam</h1>");
@@ -353,12 +352,10 @@ public class PracticeExam extends HttpServlet {
 			buf.append("This exam must be submitted for grading within " + timeAllowed/60 + " minutes of when it is first downloaded. ");
 			if (resumingExam) buf.append("You are resuming an exam originally downloaded at " + pt.downloaded);
 			
-			buf.append("""
-					
-					<FORM NAME=PracticeExamForm METHOD=POST ACTION=/PracticeExam \
-					onSubmit="return confirm('Submit this exam for grading now. Are you sure?')">""");
+			long timerMillis = pt.downloaded.getTime() + timeAllowed*1000L - new Date().getTime();
+			buf.append("<FORM id=PracticeExamForm NAME=PracticeExamForm METHOD=POST ACTION=/PracticeExam data-timed-exam-form data-timer-millis='" + timerMillis + "' data-submit-confirmation='Submit this exam for grading now. Are you sure?'>");
 
-			buf.append("<div id='timer0' style='color:#EE0000'></div><div id=ctrl0 style='color:red;'><a role='button' href=javascript:toggleTimers()>hide timers</a><p></div>");
+			buf.append("<div id='timer0' style='color:#EE0000'></div><div id=ctrl0 style='color:red;'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
 			buf.append("\n<input type=submit class='btn btn-primary' value='Grade This Practice Exam'><p>");
 
 			buf.append("<input type=hidden name=sig value='" + user.getTokenSignature() + "'>");
@@ -397,9 +394,6 @@ public class PracticeExam extends HttpServlet {
 				pt.addPossibleScore(q.pointValue);
 				q.setParameters((int)(pt.id - q.id));
 				buf.append("\n<li>" + q.print() + "<br></li>\n");
-				if (a.id>0) buf.append("<SCRIPT>"
-						+ "document.getElementById('showWork" + q.id + "').style.display='';"
-						+ "</SCRIPT>");
 				if (!resumingExam) pt.questionKeys.add(k);
 			}
 			buf.append("</OL>");
@@ -416,9 +410,6 @@ public class PracticeExam extends HttpServlet {
 				pt.addPossibleScore(q.pointValue);
 				q.setParameters((int)(pt.id - q.id));
 				buf.append("\n<li>" + q.print() + "<br></li>\n");
-				if (a.id>0) buf.append("<SCRIPT>"
-						+ "document.getElementById('showWork" + q.id + "').style.display='';"
-						+ "</SCRIPT>");
 				if (!resumingExam) pt.questionKeys.add(k);
 			}
 			buf.append("</OL>");
@@ -430,16 +421,8 @@ public class PracticeExam extends HttpServlet {
 			buf.append("\n<input type=submit class='btn btn-primary' value='Grade This Practice Exam'>");
 			buf.append("\n</form><br/>");
 			
-			buf.append("<div id='timer1' style='color:#EE0000'></div><div id=ctrl1 style='color:red;'><a role='button' href=javascript:toggleTimers()>hide timers</a><p></div>");
-			long timerMillis = pt.downloaded.getTime() + timeAllowed*1000L - new Date().getTime();
-			buf.append("<script>"
-					+ "startTimers(" + timerMillis + ");"
-					+ "function timesUp() {"
-					+ "  try {"
-					+ "	   document.getElementById('PracticeExamForm').submit();"
-					+ "  } catch (Exception) {}"
-					+ "}"
-					+ "</script>");
+			buf.append("<div id='timer1' style='color:#EE0000'></div><div id=ctrl1 style='color:red;'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
+			buf.append("<script src='/js/timed-exam-page.js?v=1'></script>");
 			
 		} catch (Exception e) {
 			buf.append("Sorry, there was an unexpected error: " + e.getMessage()==null?e.toString():e.getMessage());

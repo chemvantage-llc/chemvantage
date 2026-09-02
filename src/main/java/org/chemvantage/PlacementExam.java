@@ -374,8 +374,6 @@ public class PlacementExam extends HttpServlet {
 
 			debug.append("4");
 			
-			buf.append("<script>function showWorkBox(qid){}</script>");  // prevents javascript error from Question.print()
-			
 			buf.append("<h1>Placement Exam</h1>");
 			
 			if (a.attemptsAllowed!=null) buf.append("You are allowed " + a.attemptsAllowed + (a.attemptsAllowed==1?" attempt":" attempts") + " on this exam. This is attempt #" + (nAttempts + (resumingExam?0:1)) + ".<br/>");
@@ -383,12 +381,10 @@ public class PlacementExam extends HttpServlet {
 			buf.append("This exam must be submitted for grading within " + timeAllowed/60 + " minutes of when it is first downloaded.<br/>");
 			if (resumingExam) buf.append("You are resuming a placement exam originally downloaded at " + pt.downloaded + "<br/>");
 			
-			buf.append("""
-					
-					<FORM NAME=PlacementExamForm METHOD=POST ACTION=/PlacementExam \
-					onSubmit="return confirm('Submit this placement exam for grading now. Are you sure?')">""");
+			long timerMillis = pt.downloaded.getTime() + timeAllowed*1000L - new Date().getTime();
+			buf.append("<FORM id=PlacementExamForm NAME=PlacementExamForm METHOD=POST ACTION=/PlacementExam data-timed-exam-form data-timer-millis='" + timerMillis + "' data-submit-confirmation='Submit this placement exam for grading now. Are you sure?'>");
 
-			buf.append("<div id='timer0' style='color: #EE0000'></div><div id=ctrl0 style='color:#EE0000;'><a role='button' href=javascript:toggleTimers()>hide timers</a><p></div>");
+			buf.append("<div id='timer0' style='color: #EE0000'></div><div id=ctrl0 style='color:#EE0000;'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
 			buf.append("\n<input type=submit class='btn btn-primary' value='Grade This Placement Exam'><p>");
 
 			buf.append("<input type=hidden name=sig value='" + user.getTokenSignature() + "'>");
@@ -441,19 +437,11 @@ public class PlacementExam extends HttpServlet {
 
 			buf.append("\n<input type=hidden name='ExamId' value=" + pt.id + ">");
 			buf.append("\n<input type=hidden name='UserRequest' value='GradeExam'>");
-			buf.append("<div id='timer1' style='color: #EE0000'></div><div id=ctrl1 style='color:#EE0000;'><a role='button' href=javascript:toggleTimers()>hide timers</a><p></div>");
+			buf.append("<div id='timer1' style='color: #EE0000'></div><div id=ctrl1 style='color:#EE0000;'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
 			buf.append("\n<input type=submit class='btn btn-primary' value='Grade This Placement Exam'>");
 			buf.append("\n</form>");
 			
-			long timerMillis = pt.downloaded.getTime() + timeAllowed*1000L - new Date().getTime();
-			buf.append("<script>"
-					+ "startTimers(" + timerMillis + ");"
-					+ "function timesUp() {"
-					+ "  try {"
-					+ "	   document.getElementById('PlacementExamForm').submit();"
-					+ "  } catch (Exception) {}"
-					+ "}"
-					+ "</script>");
+			buf.append("<script src='/js/timed-exam-page.js?v=1'></script>");
 			
 		} catch (Exception e) {
 			buf.append("printExam: " + e.toString() + " " + debug.toString());

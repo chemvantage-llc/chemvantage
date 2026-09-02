@@ -355,11 +355,11 @@ public class Quiz extends HttpServlet {
 					+ "	</ul>\n");
 			
 			buf.append("<div id='timer0' style='color: #B20000'></div>"
-					+ "	<div id='ctrl0' style='color: #B20000'><a role='button' href=javascript:toggleTimers() >hide timers</a><p></div>");
+					+ "	<div id='ctrl0' style='color: #B20000'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
 			
 			debug.append("5");
 			
-			buf.append("<FORM NAME=Quiz id=quizForm METHOD=POST ACTION='/Quiz' onSubmit='return confirmSubmission()' >"
+			buf.append("<FORM NAME=Quiz id=quizForm METHOD=POST ACTION='/Quiz' data-timer-millis='" + (new Date(qt.getDownloaded().getTime() + timeAllowed * 1000).getTime() - new Date().getTime()) + "' >"
 					+ "<INPUT TYPE=HIDDEN NAME='sig' VALUE='" + user.getTokenSignature() + "' />"
 					+ "<INPUT TYPE=HIDDEN NAME='AssignmentId' VALUE='" + qa.id + "' />"
 					+ "<input type=hidden name='QuizTransactionId' value='" + qt.getId() + "' />"
@@ -408,16 +408,12 @@ public class Quiz extends HttpServlet {
 			buf.append("</OL>\n");
 		
 			buf.append("<div id='timer1' style='color: #B20000'></div>"
-					+ "	<div id='ctrl1' style='color: #B20000'><a role='button' href=javascript:toggleTimers() >hide timers</a><p></div>");
+					+ "	<div id='ctrl1' style='color: #B20000'><a class='toggle-timer-link' role='button' href='#'>hide timers</a><p></div>");
 			
 			buf.append("<input type=submit class='btn btn-primary' value='Grade This Quiz'/>"
 					+ "</FORM>");
 			
-			buf.append("<script>"
-					+ "startTimers(" + (new Date(qt.getDownloaded().getTime() + timeAllowed * 1000).getTime() - new Date().getTime()) + ");"
-					+ "function timesUp() {"
-					+ "document.getElementById('Quiz').submit();}"
-					+ "</script>");
+			buf.append("<script src='/js/quiz-page.js?v=1'></script>");
 			
 		} catch (Exception e) {
 			return "<h2>Sorry, the quiz failed</h2>" + e.getMessage()==null?e.toString():e.getMessage() + buf.toString() + "<br/>" + debug.toString(); 
