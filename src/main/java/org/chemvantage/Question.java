@@ -47,11 +47,18 @@ import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Ignore;
 import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.OnLoad;
+import org.owasp.html.HtmlPolicyBuilder;
+import org.owasp.html.PolicyFactory;
+import org.springframework.web.util.HtmlUtils;
 
 @Entity
 public class Question implements Serializable, Cloneable {
 	@Serial
 	private static final long serialVersionUID = 137L;
+	private static final PolicyFactory EXPLANATION_HTML_POLICY = new HtmlPolicyBuilder()
+			.allowElements("p", "br", "b", "strong", "i", "em", "u", "sub", "sup", "code", "pre", "blockquote", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td")
+			.allowAttributes("colspan", "rowspan").onElements("th", "td")
+			.toFactory();
 	@Id 	Long id;
 	@Index	long topicId;
 	@Index	Long conceptId; 
@@ -358,7 +365,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<label for=" + this.id + ">" + text + "</label>");
 			buf.append("<br/>");
 			buf.append("<span style='color:#B20000;font-size: small;'>Enter the correct word or phrase:</span><br/>");
-			buf.append("<input id=" + this.id + " type=text aria-label='student answer' name=" + this.id + " value='" + quot2html(studentAnswer) + "' placeholder='" + placeholder + "' />");
+			buf.append("<input id=" + this.id + " type=text aria-label='student answer' name=" + this.id + " value='" + escapeHtml(studentAnswer) + "' placeholder='" + placeholder + "' />");
 			buf.append("&nbsp;" + tag + "<br/><br/>");
 			break;
 		case 5: // Numeric Answer
@@ -367,7 +374,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<div id=showWork" + this.id + " style='display:none'>"
 					+ "<label for=ShowWork'" + this.id + "'>Show your work:</label><br/><TEXTAREA NAME=ShowWork" + this.id + " ROWS=5 COLS=50 WRAP=SOFT "
 					+ "maxlength=500 placeholder='Show your work here. " + (scoreWork?"You must show clear evidence of sound thinking to receive credit for a correct answer.":"This will not affect your score, but it will be visible to your instructor.") + "' "
-					+ "aria-label='show your work here'>" + (showWork==null?"":showWork) + "</TEXTAREA>"
+					+ "aria-label='show your work here'>" + escapeHtml(showWork == null ? "" : showWork) + "</TEXTAREA>"
 					+ "<br/></div>"
 					+ "<label for='answer" + this.id + "'>");
 			switch (getNumericItemType()) {
@@ -378,7 +385,7 @@ public class Question implements Serializable, Cloneable {
 			case 3: buf.append("<span style='color:#B20000;font-size: small;'>Enter the value with the appropriate number of significant figures. <a role='button' href=# onclick=\"alert('Use the information in the problem to determine the correct number of sig figs in your answer. You may use scientific E notation. Example: enter 3.56E-12 to represent the number 3.56&#215;10&#8315;&#185;&#178;');return false;\">&#9432;</a></span><br/>"); break;
 			default:
 			}
-			buf.append("</label><br/><input aria-label='student answer' size=25 type=text name=" + this.id + " id=answer" + this.id + " value='" + studentAnswer + "' placeholder='" + placeholder + "' onFocus=showWorkBox('" + this.id + "'); />");
+			buf.append("</label><br/><input aria-label='student answer' size=25 type=text name=" + this.id + " id=answer" + this.id + " value='" + escapeHtml(studentAnswer) + "' placeholder='" + placeholder + "' onFocus=showWorkBox('" + this.id + "'); />");
 			buf.append("&nbsp;" + parseString(tag) + "<br/><br/>");
 			break;        
 		case 6: // FIVE_STAR rating
@@ -419,7 +426,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/>");
 			buf.append("<span style='color:#B20000;font-size:small;'><label for='" + this.id + "'>Write a short essay (800 characters max):</label></span><br/>");
 			buf.append("<textarea id=" + this.id + " aria-label='enter your essay here' name=" + this.id 
-					+ " rows=5 cols=60 wrap=soft placeholder='Enter your answer here' maxlength=800 >" + studentAnswer + "</textarea><br>");
+					+ " rows=5 cols=60 wrap=soft placeholder='Enter your answer here' maxlength=800 >" + escapeHtml(studentAnswer) + "</textarea><br>");
 			break;
 		case 8: // Chemical Structure
 			buf.append(text + "<br/>");
@@ -450,7 +457,7 @@ public class Question implements Serializable, Cloneable {
 				choice = choice_keys.remove(scrambleChoices?rand.nextInt(choice_keys.size()):0);
 				buf.append("<LI>" 
 						+ (correctAnswer.indexOf(choice)>=0?"<B>":"<FONT COLOR=#767676>")
-						+ quot2html(choices.get(choice-'a'))
+						+ escapeHtml(choices.get(choice-'a'))
 						+ (correctAnswer.indexOf(choice)>=0?"</B>":"</FONT>")
 						+ "</LI>");
 			}
@@ -475,7 +482,7 @@ public class Question implements Serializable, Cloneable {
 				choice = choice_keys.remove(scrambleChoices?rand.nextInt(choice_keys.size()):0);
 				buf.append("<LI>"
 						+ (correctAnswer.indexOf(choice)>=0?"<B>":"<FONT COLOR=#767676>")
-						+ quot2html(choices.get(choice-'a'))
+						+ escapeHtml(choices.get(choice-'a'))
 						+ (correctAnswer.indexOf(choice)>=0?"</B>":"</FONT>")
 						+ "</LI>");
 			}
@@ -485,7 +492,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append(text + "<br/>");
 			buf.append("<span style='color:#B20000;font-size: small;'>Enter the correct word or phrase:</span><br/>");
 			buf.append("<span style='border: 1px solid black'>"
-					+ "<b>" + (this.hasACorrectAnswer()?quot2html(correctAnswer):"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;") + "</b>"
+					+ "<b>" + (this.hasACorrectAnswer()?escapeHtml(correctAnswer):"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;") + "</b>"
 					+ "</span>");
 			buf.append("&nbsp;" + tag + "<br/>"
 					+ (this.hasACorrectAnswer() && this.strictSpelling?"Spelling: strict<br/><br/>":"<br/>"));
@@ -568,7 +575,7 @@ public class Question implements Serializable, Cloneable {
 			for (int i = 0; i < nChoices; i++) {
 				buf.append("&nbsp;" + choice + ". "
 						+ (showDetails && correctAnswer.indexOf(choice)>=0?"<B>":"<FONT COLOR=#767676>")
-						+ quot2html(choices.get(i))
+						+ escapeHtml(choices.get(i))
 						+ (showDetails && correctAnswer.indexOf(choice)>=0?"</B>":"</FONT>") + "<br/>");
 				choice++;
 			}
@@ -590,7 +597,7 @@ public class Question implements Serializable, Cloneable {
 			for (int i = 0; i < nChoices; i++) {
 				buf.append("&nbsp;" + choice + ". "
 						+ (showDetails && correctAnswer.indexOf(choice)>=0?"<B>":"<FONT COLOR=#767676>")
-						+ quot2html(choices.get(i))
+						+ escapeHtml(choices.get(i))
 						+ (showDetails && correctAnswer.indexOf(choice)>=0?"</B>":"</FONT>") + "<br/>");
 				choice++;
 			}
@@ -600,7 +607,7 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<span style='color:#B20000;font-size: small;'>Enter the correct word or phrase:</span><br/>");
 			String[] answers = correctAnswer.split(",");
 			buf.append("<span style='border: 1px solid black'>"
-					+ (showDetails?"<b>" + quot2html(answers[0]) + "</b>":"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+					+ (showDetails?"<b>" + escapeHtml(answers[0]) + "</b>":"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 					+ "</span>");
 			if (tag.length() > 0) buf.append("&nbsp;" + tag + "<br/>");
 			break;
@@ -645,12 +652,12 @@ public class Question implements Serializable, Cloneable {
 		}
 		
 		buf.append("<br/>");
-		if (showWork != null && !showWork.isEmpty()) buf.append("<b>Student work:</b><br/><div style='border-style: solid; border-width: thin; white-space: pre-wrap;'>" + showWork + "</div>");	
+		if (showWork != null && !showWork.isEmpty()) buf.append("<b>Student work:</b><br/><div style='border-style: solid; border-width: thin; white-space: pre-wrap;'>" + escapeHtml(showWork) + "</div>");	
 		if (studentAnswer==null || studentAnswer.isEmpty()) buf.append("<b>No answer was submitted for this question item.</b><p></p>");
 		else {
 			switch (getQuestionType()) {
 			case 5: // Numeric Answer
-				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
+				buf.append("<b>The answer submitted was: " + escapeHtml(studentAnswer) + "</b>&nbsp;");
 				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
 				else if (!correctValue) // check if the value is wrong
 						buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>"
@@ -664,10 +671,10 @@ public class Question implements Serializable, Cloneable {
 				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				break;
 			case 6: // FIVE_STAR rating
-				buf.append("<b>The rating submitted was: " + studentAnswer + "</b>&nbsp;");
+				buf.append("<b>The rating submitted was: " + escapeHtml(studentAnswer) + "</b>&nbsp;");
 				break;
 			case 7: // Short ESSAY question
-				buf.append("<b>The answer submitted was: </b><br/>" + studentAnswer + "<br/><br/>");
+				buf.append("<b>The answer submitted was: </b><br/>" + escapeHtml(studentAnswer) + "<br/><br/>");
 				break;
 			case 8: // Chemical Structure
 				buf.append("<b>The structure submitted was:</b><br/>" + renderChemicalStructurePreview(studentAnswer, "Submitted structure", true));
@@ -675,7 +682,7 @@ public class Question implements Serializable, Cloneable {
 				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				break;
 			default: // Multiple Choice, True/False, Select Multiple, Fill-in-Word
-				buf.append("<b>The answer submitted was: " + studentAnswer + "</b>&nbsp;");
+				buf.append("<b>The answer submitted was: " + escapeHtml(studentAnswer) + "</b>&nbsp;");
 				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
 				else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>");
 				buf.append("<br/><br/>");
@@ -802,6 +809,10 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<br/>Sorry, an explanation is not available at this time. " + (e.getMessage()==null?e.toString():e.toString()) + "<p>" + debug.toString() + "<p>");
 		}
 		return buf.toString();
+	}
+
+	static String sanitizeExplanationHtml(String html) {
+		return EXPLANATION_HTML_POLICY.sanitize(html == null ? "" : html);
 	}
 
 	String printForSage() {
@@ -950,14 +961,14 @@ public class Question implements Serializable, Cloneable {
 			switch (this.getQuestionType()) {
 			case 1: // Multiple Choice
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" 
-						+ amp2html(text) + "</TEXTAREA><br/>");
+						+ escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#B20000;font-size: small;'>Select only the best choice:</span><br/>");
 				for (int i=0;i<5;i++) { 
 					if (i < nChoices) {
 						buf.append("<input type=radio name=CorrectAnswer value='" + choice + "'");
 						if (correctAnswer.indexOf(choice) >= 0) buf.append(" CHECKED");
 						buf.append("/><input size=30 name=" + choiceNames[i] + " value='"); 
-						if (choices.size() > i) buf.append(quot2html(amp2html(choices.get(i))));
+						if (choices.size() > i) buf.append(escapeHtml(choices.get(i)));
 						buf.append("'/><br/>");
 					}
 					else buf.append("<input type=radio name=CorrectAnswer value=" + choice + " />"
@@ -968,7 +979,7 @@ public class Question implements Serializable, Cloneable {
 				break;
 			case 2: // True/False
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" 
-						+ amp2html(text) + "</TEXTAREA><br/>");
+						+ escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#B20000;font-size: small;'>Select true or false:</span><br/>");
 				buf.append("<input type=radio name=CorrectAnswer value='true'");
 					if (correctAnswer.equals("true")) buf.append(" CHECKED");
@@ -979,14 +990,14 @@ public class Question implements Serializable, Cloneable {
 				break;
 			case 3: // Select Multiple
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" 
-						+ amp2html(text) + "</TEXTAREA><br/>");
+						+ escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#B20000;font-size: small;'>Select all of the correct answers:</span><br/>");
 				for (int i=0;i<5;i++){
 					if (i < nChoices) {
 						buf.append("<input type=checkbox name=CorrectAnswer value='" + choice + "'");
 						if (correctAnswer.indexOf(choice) >= 0) buf.append(" CHECKED");
 						buf.append("/><input size=30 name=" + choiceNames[i] + " value='"); 
-						if (choices.size() > i) buf.append(quot2html(amp2html(choices.get(i))));
+						if (choices.size() > i) buf.append(escapeHtml(choices.get(i)));
 						buf.append("'/><br/>");
 					}
 					else buf.append("<input type=checkbox name=CorrectAnswer value=" + choice + " />"
@@ -997,18 +1008,18 @@ public class Question implements Serializable, Cloneable {
 				break;
 			case 4: // Fill-in-the-Word
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" 
-						+ amp2html(text) + "</TEXTAREA><br/>");
+						+ escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#B20000;font-size: small;'>Enter the correct word or phrase.<br/>"
 						+ "Multiple correct answers can be entered as a comma-separated list.</span><br/>");
 				buf.append("<input type=text name=CorrectAnswer value=\"" 
-						+ quot2html(amp2html(correctAnswer)) + "\"'/><br/>");
+						+ escapeHtml(correctAnswer) + "\"'/><br/>");
 				buf.append("<TEXTAREA name=QuestionTag rows=5 cols=60 wrap=soft>" 
-						+ amp2html(tag) + "</TEXTAREA><br/>");
+						+ escapeHtml(tag) + "</TEXTAREA><br/>");
 				buf.append("<label><input type=checkbox name=StrictSpelling value=true " + (this.strictSpelling?"CHECKED":"") + " />Strict spelling</label><br/><br/>");
 				break;
 			case 5: // Numeric Answer
 				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=60 wrap=soft>" 
-						+ amp2html(text) + "</TEXTAREA><br/>");
+						+ escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<FONT SIZE=-2>Significant figures: <input size=5 name=SignificantFigures value='" + significantFigures + "'/> Required precision: <input size=5 name=RequiredPrecision value='" + requiredPrecision + "'/>% (set to zero to require exact answer)</FONT><br/>");
 				switch (getNumericItemType()) {
 				case 0: buf.append("<span style='color:#B20000;font-size: small;'>Enter the exact value. <a role='button' href=# onclick=\"alert('Your answer must have exactly the correct value. You may use scientific E notation. Example: enter 3.56E-12 to represent the number 3.56&#215;10&#8315;&#185;&#178;');return false;\">&#9432;</a></span><br/>"); break;
@@ -1021,7 +1032,7 @@ public class Question implements Serializable, Cloneable {
 				buf.append("Correct answer:");
 				buf.append("<INPUT TYPE=TEXT NAME=CorrectAnswer VALUE='" + correctAnswer + "'/> ");
 				buf.append(" Units:<INPUT TYPE=TEXT NAME=QuestionTag SIZE=8 VALUE='" 
-						+ quot2html(amp2html(tag)) + "'/><br/>");
+						+ escapeHtml(tag) + "'/><br/>");
 				buf.append("Parameters:<input name=ParameterString value='" 
 						+ parameterString + "'/><FONT SIZE=-2><a href=# onClick=\"javascript:document.getElementById('detail1').innerHTML="
 						+ "'You may embed up to 4 parameters (a b c d) in a question using a parameter string like<br/>"
@@ -1033,12 +1044,12 @@ public class Question implements Serializable, Cloneable {
 						+ "You can also display fractions in vertical format using encoding like (|numerator|denominator|)<br/><br/>'\";>What's This?</a></FONT>");
 				buf.append("<div id=detail1></div>");
 				buf.append("Hint:<br/><TEXTAREA NAME=Hint ROWS=3 COLS=60 WRAP=SOFT>"
-						+ amp2html(hint) + "</TEXTAREA><br/>");
+						+ escapeHtml(hint) + "</TEXTAREA><br/>");
 				buf.append("Solution:<br/><TEXTAREA NAME=Solution ROWS=10 COLS=60 WRAP=SOFT>" 
-						+ amp2html(solution) + "</TEXTAREA><br/>");
+						+ escapeHtml(solution) + "</TEXTAREA><br/>");
 				break;
 			case 6:  // 5-Star rating
-				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
+				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" + escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span id='vote' style='color:#990000;font-size:small;'>(click a star):</span><br/>");
 				for (int istar=1;istar<6;istar++) {
 					buf.append("<img src='/images/star1.gif' id='" + istar + "' style='width:30px; height:30px;' alt='empty star' />");
@@ -1046,13 +1057,13 @@ public class Question implements Serializable, Cloneable {
 				buf.append("<br/>");
 				break;
 			case 7:  // Short ESSAY
-				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
+				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=50 wrap=soft>" + escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#990000;font-size:small;'>(800 characters max):</span><br/>");
 				buf.append("<div style='border: solid 2px;width:300px;height:100px'></div>");
 				buf.append("<br/>");
 				break;
 			case 8:  // Chemical Structure
-				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=60 wrap=soft>" + amp2html(text) + "</TEXTAREA><br/>");
+				buf.append("Question Text:<br/><TEXTAREA name=QuestionText rows=5 cols=60 wrap=soft>" + escapeHtml(text) + "</TEXTAREA><br/>");
 				buf.append("<span style='color:#B20000;font-size: small;'>Draw the expected structure in the window below, or load it from a SMILES string.</span><br/>");
 				buf.append(renderChemicalStructureComposer("CorrectAnswer", correctAnswer, false, true));
 				break;
@@ -1064,11 +1075,15 @@ public class Question implements Serializable, Cloneable {
 		return buf.toString();
 	}
 
+	private static String escapeHtml(String value) {
+		return HtmlUtils.htmlEscape(value == null ? "" : value);
+	}
+	
 	// The composer uses a same-origin bridge page that loads the hosted Ketcher assets and synchronizes molfile data back into the form.
 	String renderChemicalStructureComposer(String fieldName, String molfile, boolean readOnly, boolean showMolfileDataPanel) {
 		StringBuffer buf = new StringBuffer();
 		String preparedMolfile = ChemicalStructureScorer.prepareMolfileForEditor(molfile);
-		String safeMolfile = amp2html(preparedMolfile == null ? "" : preparedMolfile);
+		String safeMolfile = escapeHtml(preparedMolfile == null ? "" : preparedMolfile);
 		String textareaId = "structure_" + fieldName.replaceAll("[^A-Za-z0-9]", "_");
 		String frameId = textareaId + "_frame";
 		String statusId = textareaId + "_status";
@@ -1206,7 +1221,7 @@ public class Question implements Serializable, Cloneable {
 			String textareaId = "structurePreview_" + Long.toHexString(Double.doubleToLongBits(Math.random()));
 			buf.append("<details><summary>View molfile data</summary>"
 					+ "<label for='" + textareaId + "'>" + (caption == null || caption.isEmpty() ? "Molfile data" : caption + " molfile data") + ":</label><br/>"
-					+ "<textarea id='" + textareaId + "' rows=12 cols=80 wrap=off readonly>" + amp2html(molfile) + "</textarea></details>");
+					+ "<textarea id='" + textareaId + "' rows=12 cols=80 wrap=off readonly>" + escapeHtml(molfile) + "</textarea></details>");
 		}
 		return buf.toString();
 	}
@@ -1439,37 +1454,7 @@ public class Question implements Serializable, Cloneable {
 			return null;
 		}
 	}
-	
-	// The following methods are from the original CharHider class to guard against
-	// inadvertent mistakes in interpreting user input, especially in Question items.
 
-	static String quot2html(String oldString) {
-		if (oldString == null) return "";
-		// recursive method replaces single quotes with &#39; for HTML pages
-		int i = oldString.indexOf('\'',0);
-		return i<0?oldString:quot2html(new StringBuffer(oldString).replace(i,i+1,"&#39;").toString(),i);
-	}
-
-	static String quot2html(String oldString,int fromIndex) {
-		// recursive method replaces single quotes with &#39; for HTML pages
-		int i = oldString.indexOf('\'',fromIndex);
-		return i<0?oldString:quot2html(new StringBuffer(oldString).replace(i,i+1,"&#39;").toString(),i);
-	}
-
-	static String amp2html(String oldString) {
-		if (oldString == null) return "";
-		// recursive method replaces ampersands with &amp; for preloading Greek/special characters in text fields in HTML forms
-		int i = oldString.indexOf('&',0);
-		//		    return i<0?oldString:new StringBuffer(oldString).replace(i,i+1,"&amp;").toString();
-		return i<0?oldString:amp2html(new StringBuffer(oldString).replace(i,i+1,"&amp;").toString(),i+1);
-	}
-
-	static String amp2html(String oldString,int fromIndex) {
-		// recursive method replaces ampersands with &amp; for preloading Greek/special characters in text fields in HTML forms
-		int i = oldString.indexOf('&',fromIndex);
-		return i<0?oldString:amp2html(new StringBuffer(oldString).replace(i,i+1,"&amp;").toString(),i+1);
-	}
-	
 	String parseFractions(String expression) {
 		return parseFractions(expression,0);
 	}

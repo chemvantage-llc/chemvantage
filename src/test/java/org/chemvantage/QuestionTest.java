@@ -40,6 +40,7 @@ class QuestionTest {
         numericQuestion.correctAnswer = "4";
         numericQuestion.requiredPrecision = 0.0; // exact answer
         numericQuestion.significantFigures = 0;
+        numericQuestion.tag = "";
         numericQuestion.pointValue = 1;
 
         // Fill In Word Question
@@ -89,6 +90,35 @@ class QuestionTest {
     void testFillInWordWrongAnswer() {
         assertFalse(fillInWordQuestion.isCorrect("nitrogen"));
         assertFalse(fillInWordQuestion.isCorrect("hydrogen"));
+    }
+
+    @Test
+    @DisplayName("Student responses are escaped when rendered in form fields")
+    void testStudentResponseFormFieldsAreHtmlEscaped() {
+        String payload = "</textarea><img src=x onerror=alert(1)>";
+
+        String fillInHtml = fillInWordQuestion.print("", payload);
+        String numericHtml = numericQuestion.print(payload, payload);
+        Question essayQuestion = new Question(Question.ESSAY);
+        essayQuestion.text = "Explain your answer.";
+        String essayHtml = essayQuestion.print("", payload);
+
+        assertFalse(fillInHtml.contains(payload));
+        assertFalse(numericHtml.contains(payload));
+        assertFalse(essayHtml.contains(payload));
+        assertTrue(fillInHtml.contains("&lt;/textarea&gt;&lt;img src=x onerror=alert(1)&gt;"));
+        assertTrue(numericHtml.contains("&lt;/textarea&gt;&lt;img src=x onerror=alert(1)&gt;"));
+        assertTrue(essayHtml.contains("&lt;/textarea&gt;&lt;img src=x onerror=alert(1)&gt;"));
+    }
+
+    @Test
+    @DisplayName("Explanation HTML sanitization preserves instructional markup and removes scripts")
+    void testExplanationHtmlSanitization() {
+        String html = "<p>Water is H<sub>2</sub>O.</p><script>alert(1)</script><img src=x onerror=alert(1)>";
+
+        String sanitized = Question.sanitizeExplanationHtml(html);
+
+        assertEquals("<p>Water is H<sub>2</sub>O.</p>", sanitized);
     }
 
     @Test

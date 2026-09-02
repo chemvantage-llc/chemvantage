@@ -26,6 +26,7 @@ import java.util.Date;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
+import org.springframework.web.util.HtmlUtils;
 
 @Entity
 public class UserReport implements Serializable {
@@ -72,7 +73,7 @@ public class UserReport implements Serializable {
 		buf.append("On " + submitted + " a user said:<br>");
 
 		if (stars>0) buf.append(" (" + stars + " stars)<br>");
-		buf.append("<FONT COLOR=RED>" + comments + "</FONT><br>");
+		buf.append("<FONT COLOR=RED>" + HtmlUtils.htmlEscape(comments == null ? "" : comments) + "</FONT><br>");
 		if (this.questionId>0) {			
 			Question q = ofy().load().type(Question.class).id(this.questionId).safe();
 			q.parameters = this.params;
@@ -92,7 +93,7 @@ public class UserReport implements Serializable {
 			buf.append("On " + submitted + " a user said:<br>");
 			
 			if (stars>0) buf.append(" (" + stars + " stars)<br>");
-			buf.append("<FONT COLOR=RED>" + comments + "</FONT><br>");
+			buf.append("<FONT COLOR=RED>" + HtmlUtils.htmlEscape(comments == null ? "" : comments) + "</FONT><br>");
 			
 			if (this.questionId>0) {			
 				Question q = ofy().load().type(Question.class).id(this.questionId).safe();

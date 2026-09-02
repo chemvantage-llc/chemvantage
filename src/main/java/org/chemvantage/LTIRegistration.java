@@ -51,6 +51,7 @@ import com.google.recaptchaenterprise.v1.RiskAnalysis.ClassificationReason;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
+import org.springframework.web.util.HtmlUtils;
 
 @WebServlet(urlPatterns = {"/lti/registration","/lti/registration/"})
 public class LTIRegistration extends HttpServlet {
@@ -115,7 +116,7 @@ public class LTIRegistration extends HttpServlet {
 				out.println(Subject.header() + registrationForm(request,null) + Subject.footer);
 			}
 		} catch (Exception e) {
-			out.println(Subject.header() + "<h1>Registration Failed</h1>" + e.getMessage() + Subject.footer);
+			out.println(Subject.header() + "<h1>Registration Failed</h1>" + escapeHtml(e.getMessage()) + Subject.footer);
 		}
 	}
 	
@@ -185,12 +186,12 @@ public class LTIRegistration extends HttpServlet {
 		} catch (Exception e) {
 			String message = (e.getMessage()==null?e.toString():e.getMessage());
 			if (dynamicRegistration) {
-				String emailmessage = message + "<br/>"
-						+ "Name: " + request.getParameter("name") + "<br/>"
-						+ "Email: " + request.getParameter("email") + "<br/>"
-						+ "Org: " + request.getParameter("org") + "<br/>"
-						+ "URL: " + request.getParameter("url") + "<br/>"
-						+ "LMS: " + request.getParameter("lms") + "<br/>"
+				String emailmessage = escapeHtml(message) + "<br/>"
+						+ "Name: " + escapeHtml(request.getParameter("name")) + "<br/>"
+						+ "Email: " + escapeHtml(request.getParameter("email")) + "<br/>"
+						+ "Org: " + escapeHtml(request.getParameter("org")) + "<br/>"
+						+ "URL: " + escapeHtml(request.getParameter("url")) + "<br/>"
+						+ "LMS: " + escapeHtml(request.getParameter("lms")) + "<br/>"
 						+ debug.toString();
 				Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org","Dynamic Registration Error",emailmessage);
 			}
@@ -215,7 +216,7 @@ public class LTIRegistration extends HttpServlet {
 		StringBuffer buf = new StringBuffer(Subject.banner);
 		
 		if (message != null) {
-			buf.append("<span style='color: #EE0000; border: 2px solid red'>&nbsp;" + message + " &nbsp;</span>");
+			buf.append("<span style='color: #EE0000; border: 2px solid red'>&nbsp;" + escapeHtml(message) + " &nbsp;</span>");
 		}
 		
 		buf.append("<h1>LTI Advantage " + (dynamic?"Dynamic ":"Manual ") + "Registration</h1><br/>");
@@ -251,18 +252,18 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<form id=regform method=post action=/lti/registration>"
 			+"Contact information for the LMS administrator or office responsible for LMS administration:<br/>"
-			+ "<label>Name: <input type=text required name=name size=40 value='" + (name==null?"":name) + "' /> </label><br/>"
-			+ "<label>Email: <input type=text required name=email size=40 value='" + (email==null?"":email) + "' /> </label><br/><br/>\n");
+			+ "<label>Name: <input type=text required name=name size=40 value='" + escapeHtml(name) + "' /> </label><br/>"
+			+ "<label>Email: <input type=text required name=email size=40 value='" + escapeHtml(email) + "' /> </label><br/><br/>\n");
 	
 		buf.append("Your school, business or organization:<br/>"
-				+ "<label>Org Name: <input type=text required name=org size=30 value='" + (org==null?"":org) + "' /> </label><br/>\n"
-				+ "<label>Home Page: <input type=text required name=url size=30 placeholder='https://myschool.edu' value='" + (url==null?"":url) + "' /></label><br/><br/>\n");
+				+ "<label>Org Name: <input type=text required name=org size=30 value='" + escapeHtml(org) + "' /> </label><br/>\n"
+				+ "<label>Home Page: <input type=text required name=url size=30 placeholder='https://myschool.edu' value='" + escapeHtml(url) + "' /></label><br/><br/>\n");
 
 		if (dynamic) {
-			if (registration_token!=null) buf.append("<input type=hidden name=registration_token value='" + registration_token + "' />");
-			buf.append("<input type=hidden name=openid_configuration value='" + openid_configuration + "' />");
+			if (registration_token!=null) buf.append("<input type=hidden name=registration_token value='" + escapeHtml(registration_token) + "' />");
+			buf.append("<input type=hidden name=openid_configuration value='" + escapeHtml(openid_configuration) + "' />");
 			if (dev) {
-				buf.append("Registration Code: <input type=text name=reg_code required value='" + (reg_code==null?"":reg_code) + "' /><br/><br/>");
+				buf.append("Registration Code: <input type=text name=reg_code required value='" + escapeHtml(reg_code) + "' /><br/><br/>");
 			} 
 		} else {
 			buf.append("<fieldset style='width:400px'><legend>Type of LMS:<br/></legend>"
@@ -275,7 +276,7 @@ public class LTIRegistration extends HttpServlet {
 				+ "<label><input type=radio name=lms required value=sakai " + ((lms!=null && lms.equals("sakai"))?"checked":"") + "  />&nbsp;Sakai</label><br/>\n"
 				+ "<label><input type=radio name=lms required value=schoology " + ((lms!=null && lms.equals("schoology"))?"checked":"") + "  />&nbsp;Schoology</label><br/>\n"
 				+ "<label><input type=radio name=lms required id=other value=other " + ((lms!=null && lms.equals("other"))?"checked":"") + "  />&nbsp;Other:</label>\n"
-				+ "<label><input type=text name=lms_other value='" + (lms_other==null?"":lms_other) + "' placeholder='(specify)' onFocus=document.getElementById('other').checked=true; /></label>\n"
+				+ "<label><input type=text name=lms_other value='" + escapeHtml(lms_other) + "' placeholder='(specify)' onFocus=document.getElementById('other').checked=true; /></label>\n"
 				+ "</fieldset>\n"
 				+ "<br/>");
 		
@@ -490,9 +491,9 @@ public class LTIRegistration extends HttpServlet {
 		
 		buf.append("<h2>ChemVantage Registration</h2>");
 		
-		buf.append("Name: " + rc.name + " (" + rc.email + ")<br/>");
-		buf.append("Organization: " + rc.org + (rc.url.isEmpty()?"":" (" + rc.url + ")") + "<br/>");
-		buf.append("LMS: " + rc.lms + "<br/><br/>");
+		buf.append("Name: " + escapeHtml(rc.name) + " (" + escapeHtml(rc.email) + ")<br/>");
+		buf.append("Organization: " + escapeHtml(rc.org) + (rc.url.isEmpty()?"":" (" + escapeHtml(rc.url) + ")") + "<br/>");
+		buf.append("LMS: " + escapeHtml(rc.lms) + "<br/><br/>");
 		
 		switch (rc.lms) {
 			case "blackboard":
@@ -507,9 +508,9 @@ public class LTIRegistration extends HttpServlet {
 			case "1EdTech Certification":
 				String url = Subject.getServerUrl() + "/lti/registration?reg_code=" + rc.code;
 				buf.append("If everything above looks OK, you may proceed with registration. Your registration code is "
-					+ "<span style='font-weight:bold;font-size:1.2em;'>" + rc.code + "</span><p>"
+					+ "<span style='font-weight:bold;font-size:1.2em;'>" + escapeHtml(rc.code) + "</span><p>"
 					+ "Enter this on the registration page to continue the process and receive your LTI credentials. Or, you can use the link below to enter the code directly.<p>"
-					+ "<a href='" + url + "' class='btn btn-primary' >" + url + "</a><br/><br/>"
+					+ "<a href='" + escapeHtml(url) + "' class='btn btn-primary' >" + escapeHtml(url) + "</a><br/><br/>"
 					+ "The code and link are valid for 3 days.<br/><br/>");
 				break;
 			default: 
@@ -541,7 +542,7 @@ public class LTIRegistration extends HttpServlet {
 					+ "provided below, but you may need to edit them for your specific situation.<p>"
 					+ "<form method=post action=/lti/registration>"
 					+ "<input type=hidden name=UserRequest value='finalize'>"
-					+ "<input type=hidden name=reg_code value='" + rc.code + "' />");
+					+ "<input type=hidden name=reg_code value='" + escapeHtml(rc.code) + "' />");
 			
 			switch (rc.lms) {
 			case "blackboard":
@@ -598,18 +599,22 @@ public class LTIRegistration extends HttpServlet {
 			buf.append("<input type=submit value='Complete the LTI Registration'></form>");	
 		} catch (Exception e) {
 			buf.append("<h3>Registration Failed</h3>"
-					+ e.getMessage() + "<p>"
-					+ "Name: " + rc.name + "<br/>"
-					+ "Email: " + rc.email + "<br/>"
-					+ "Organization: " + rc.org + "<br>"
-					+ "Home Page: " + rc.url + "<br/>"
-					+ "LMS: " + rc.lms + "<br/><br/>"
+					+ escapeHtml(e.getMessage()) + "<p>"
+					+ "Name: " + escapeHtml(rc.name) + "<br/>"
+					+ "Email: " + escapeHtml(rc.email) + "<br/>"
+					+ "Organization: " + escapeHtml(rc.org) + "<br>"
+					+ "Home Page: " + escapeHtml(rc.url) + "<br/>"
+					+ "LMS: " + escapeHtml(rc.lms) + "<br/><br/>"
 					+ "The registration code provided with this link could not be validated. It may have expired (after 3 days) "
 					+ "or it may not have contained enough information to complete the registration request. You "
 					+ "may <a href=/lti/registration>get a new token</a> by restarting the registration, or contact "
 					+ "Chuck Wight (admin@chemvantage.org) for assistance.");
 		}		
 		return buf.toString();
+	}
+
+	private static String escapeHtml(String value) {
+		return HtmlUtils.htmlEscape(value == null ? "" : value);
 	}
 	
 	String createDeployment(HttpServletRequest request, RegistrationCode rc) throws Exception {

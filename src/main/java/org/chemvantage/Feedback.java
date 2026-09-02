@@ -24,6 +24,8 @@ import java.io.*;
 import java.util.Date;
 import java.util.Map;
 
+import org.springframework.web.util.HtmlUtils;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -74,9 +76,9 @@ public class Feedback extends HttpServlet {
 					String[] sparams = request.getParameter("Params").replace("[","").replace("]","").replaceAll("\\s", "").split(",");
 					for (int i=0;i<sparams.length;i++) params[i]=Integer.parseInt(sparams[i]);
 				} catch (Exception e) {}
-				String notes = request.getParameter("Notes");
-				String email = request.getParameter("Email");
-				String studentAnswer = request.getParameter("StudentAnswer");
+				String notes = HtmlUtils.htmlEscape(request.getParameter("Notes"));
+				String email = HtmlUtils.htmlEscape(request.getParameter("Email"));
+				String studentAnswer = HtmlUtils.htmlEscape(request.getParameter("StudentAnswer"));
 				UserReport r = new UserReport(userId,questionId,params,studentAnswer,notes);
 				ofy().save().entity(r);
 				sendEmailToAdmin(r,user,email);

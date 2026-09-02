@@ -23,6 +23,9 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.ThreadLocalRandom;
+
+import org.springframework.web.util.HtmlUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -552,7 +555,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 						+ "<INPUT TYPE=HIDDEN NAME=ConceptId VALUE='" + c.id + "' />");
 				buf.append("<TR>"
 						+ "<TD ALIGN=CENTER><INPUT NAME=OrderBy SIZE=4 VALUE='" + c.orderBy + "' /></TD>"
-						+ "<TD ALIGN=CENTER><INPUT NAME=Title VALUE='" + Question.quot2html(c.title) + "' /></TD>"
+						+ "<TD ALIGN=CENTER><INPUT NAME=Title VALUE='" + HtmlUtils.htmlEscape(c.title) + "' /></TD>"
 						+ "<TD ALIGN=CENTER><INPUT TYPE=SUBMIT VALUE=Update />"
 						+ "<INPUT TYPE=SUBMIT VALUE='Delete' onClick=\"javascript: document.ConceptsForm" + c.id + ".UserRequest.value='DeleteConcept';\" />"
 						+ "</TD></FORM>"
@@ -1829,9 +1832,9 @@ void assignToConcept(User user, HttpServletRequest request) {
 			for (Text text : texts) {
 				buf.append("<FORM ACTION=Edit METHOD=POST>"
 						+ "<INPUT TYPE=HIDDEN NAME=TextId VALUE=" + text.id + " />"
-						+ "<TR><TD><INPUT TYPE=TEXT NAME=Title VALUE='" + Question.quot2html(text.title) + "' /></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=Author VALUE='" + Question.quot2html(text.author) + "' /></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=Publisher VALUE='" + Question.quot2html(text.publisher) + "' /></TD>"
+						+ "<TR><TD><INPUT TYPE=TEXT NAME=Title VALUE='" + HtmlUtils.htmlEscape(text.title) + "' /></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=Author VALUE='" + HtmlUtils.htmlEscape(text.author) + "' /></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=Publisher VALUE='" + HtmlUtils.htmlEscape(text.publisher) + "' /></TD>"
 						+ "<TD><INPUT TYPE=TEXT NAME=URL VALUE='" + text.URL + "' /></TD>"
 						+ "<TD><INPUT TYPE=TEXT NAME=ImgURL VALUE='" + text.imgUrl + "' /></TD>"
 						+ "<TD><INPUT TYPE=TEXT NAME=PrintCopyURL VALUE='" + text.printCopyUrl + "' /></TD>"
@@ -1968,7 +1971,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 							+ "<INPUT TYPE=HIDDEN NAME=TopicId VALUE='" + t.id + "'>");
 					buf.append("\n<TR>"
 							+ "<TD ALIGN=CENTER><INPUT NAME=OrderBy SIZE=4 VALUE='" + t.orderBy + "'> (" + ofy().load().type(Assignment.class).filter("topicId",t.id).count() + ")</TD>"
-							+ "<TD ALIGN=CENTER><INPUT NAME=Title VALUE='" + Question.quot2html(t.title) + "'></TD>"
+							+ "<TD ALIGN=CENTER><INPUT NAME=Title VALUE='" + HtmlUtils.htmlEscape(t.title) + "'></TD>"
 							+ "<TD ALIGN=CENTER><INPUT TYPE=SUBMIT VALUE=Update>"
 							+ ((nQuiz==0 && nHW==0 && nExam==0 && nVideo==0)?"<INPUT TYPE=SUBMIT VALUE='Delete' "
 									+ "onClick=\"javascript: document.TopicsForm" + t.id + ".UserRequest.value='DeleteTopic';\" />":"")
@@ -2301,7 +2304,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 				buf.append("<FORM ACTION=Edit METHOD=POST>"
 						+ "<INPUT TYPE=HIDDEN NAME=VideoId VALUE='" + v.id + "'>"
 						+ "<TR><TD><INPUT TYPE=TEXT NAME=OrderBy VALUE='" + v.orderBy + "'></TD>"
-						+ "<TD><INPUT TYPE=TEXT NAME=Title VALUE='" + Question.quot2html(v.title) + "'></TD>"
+						+ "<TD><INPUT TYPE=TEXT NAME=Title VALUE='" + HtmlUtils.htmlEscape(v.title) + "'></TD>"
 						+ "<TD>" + v.serialNumber + "</TD>"
 						+ "<TD>" + (v.breaks==null?"0":v.breaks.length) + "</TD>"
 						+ "<TD>" + (v.questionKeys==null?0:v.questionKeys.size()) + "</TD>"
