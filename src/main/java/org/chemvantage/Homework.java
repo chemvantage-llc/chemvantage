@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -55,6 +57,7 @@ public class Homework extends HttpServlet {
 
 	@Serial
 	private static final long serialVersionUID = 137L;	
+	private static final Logger logger = Logger.getLogger(Homework.class.getName());
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
@@ -119,7 +122,7 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Instructor":
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			default:
 				long hintQuestionId = 0L;
@@ -144,11 +147,24 @@ public class Homework extends HttpServlet {
 		boolean isJsonRequest = "ValidateQuestionWithAI".equals(userRequest);
 		response.setContentType(isJsonRequest ? "application/json" : "text/html");
 		PrintWriter out = response.getWriter();
+		User user;
 
 		try {
-			User user = User.getUser(request.getParameter("sig"));
+			user = User.getUser(request.getParameter("sig"));
 			if (user==null) throw new Exception("Invalid user token (may have expired).");
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			if (isJsonRequest) {
+				JsonObject errorResponse = new JsonObject();
+				errorResponse.addProperty("message", "Invalid or expired user token.");
+				out.println(errorResponse);
+			} else {
+				out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+			}
+			return;
+		}
 
+		try {
 			if (isJsonRequest) {
 				out.println(validateQuestionItemWithAI(user,request));
 				return;
@@ -160,12 +176,12 @@ public class Homework extends HttpServlet {
 			switch (userRequest) {
 			case "UpdateAssignment":
 				if (a!=null) a.updateConceptQuestions(user,request);
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Save New Title":
 				if (a!=null) a.title = request.getParameter("AssignmentTitle");
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Set Allowed Attempts":
 				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
@@ -176,13 +192,13 @@ public class Homework extends HttpServlet {
 					a.attemptsAllowed = null;
 				}
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Set Scoring Method":
 				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
 				a.scoreWork = Boolean.parseBoolean(request.getParameter("ScoreWork"));
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Save Question":
 				saveQuestion(user,request);
@@ -199,14 +215,14 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Synchronize Scores":
-				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				else out.println("Synchronization request failed for assignment " + aId + ".");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
 				//Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "IncludeCustomQuestions":
 				if (user.isInstructor()) {
@@ -224,19 +240,22 @@ public class Homework extends HttpServlet {
 							ofy().save().entity(a).now();
 						}
 					} catch (Exception e) {}
-					out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			default: out.println(Subject.header("ChemVantage Homework Results") + printScore(user,a,request) + Subject.footer);
 			}
 		} catch (Exception e) {
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			logger.log(Level.SEVERE, "Homework POST failed after user authentication for user " + user.getId(), e);
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			if (isJsonRequest) {
 				JsonObject errorResponse = new JsonObject();
-				errorResponse.addProperty("message", e.getMessage()==null?e.toString():e.getMessage());
+				errorResponse.addProperty("message", "The request could not be completed. Please try again.");
 				out.println(errorResponse);
 			} else {
-				out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+				out.println(Subject.header() + "<h1>Homework submission failed</h1>"
+						+ "The request could not be completed. Please try again."
+						+ Subject.footer);
 			}
 		}
 	}
@@ -329,9 +348,9 @@ public class Homework extends HttpServlet {
 		ofy().save().entity(a).now();
 	}
 	
-	static String instructorPage(User user,Assignment a) {
+	static String instructorPage(User user) {
 		if (!user.isInstructor()) return "<h2>You must be logged in as an instructor to view this page</h2>";
-		
+		Assignment a = ofy().load().type(Assignment.class).id	(user.getAssignmentId()).safe();
 		StringBuffer buf = new StringBuffer();		
 		try {
 			buf.append(Subject.privacyPolicyBanner());
@@ -1761,7 +1780,7 @@ public class Homework extends HttpServlet {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
 				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
+				return instructorPage(user);
 			} else {
 				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")

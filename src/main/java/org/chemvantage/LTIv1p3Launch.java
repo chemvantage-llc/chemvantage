@@ -431,28 +431,28 @@ public class LTIv1p3Launch extends HttpServlet {
 		if (user.isInstructor()) {
 			switch(myAssignment.assignmentType) {
 			case "Quiz":
-				out.println(Subject.header("Instructor Page") + Quiz.instructorPage(user, myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + Quiz.instructorPage(user) + Subject.footer);
 				break;
 			case "Homework":
-				out.println(Subject.header("Instructor Page") + Homework.instructorPage(user, myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + Homework.instructorPage(user) + Subject.footer);
 				break;
 			case "PracticeExam":
-				out.println(Subject.header("Instructor Page") + PracticeExam.instructorPage(user, myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + PracticeExam.instructorPage(user) + Subject.footer);
 				break;
 			case "PlacementExam":
-				out.println(Subject.header("Instructor Page") + PlacementExam.instructorPage(user, myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + PlacementExam.instructorPage(user) + Subject.footer);
 				break;
 			case "SmartText":
-				out.println(Subject.header("Instructor Page") + SmartText.instructorPage(user, myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + SmartText.instructorPage(user) + Subject.footer);
 				break;
 			case "Poll":
-				out.println(Subject.header("Instructor Page") + Poll.instructorPage(user,myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + Poll.instructorPage(user) + Subject.footer);
 				break;
 			case "VideoQuiz":
-				out.println(Subject.header("Instructor Page") + VideoQuiz.instructorPage(user,myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + VideoQuiz.instructorPage(user) + Subject.footer);
 				break;
 			case "Sage":
-				out.println(Subject.header("Instructor Page") + Sage.instructorPage(user,myAssignment) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + Sage.instructorPage(user) + Subject.footer);
 				break;
 			default: return;
 			}

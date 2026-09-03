@@ -113,7 +113,7 @@ public class PracticeExam extends HttpServlet {
 			case "UpdateAssignment":
 				if (a != null) {
 					a.updateQuestions(request);
-					out.println(Subject.header("ChemVantage Practice Exam") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("ChemVantage Practice Exam") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			case "Submit Revised Exam Score":
@@ -139,7 +139,7 @@ public class PracticeExam extends HttpServlet {
 						a.timeAllowed = 3600;
 					}
 					ofy().save().entity(a).now();
-					out.println(Subject.header("ChemVantage Practice Exam") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("ChemVantage Practice Exam") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			case "Set Allowed Attempts":
@@ -151,7 +151,7 @@ public class PracticeExam extends HttpServlet {
 						a.attemptsAllowed = null;
 					}
 					ofy().save().entity(a).now();
-					out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			case "Set Password":
@@ -159,7 +159,7 @@ public class PracticeExam extends HttpServlet {
 					a.password = request.getParameter("ExamPassword");
 					if (a.password != null) a.password = a.password.trim();
 					ofy().save().entity(a).now();
-					out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			default: out.println(Subject.header("ChemVantage Practice Exam Results") + printScore(user,a,request) + Subject.footer);
@@ -169,7 +169,11 @@ public class PracticeExam extends HttpServlet {
 		}
 	}
 
-	static String instructorPage(User user,Assignment a) {
+	static String instructorPage(User user) {
+		if (!user.isInstructor()) return "<h2>You must be logged in as an instructor to view this page</h2>";
+		
+		Assignment a = ofy().load().type(Assignment.class).id	(user.getAssignmentId()).safe();
+		
 		StringBuffer buf = new StringBuffer();		
 		try {
 			buf.append(Subject.privacyPolicyBanner());

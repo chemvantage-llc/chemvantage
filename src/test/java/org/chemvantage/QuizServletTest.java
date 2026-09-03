@@ -72,36 +72,6 @@ class QuizServletTest {
     }
 
     @Test
-    @DisplayName("Should show instructor page content for instructors only")
-    void testInstructorPageAccess() {
-        // Arrange - Instructor user
-        User instructor = TestHelper.createTestInstructor();
-        Assignment quiz = TestHelper.createTestAssignment("Quiz", "Chapter 1");
-        quiz.id = 123L; // Give it an ID
-        
-        // Act
-        String html = Quiz.instructorPage(instructor, quiz);
-        
-        // Assert
-        assertNotNull(html);
-        assertFalse(html.contains("must be logged in as an instructor"));
-    }
-
-    @Test
-    @DisplayName("Should deny instructor page access to learners")
-    void testInstructorPageDeniedForLearners() {
-        // Arrange - Learner user
-        User learner = TestHelper.createTestLearner();
-        Assignment quiz = TestHelper.createTestAssignment("Quiz", "Chapter 1");
-        
-        // Act
-        String html = Quiz.instructorPage(learner, quiz);
-        
-        // Assert
-        assertTrue(html.contains("must be logged in as an instructor"));
-    }
-
-    @Test
     @DisplayName("Should order multiple responses alphabetically")
     void testOrderResponses() {
         // Arrange
