@@ -119,7 +119,7 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Instructor":
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			default:
 				long hintQuestionId = 0L;
@@ -160,12 +160,12 @@ public class Homework extends HttpServlet {
 			switch (userRequest) {
 			case "UpdateAssignment":
 				if (a!=null) a.updateConceptQuestions(user,request);
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Save New Title":
 				if (a!=null) a.title = request.getParameter("AssignmentTitle");
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Set Allowed Attempts":
 				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
@@ -176,13 +176,13 @@ public class Homework extends HttpServlet {
 					a.attemptsAllowed = null;
 				}
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Set Scoring Method":
 				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
 				a.scoreWork = Boolean.parseBoolean(request.getParameter("ScoreWork"));
 				ofy().save().entity(a).now();
-				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "Save Question":
 				saveQuestion(user,request);
@@ -199,14 +199,14 @@ public class Homework extends HttpServlet {
 				out.println(Subject.header() + previewQuestion(user,request) + Subject.footer);
 				break;
 			case "Synchronize Scores":
-				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
 				else out.println("Synchronization request failed for assignment " + aId + ".");
 				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
 				//Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			case "IncludeCustomQuestions":
 				if (user.isInstructor()) {
@@ -224,7 +224,7 @@ public class Homework extends HttpServlet {
 							ofy().save().entity(a).now();
 						}
 					} catch (Exception e) {}
-					out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+					out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				}
 				break;
 			default: out.println(Subject.header("ChemVantage Homework Results") + printScore(user,a,request) + Subject.footer);
@@ -329,9 +329,9 @@ public class Homework extends HttpServlet {
 		ofy().save().entity(a).now();
 	}
 	
-	static String instructorPage(User user,Assignment a) {
+	static String instructorPage(User user) {
 		if (!user.isInstructor()) return "<h2>You must be logged in as an instructor to view this page</h2>";
-		
+		Assignment a = ofy().load().type(Assignment.class).id	(user.getAssignmentId()).safe();
 		StringBuffer buf = new StringBuffer();		
 		try {
 			buf.append(Subject.privacyPolicyBanner());
@@ -1761,7 +1761,7 @@ public class Homework extends HttpServlet {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
 				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
+				return instructorPage(user);
 			} else {
 				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")

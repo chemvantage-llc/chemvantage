@@ -109,17 +109,17 @@ public class SmartText extends HttpServlet {
                         ofy().save().entity(a).now();
                     } catch (Exception e) {}
                 }
-                out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a,"Changes saved successfully.") + Subject.footer);
+                out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,"Changes saved successfully.") + Subject.footer);
                 break;
             case "Synchronize Scores":
-                if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
+                if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user) + Subject.footer);
                 else out.println("Synchronization request failed.");
                 break;
             case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
                 //Utilities.synchronizeScores(user,a);
 				reviewScores(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			default:
             }
@@ -129,13 +129,15 @@ public class SmartText extends HttpServlet {
         }
     }
 
-	static String instructorPage(User user,Assignment a) {
-        return instructorPage(user,a,"");
+	static String instructorPage(User user) {
+        return instructorPage(user,"");
     }
 
-    static String instructorPage(User user,Assignment a,String msg) {
+    static String instructorPage(User user,String msg) {
         if (!user.isInstructor()) return "<h2>You must be logged in as an instructor to view this page</h2>";
-
+		
+		Assignment a = ofy().load().type(Assignment.class).id	(user.getAssignmentId()).safe();
+		
         StringBuilder buf = new StringBuilder();
         try {
             buf.append(Subject.privacyPolicyBanner());
@@ -560,7 +562,7 @@ public class SmartText extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+				if (!showDetails) buf.append("<form method=post action=/SmartText onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
 						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
 						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
@@ -571,10 +573,10 @@ public class SmartText extends HttpServlet {
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
+				Utilities.sendEmail("",instructorEmail,"ChemVantage SmartText Scores Report",buf.toString());
+				return instructorPage(user);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
+				buf.append("<form id='emailReportForm' method=post action=/SmartText onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
 						.append("<input type=hidden name=UserRequest value='Email Report' />")
 						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
@@ -642,7 +644,7 @@ public class SmartText extends HttpServlet {
                     + "number of scores to process. Please note that you may have to adjust the settings in your LMS to accept the "
                     + "revised scores. For example, in Canvas you may need to change the assignment settings to Unlimited Submissions. "
                     + "This may also cause the submission to be counted as late if the LMS assignment deadline has passed.<br/>"
-                    + "<form method=post action=/Homework >"
+                    + "<form method=post action=/SmartText >"
                     + "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
                     + "<input type=hidden name=UserRequest value='Synchronize Scores' />"
                     + "<input type=submit value='Synchronize Scores' />"

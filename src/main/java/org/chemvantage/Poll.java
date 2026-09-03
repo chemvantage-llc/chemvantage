@@ -92,7 +92,7 @@ public class Poll extends HttpServlet {
 				out.println(Subject.header() + editQuestion(user,request) + Subject.footer);
 				break;
 			default:
-				if (user.isInstructor()) out.println(Subject.header() + instructorPage(user,a) + Subject.footer);
+				if (user.isInstructor()) out.println(Subject.header() + instructorPage(user) + Subject.footer);
 				else {
 					if (a.pollIsClosed) out.println(Subject.header() + waitForPoll(user) + Subject.footer);
 					else out.println(Subject.header() + showPollQuestions(user,a,request) + Subject.footer);
@@ -126,7 +126,7 @@ public class Poll extends HttpServlet {
 				if (!user.isInstructor()) break;
 				a.pollIsClosed = true;
 				ofy().save().entity(a).now();
-				if ("InstructorPage".equals(request.getParameter("Destination"))) out.println(Subject.header() + instructorPage(user,a) + Subject.footer);
+				if ("InstructorPage".equals(request.getParameter("Destination"))) out.println(Subject.header() + instructorPage(user) + Subject.footer);
 				else out.println(Subject.header() + resultsPage(user,a) + Subject.footer);
 				break;
 			case "Open the Poll":
@@ -141,7 +141,7 @@ public class Poll extends HttpServlet {
 				try { a.pollClosesAt = new Date(new Date().getTime() + Long.parseLong(request.getParameter("TimeLimit"))*60000L); } catch (Exception e) { a.pollClosesAt = null; }
 				a.pollIsClosed = false;
 				ofy().save().entity(a).now();
-				out.println(Subject.header() + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header() + instructorPage(user) + Subject.footer);
 				break;
 			case "Save New Question":
 				if (!user.isInstructor()) break;
@@ -197,7 +197,7 @@ public class Poll extends HttpServlet {
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
 				//Utilities.synchronizeScores(user,a);
 				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
+				out.println(Subject.header("Instructor Page") + instructorPage(user) + Subject.footer);
 				break;
 			default:
 				doGet(request,response);
@@ -207,10 +207,12 @@ public class Poll extends HttpServlet {
 		}
 	}
 
-	static String instructorPage(User user,Assignment a) {
+	static String instructorPage(User user) {
 		StringBuffer buf = new StringBuffer();
 		
 		if (!user.isInstructor()) return "You must be an instructor to view this page.";
+		
+		Assignment a = ofy().load().type(Assignment.class).id	(user.getAssignmentId()).safe();
 		
 		buf.append(Subject.privacyPolicyBanner());
 		buf.append("<h1>Class Poll</h1><h2>Instructor Page</h2>");
@@ -1326,7 +1328,7 @@ public class Poll extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+				if (!showDetails) buf.append("<form method=post action=/Poll onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
 						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
 						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
@@ -1337,10 +1339,10 @@ public class Poll extends HttpServlet {
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
+				Utilities.sendEmail("",instructorEmail,"ChemVantage Poll Scores Report",buf.toString());
+				return instructorPage(user);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
+				buf.append("<form id='emailReportForm' method=post action=/Poll onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
 						.append("<input type=hidden name=UserRequest value='Email Report' />")
 						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
