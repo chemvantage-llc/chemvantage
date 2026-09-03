@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -55,6 +57,7 @@ public class Homework extends HttpServlet {
 
 	@Serial
 	private static final long serialVersionUID = 137L;	
+	private static final Logger logger = Logger.getLogger(Homework.class.getName());
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
@@ -144,11 +147,24 @@ public class Homework extends HttpServlet {
 		boolean isJsonRequest = "ValidateQuestionWithAI".equals(userRequest);
 		response.setContentType(isJsonRequest ? "application/json" : "text/html");
 		PrintWriter out = response.getWriter();
+		User user;
 
 		try {
-			User user = User.getUser(request.getParameter("sig"));
+			user = User.getUser(request.getParameter("sig"));
 			if (user==null) throw new Exception("Invalid user token (may have expired).");
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			if (isJsonRequest) {
+				JsonObject errorResponse = new JsonObject();
+				errorResponse.addProperty("message", "Invalid or expired user token.");
+				out.println(errorResponse);
+			} else {
+				out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+			}
+			return;
+		}
 
+		try {
 			if (isJsonRequest) {
 				out.println(validateQuestionItemWithAI(user,request));
 				return;
@@ -230,13 +246,16 @@ public class Homework extends HttpServlet {
 			default: out.println(Subject.header("ChemVantage Homework Results") + printScore(user,a,request) + Subject.footer);
 			}
 		} catch (Exception e) {
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			logger.log(Level.SEVERE, "Homework POST failed after user authentication for user " + user.getId(), e);
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			if (isJsonRequest) {
 				JsonObject errorResponse = new JsonObject();
-				errorResponse.addProperty("message", e.getMessage()==null?e.toString():e.getMessage());
+				errorResponse.addProperty("message", "The request could not be completed. Please try again.");
 				out.println(errorResponse);
 			} else {
-				out.println(Subject.header() + Logout.now(request,e) + Subject.footer);
+				out.println(Subject.header() + "<h1>Homework submission failed</h1>"
+						+ "The request could not be completed. Please try again."
+						+ Subject.footer);
 			}
 		}
 	}
