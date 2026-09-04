@@ -112,7 +112,8 @@ public class Feedback extends HttpServlet {
 				out.println(submitFeedback(user,request));
 				break;
 			case "Delete Report":
-				ofy().delete().key(key(UserReport.class,Long.parseLong(request.getParameter("ReportId")))).now();
+				if (user.isChemVantageAdmin()) ofy().delete().key(key(UserReport.class,Long.parseLong(request.getParameter("ReportId")))).now();
+				break;
 			default:
 				out.println(feedbackForm(user));
 			}
@@ -126,6 +127,7 @@ public class Feedback extends HttpServlet {
 		int stars = 0;
 		try {
 			stars = Integer.parseInt(request.getParameter("NStars"));
+			if (stars < 1 || stars > 5) throw new IllegalArgumentException("NStars must be between 1 and 5");
 			Subject.addStarReport(stars);
 		}
 		catch (Exception e) {
@@ -261,7 +263,8 @@ public class Feedback extends HttpServlet {
 			if (stars>0) Subject.addStarReport(stars);
 		} catch (Exception e) {}
 		
-		String comments = request.getParameter("Comments");
+		String comments = HtmlUtils.htmlEscape(request.getParameter("Comments"));
+		if (comments != null && comments.length() > 160) comments = comments.substring(0,160);
 		if (stars==0 && (comments == null || comments.isEmpty())) {
 			return feedbackForm(user);
 		}
@@ -293,7 +296,7 @@ public class Feedback extends HttpServlet {
 					+ "Please send your comments via email to admin@chemvantage.org.";
 		}
 		
-		if (comments.length() > 0) {
+		if (comments != null && comments.length() > 0) {
 			UserReport r = new UserReport(user.getId(),stars,comments);
 			if (riskScore >= 0) r.riskScore = riskScore;  // Store reCAPTCHA score if available
 			ofy().save().entity(r);
@@ -303,7 +306,7 @@ public class Feedback extends HttpServlet {
 		buf.append(new Date().toString() + "<p>");
 		buf.append("Thank you for your feedback" + (stars>0?" (" + stars + " stars)":"") + ". ");
 		
-		if (comments.length() > 0) {
+		if (comments != null && comments.length() > 0) {
 			buf.append("Your comment was: <p><font color=red>" + comments + "</font><p>");
 		
 			if (email==null) buf.append("We will review your comment, but we're unable to provide a response because you did not provide a valid email address.<p>");
@@ -420,7 +423,7 @@ public class Feedback extends HttpServlet {
 			String userId = user.getId();
 			String raw_id = userId.substring(userId.lastIndexOf("/")+1);  // userId according to the platform
 			String[] member = members.get(raw_id);
-			if (member[1]!=null && !member[1].isEmpty()) name=member[1];
+			if (member[1]!=null && !member[1].isEmpty()) name=HtmlUtils.htmlEscape(member[1]);
 			if (member[2]!=null && !member[2].isEmpty()) email = member[2];
 		} catch (Exception e) {}
 
