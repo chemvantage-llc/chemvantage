@@ -113,6 +113,7 @@ public class Feedback extends HttpServlet {
 				break;
 			case "Delete Report":
 				if (user.isChemVantageAdmin()) ofy().delete().key(key(UserReport.class,Long.parseLong(request.getParameter("ReportId")))).now();
+				out.println(feedbackForm(user));
 				break;
 			default:
 				out.println(feedbackForm(user));
@@ -174,13 +175,18 @@ public class Feedback extends HttpServlet {
 				+ "<a href=https://policies.google.com/privacy>Privacy Policy</a> and <a href=https://policies.google.com/terms>Terms of Service</a>.<br/><br/>"
 				+ "<script src='https://www.google.com/recaptcha/enterprise.js?render=" + Subject.getReCaptchaKey() + "'></script>\n"
 				+ "<script>"
-				+ "  function onSubmit(token) { "
-				+ "    document.getElementById('g-recaptcha-response').value = token; "
-				+ "    document.getElementById('FeedbackForm').submit(); "
+				+ "  function submitFeedbackForm(e) { "
+				+ "    e.preventDefault(); "
+				+ "    grecaptcha.enterprise.ready(function() { "
+				+ "      grecaptcha.enterprise.execute('" + Subject.getReCaptchaKey() + "', {action: 'submitFeedback'}).then(function(token) { "
+				+ "        document.getElementById('g-recaptcha-response').value = token; "
+				+ "        document.getElementById('FeedbackForm').submit(); "
+				+ "      }); "
+				+ "    }); "
 				+ "  }"
     			+ "</script>"
 				+ "<input type='hidden' id='g-recaptcha-response' name='g-recaptcha-response' />"
-				+ "<button class='g-recaptcha btn btn-primary' data-sitekey='" + Subject.getReCaptchaKey() + "' data-callback='onSubmit' data-action='submitFeedback'>"
+				+ "<button type='button' class='btn btn-primary' onclick='submitFeedbackForm(event)'>"
 				+ "Submit Comment"
 				+ "</button></FORM>");				
 		} else buf.append("<INPUT CLASS='btn btn-primary' TYPE=SUBMIT VALUE='Submit Comment'></FORM>");
@@ -371,38 +377,7 @@ public class Feedback extends HttpServlet {
       		return recaptchaScore;
     	} 
 	}
-/*
-	boolean reCaptchaOK(HttpServletRequest request) throws Exception {
-		OutputStreamWriter writer = null;
-		BufferedReader reader = null;
-		JsonObject captchaResponse = null;
-		try {
-			String queryString = "secret=" + Subject.getReCaptchaSecret() + "&response=" 
-					+ request.getParameter("g-recaptcha-response") + "&remoteip=" + request.getRemoteAddr();
-			URL u = new URI("https://www.google.com/recaptcha/api/siteverify").toURL();
-			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-			uc.setDoOutput(true);
-			uc.setRequestMethod("POST");
-			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
-			uc.setRequestProperty("Content-Length", String.valueOf(queryString.length()));
 
-			writer = new OutputStreamWriter(uc.getOutputStream());
-			writer.write(queryString);
-			writer.flush();
-			writer.close();
-
-			// read & interpret the JSON response from Google
-			reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-			captchaResponse = JsonParser.parseReader(reader).getAsJsonObject();
-			reader.close();
-		} catch (Exception e) {
-		} finally {
-			if (writer != null) writer.close();
-			if (reader != null) reader.close();
-		}
-		return captchaResponse != null && captchaResponse.get("success").getAsBoolean();
-	}
-*/
 	String viewUserFeedback(User user) {
 		StringBuffer buf = new StringBuffer();
 		Query<UserReport> reports = ofy().load().type(UserReport.class).order("-submitted");		
