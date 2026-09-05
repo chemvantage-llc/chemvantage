@@ -506,6 +506,18 @@ public class Homework extends HttpServlet {
 		return nAttempts == hwa.attemptsAllowed;
 	}
 
+	String numericStudentAnswer(String studentAnswer) {
+		/* Recursively chop off the last character until a valid numeric answer is obtained */
+		if (studentAnswer == null || studentAnswer.isBlank()) return studentAnswer;
+		try {
+			Double.parseDouble(studentAnswer);
+			return studentAnswer; // valid numeric answer
+		} catch (NumberFormatException e) {
+			String chopped = numericStudentAnswer(studentAnswer.substring(0, studentAnswer.length() - 1));
+			return (chopped.isBlank()?studentAnswer:chopped);
+		}
+	}
+
 	String newQuestionForm(User user,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<h1>Create Custom Homework Question</h1>");
 		if (!user.isInstructor()) return null;
@@ -1076,6 +1088,7 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
+				studentAnswer = numericStudentAnswer(studentAnswer);
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 				break;
 			case 6:  // Handle five-star rating response
@@ -1208,8 +1221,7 @@ public class Homework extends HttpServlet {
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question
 					try {
-						@SuppressWarnings("unused")
-						double dAnswer = Double.parseDouble(q.parseString(studentAnswer));  // throws exception for non-numeric answer
+						Double.parseDouble(studentAnswer);  // throws exception for non-numeric answer
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
@@ -1223,8 +1235,7 @@ public class Homework extends HttpServlet {
 								+ "<p class='explanation-text'>"
 								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
 								+ "</p>");
-					}
-					catch (Exception e2) {
+					} catch (Exception e2) {
 						buf.append("<div class='status-text'>Wrong Format</div>"
 								+ "<p class='explanation-text'>"
 								+ "This question requires a numeric response expressed as an integer, decimal number, "
