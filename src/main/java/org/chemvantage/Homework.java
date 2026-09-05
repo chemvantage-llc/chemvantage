@@ -63,11 +63,6 @@ public class Homework extends HttpServlet {
 		return "This servlet presents a homework assignment for the user.";
 	}
 
-	private static boolean isBlankStructureSubmission(String submittedStructure) {
-		if (submittedStructure == null || submittedStructure.isBlank()) return true;
-		return EMPTY_V2000_MOLFILE.matcher(submittedStructure).find() || EMPTY_V3000_MOLFILE.matcher(submittedStructure).find();
-	}
-
 	public void doGet(HttpServletRequest request,HttpServletResponse response)
 	throws ServletException, IOException {
 		
@@ -307,6 +302,50 @@ public class Homework extends HttpServlet {
 		return q;
 	}
 	
+	String attemptTooSoon(User user,Assignment hwa,Question q,String qn,String qAnchor,String showWork,String studentAnswer) {
+		StringBuffer buf = new StringBuffer();
+		Date now = new Date();
+		Date minutesAgo = new Date(now.getTime()-retryDelayMinutes*60000);  // about 1 minute ago
+		HWTransaction lastTransaction = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("questionId",q.id).filter("graded >",minutesAgo).first().now();
+		if (lastTransaction==null || lastTransaction.score>0) return null;
+		long secondsRemaining = retryDelayMinutes*60 - (now.getTime()-lastTransaction.graded.getTime())/1000L;
+
+		buf.append("<h2>Please Wait For The Retry Delay To Complete</h2>");
+		buf.append("<span id=timer0 style='color: #EE0000'></span><br/>");
+		buf.append("Please take these few moments to check your work carefully.  You can sometimes find alternate routes to the "
+				+ "same solution, or it may be possible to use your answer to back-calculate the data given in the problem.<br/><br/>");
+		buf.append("<FORM NAME=Homework METHOD=POST ACTION=Homework onsubmit=waitForRetryScore(); >"
+				+ "<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" +(hwa.id==null?0:hwa.id) + "'>"
+				+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
+				+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>"
+				+ (qAnchor==null||qAnchor.isBlank()?"":"<input type=hidden name=QAnchor value='" + qAnchor + "' />")
+				+ (qn==null?"":"<input type=hidden name=QNumber value=" + qn + " />")  // this is the assigned question number on the page
+				+ q.print(showWork,studentAnswer,null,hwa.scoreWork) + "<br>");
+
+		buf.append("<INPUT TYPE='submit' id='RetryButton' class='btn btn-primary' DISABLED=true VALUE='Please wait' /></FORM><br/><br/>");
+		buf.append("<script>"
+				+ "startTimers(" + (secondsRemaining*1000L) + ");"
+				+ "function timesUp() {"
+				+ "document.getElementById('RetryButton').disabled=false;"
+				+ "document.getElementById('RetryButton').value='Grade This Exercise';"
+				+ "}"
+				+ "</script>");
+
+		return buf.toString();
+	}
+
+	String conceptDropDownBox(Long conceptId) {
+		StringBuffer buf = new StringBuffer();
+		buf.append("<SELECT NAME=ConceptId><OPTION VALUE=''>Select a concept (optional)</OPTION>");
+		List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
+		for (Concept c : concepts) {
+			if (c.orderBy.startsWith(" 0")) continue;  // skip the "hidden" concepts
+			buf.append("<OPTION VALUE=" + c.id + (c.id.equals(conceptId)?" SELECTED>":">") + c.title + "</OPTION>");
+		}
+		buf.append("</SELECT>");
+		return buf.toString();
+	}
+
 	void deleteQuestion(User user, HttpServletRequest request) {
 		if (!user.isInstructor()) return;
 		Question q = null;
@@ -456,6 +495,17 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
+	private static boolean isBlankStructureSubmission(String submittedStructure) {
+		if (submittedStructure == null || submittedStructure.isBlank()) return true;
+		return EMPTY_V2000_MOLFILE.matcher(submittedStructure).find() || EMPTY_V3000_MOLFILE.matcher(submittedStructure).find();
+	}
+
+	boolean isFinalAttempt(User user, Assignment hwa, Long questionId) {
+		if (hwa==null || user.isInstructor() || hwa.attemptsAllowed == null || !hwa.questionKeys.contains(key(Question.class,questionId))) return false;
+		int nAttempts = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).filter("questionId",questionId).count();
+		return nAttempts == hwa.attemptsAllowed;
+	}
+
 	String newQuestionForm(User user,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<h1>Create Custom Homework Question</h1>");
 		if (!user.isInstructor()) return null;
@@ -635,29 +685,6 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 
-	JsonObject validateQuestionItemWithAI(User user, HttpServletRequest request) throws Exception {
-		if (!user.isInstructor()) throw new Exception("You must be an instructor for this.");
-		// always build the question from the form's current field values, so unsaved edits are validated
-		Question q = assembleQuestion(request);
-		try {
-			long parameterSeed = Long.parseLong(request.getParameter("ParameterSeed"));
-			if (q.requiresParser()) q.setParameters(parameterSeed);
-		} catch (Exception e) {}
-
-		JsonObject api_response = Edit.requestValidationFromGemini(q);
-		boolean isCorrect = api_response.get("isCorrect").getAsBoolean() || q.isCorrect(api_response.get("best_answer").getAsString());
-		// persist the AI result onto the actual saved entity by updating only the AI fields,
-		// so unsaved edits to other fields are not written to the datastore
-		if (q.id != null) {
-			Question saved = ofy().load().type(Question.class).id(q.id).now();
-			if (saved != null) {
-				saved.checkedByAI = isCorrect;
-				ofy().save().entity(saved).now();
-			}
-		}
-		return api_response;
-	}
-
 	String printHomework(User user, Assignment hwa, long hintQuestionId, boolean showOptional) throws Exception  {
 		StringBuffer buf = new StringBuffer();
 		StringBuffer debug = new StringBuffer("Debug: ");
@@ -812,8 +839,7 @@ public class Homework extends HttpServlet {
 						const emptyV2000Molfile = /\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000/;
 						const emptyV3000Molfile = /M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0/;
 
-						function isBlankStructureSubmission(submittedStructure) {
-							if (!submittedStructure || submittedStructure.trim() === '') return true;
+	function isBlankStructureSubmission(submittedStructure) {							if (!submittedStructure || submittedStructure.trim() === '') return true;
 							return emptyV2000Molfile.test(submittedStructure) || emptyV3000Molfile.test(submittedStructure);
 						}
 
@@ -1338,38 +1364,6 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
-	String attemptTooSoon(User user,Assignment hwa,Question q,String qn,String qAnchor,String showWork,String studentAnswer) {
-		StringBuffer buf = new StringBuffer();
-		Date now = new Date();
-		Date minutesAgo = new Date(now.getTime()-retryDelayMinutes*60000);  // about 1 minute ago
-		HWTransaction lastTransaction = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("questionId",q.id).filter("graded >",minutesAgo).first().now();
-		if (lastTransaction==null || lastTransaction.score>0) return null;
-		long secondsRemaining = retryDelayMinutes*60 - (now.getTime()-lastTransaction.graded.getTime())/1000L;
-		
-		buf.append("<h2>Please Wait For The Retry Delay To Complete</h2>");
-		buf.append("<span id=timer0 style='color: #EE0000'></span><br/>");
-		buf.append("Please take these few moments to check your work carefully.  You can sometimes find alternate routes to the "
-				+ "same solution, or it may be possible to use your answer to back-calculate the data given in the problem.<br/><br/>");
-		buf.append("<FORM NAME=Homework METHOD=POST ACTION=Homework onsubmit=waitForRetryScore(); >"
-				+ "<INPUT TYPE=HIDDEN NAME=AssignmentId VALUE='" +(hwa.id==null?0:hwa.id) + "'>"
-				+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
-				+ "<INPUT TYPE=HIDDEN NAME=QuestionId VALUE='" + q.id + "'>" 
-				+ (qAnchor==null||qAnchor.isBlank()?"":"<input type=hidden name=QAnchor value='" + qAnchor + "' />")
-				+ (qn==null?"":"<input type=hidden name=QNumber value=" + qn + " />")  // this is the assigned question number on the page
-				+ q.print(showWork,studentAnswer,null,hwa.scoreWork) + "<br>");
-
-		buf.append("<INPUT TYPE='submit' id='RetryButton' class='btn btn-primary' DISABLED=true VALUE='Please wait' /></FORM><br/><br/>");
-		buf.append("<script>"
-				+ "startTimers(" + (secondsRemaining*1000L) + ");"
-				+ "function timesUp() {"
-				+ "document.getElementById('RetryButton').disabled=false;"
-				+ "document.getElementById('RetryButton').value='Grade This Exercise';"
-				+ "}"
-				+ "</script>");
-
-		return buf.toString();
-	}
-	
 	String questionTypeDropDownBox(int questionType) {
 		StringBuffer buf = new StringBuffer();
 		buf.append("\n<SELECT NAME=QuestionType>"
@@ -1385,18 +1379,6 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
-	String conceptDropDownBox(Long conceptId) {
-		StringBuffer buf = new StringBuffer();
-		buf.append("<SELECT NAME=ConceptId><OPTION VALUE=''>Select a concept (optional)</OPTION>");
-		List<Concept> concepts = ofy().load().type(Concept.class).order("orderBy").list();
-		for (Concept c : concepts) {
-			if (c.orderBy.startsWith(" 0")) continue;  // skip the "hidden" concepts
-			buf.append("<OPTION VALUE=" + c.id + (c.id.equals(conceptId)?" SELECTED>":">") + c.title + "</OPTION>");
-		}
-		buf.append("</SELECT>");
-		return buf.toString();
-	}
-
 	static String reviewSubmissions(User user, Assignment a, String forUserId, String forUserName) {
 		StringBuffer buf = new StringBuffer();
 		StringBuffer debug = new StringBuffer("Debug: ");
@@ -1761,8 +1743,7 @@ public class Homework extends HttpServlet {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
 				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
-			} else {
+	return instructorPage(user,a);			} else {
 				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
 						.append("<input type=hidden name=UserRequest value='Email Report' />")
@@ -1786,12 +1767,6 @@ public class Homework extends HttpServlet {
 		return "Failed. Check assignment settings in the LMS.";
 	}
 
-	boolean isFinalAttempt(User user, Assignment hwa, Long questionId) {
-		if (hwa==null || user.isInstructor() || hwa.attemptsAllowed == null || !hwa.questionKeys.contains(key(Question.class,questionId))) return false;
-		int nAttempts = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).filter("questionId",questionId).count();
-		return nAttempts == hwa.attemptsAllowed;
-	}
-
 	String tooManyAttempts(User user, Assignment hwa, Long questionId) {
 		StringBuffer buf = new StringBuffer();
 		// Return null if anonymous user or instructor or attemptsAllowed==null or this is an optional question
@@ -1812,8 +1787,30 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
+	JsonObject validateQuestionItemWithAI(User user, HttpServletRequest request) throws Exception {
+		if (!user.isInstructor()) throw new Exception("You must be an instructor for this.");
+		// always build the question from the form's current field values, so unsaved edits are validated
+		Question q = assembleQuestion(request);
+		try {
+			long parameterSeed = Long.parseLong(request.getParameter("ParameterSeed"));
+			if (q.requiresParser()) q.setParameters(parameterSeed);
+		} catch (Exception e) {}
+
+		JsonObject api_response = Edit.requestValidationFromGemini(q);
+		boolean isCorrect = api_response.get("isCorrect").getAsBoolean() || q.isCorrect(api_response.get("best_answer").getAsString());
+		// persist the AI result onto the actual saved entity by updating only the AI fields,
+		// so unsaved edits to other fields are not written to the datastore
+		if (q.id != null) {
+			Question saved = ofy().load().type(Question.class).id(q.id).now();
+			if (saved != null) {
+				saved.checkedByAI = isCorrect;
+				ofy().save().entity(saved).now();
+			}
+		}
+		return api_response;
+	}
+
 	class SortBySuccessPct implements Comparator<Question> {
-		
 		SortBySuccessPct() {}
 		
 		public int compare(Question q1, Question q2) {
