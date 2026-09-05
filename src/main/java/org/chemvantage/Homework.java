@@ -38,6 +38,8 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
+import org.springframework.web.util.HtmlUtils;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -1241,6 +1243,7 @@ public class Homework extends HttpServlet {
 								+ "This question requires a numeric response expressed as an integer, decimal number, "
 								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
 								+ "was unable to recognize your answer as one of these types.<br/>"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					}
 					break;
