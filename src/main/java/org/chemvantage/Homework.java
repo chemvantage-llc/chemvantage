@@ -60,6 +60,7 @@ public class Homework extends HttpServlet {
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
+	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
 
 	public String getServletInfo() {
 		return "This servlet presents a homework assignment for the user.";
@@ -506,18 +507,6 @@ public class Homework extends HttpServlet {
 		if (hwa==null || user.isInstructor() || hwa.attemptsAllowed == null || !hwa.questionKeys.contains(key(Question.class,questionId))) return false;
 		int nAttempts = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).filter("questionId",questionId).count();
 		return nAttempts == hwa.attemptsAllowed;
-	}
-
-	String numericStudentAnswer(String studentAnswer) {
-		/* Recursively chop off the last character until a valid numeric answer is obtained */
-		if (studentAnswer == null || studentAnswer.isBlank()) return studentAnswer;
-		try {
-			Double.parseDouble(studentAnswer);
-			return studentAnswer; // valid numeric answer
-		} catch (NumberFormatException e) {
-			String chopped = numericStudentAnswer(studentAnswer.substring(0, studentAnswer.length() - 1));
-			return (chopped.isBlank()?studentAnswer:chopped);
-		}
 	}
 
 	String newQuestionForm(User user,HttpServletRequest request) {
@@ -1090,7 +1079,10 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
-				studentAnswer = numericStudentAnswer(studentAnswer);
+				studentAnswer = q.parseString(studentAnswer,0); // evaluate any numeric expression
+				// Extract the numeric part of the student's answer, if present
+				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+				if (matcher.find()) studentAnswer = matcher.group(1);  // discard trailing units
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 				break;
 			case 6:  // Handle five-star rating response
@@ -1227,15 +1219,18 @@ public class Homework extends HttpServlet {
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
 								+ "<p class='explanation-text'>"
 								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
 								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					} catch (Exception e2) {
 						buf.append("<div class='status-text'>Wrong Format</div>"
