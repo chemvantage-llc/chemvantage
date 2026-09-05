@@ -1069,9 +1069,8 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
-				studentAnswer = q.parseString(studentAnswer,0); // evaluate any numeric expression
-				// Extract the numeric part of the student's answer, if present
-				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+				// Extract the numeric part of the student's answer, removing whitespace and any trailing units
+				var matcher = NUMERIC_PREFIX.matcher(studentAnswer.replaceAll("\\s+", ""));
 				studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;  // discard trailing units or preserve nonnumeric text
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 				break;
