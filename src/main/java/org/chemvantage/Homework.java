@@ -998,6 +998,7 @@ public class Homework extends HttpServlet {
 		debug.append("User exp: " + new Date(User.encode(user.sig)) + "<br/>");
 		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.LONG,DateFormat.FULL);
 		Date now = new Date();
+		String originalStudentAnswer = null;
 		
 		String qn = null;
 		String qAnchor = null;
@@ -1019,19 +1020,8 @@ public class Homework extends HttpServlet {
 			q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 
 			String answerParam = Long.toString(questionId);
-			switch (q.getQuestionType()) {
-			case 6:
-				studentAnswer = request.getParameter(answerParam);
-				if (studentAnswer == null) studentAnswer = "";
-				break;
-			case 8:
-				studentAnswer = request.getParameter(answerParam);
-				if (studentAnswer == null) studentAnswer = "";
-				break;
-			default:
-				studentAnswer = orderResponses(request.getParameterValues(answerParam));
-			}
-
+			studentAnswer = originalStudentAnswer = orderResponses(request.getParameterValues(answerParam));
+			
 			qAnchor = request.getParameter("QAnchor");
 			boolean noResponseSubmitted;
 			switch (q.getQuestionType()) {
@@ -1082,7 +1072,7 @@ public class Homework extends HttpServlet {
 				studentAnswer = q.parseString(studentAnswer,0); // evaluate any numeric expression
 				// Extract the numeric part of the student's answer, if present
 				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
-				if (matcher.find()) studentAnswer = matcher.group(1);  // discard trailing units
+				studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;  // discard trailing units or preserve nonnumeric text
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 				break;
 			case 6:  // Handle five-star rating response
@@ -1219,18 +1209,18 @@ public class Homework extends HttpServlet {
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
 								+ "<p class='explanation-text'>"
 								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
 								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					} catch (Exception e2) {
 						buf.append("<div class='status-text'>Wrong Format</div>"
@@ -1238,7 +1228,7 @@ public class Homework extends HttpServlet {
 								+ "This question requires a numeric response expressed as an integer, decimal number, "
 								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
 								+ "was unable to recognize your answer as one of these types.<br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					}
 					break;
