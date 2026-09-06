@@ -6,6 +6,7 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.util.Closeable;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Note: Tests execute sequentially to ensure proper datastore isolation.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@EnabledIfEnvironmentVariable(named = "RUN_DATASTORE_INTEGRATION_TESTS", matches = "true")
 class ObjectifyIntegrationTest {
 
     private static LocalServiceTestHelper helper;
@@ -30,7 +32,13 @@ class ObjectifyIntegrationTest {
     static void setUpClass() {
         // Initialize Objectify once for all tests
         if (!objectifyInitialized) {
-            ObjectifyService.init();
+            try {
+                ObjectifyService.factory();
+            } catch (IllegalStateException e) {
+                System.setProperty("GOOGLE_CLOUD_PROJECT", "chemvantage-test");
+                ObjectifyService.init();
+                System.clearProperty("GOOGLE_CLOUD_PROJECT");
+            }
             ObjectifyService.register(Question.class);
             ObjectifyService.register(Assignment.class);
             ObjectifyService.register(User.class);
