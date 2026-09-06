@@ -34,7 +34,9 @@ class LTIIntegrationTest {
     static void setUpClass() {
         // Initialize Objectify and register Subject entity (needed for HMAC secret)
         if (!objectifyInitialized) {
+            System.setProperty("GOOGLE_CLOUD_PROJECT", "chemvantage-test");
             ObjectifyService.init();
+            System.clearProperty("GOOGLE_CLOUD_PROJECT");
             ObjectifyService.register(Subject.class);
             objectifyInitialized = true;
         }
@@ -55,9 +57,7 @@ class LTIIntegrationTest {
     void setUp() {
         // Set up in-memory datastore for each test
         helper = new LocalServiceTestHelper(
-            new LocalDatastoreServiceTestConfig()
-                .setNoStorage(true)
-        );
+            new LocalDatastoreServiceTestConfig().setNoStorage(true));
         helper.setUp();
         session = ObjectifyService.begin();
         
@@ -67,12 +67,8 @@ class LTIIntegrationTest {
         testPlatformId = "https://test-platform.example.com";
         testUserId = "testuser123";
         
-        // Now use actual Subject HMAC secret from datastore
-        try {
-            algorithm = Algorithm.HMAC256(Subject.getHMAC256Secret());
-        } catch (Exception e) {
-            // Handle in actual implementation
-        }
+        // JWT tests use a deterministic secret instead of requiring Secret Manager.
+        algorithm = Algorithm.HMAC256("chemvantage-lti-test-secret");
     }
     
     @AfterEach
