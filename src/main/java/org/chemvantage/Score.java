@@ -37,6 +37,7 @@ public class Score {    // this object represents a best score achieved by a use
 	@Parent Key<User> owner;
 	@Index	boolean lisReportComplete;
 			int score;
+			double homeworkScore;
 			int maxPossibleScore;
 			int numberOfAttempts;
 	@Index	Date mostRecentAttempt;
@@ -44,6 +45,7 @@ public class Score {    // this object represents a best score achieved by a use
 	Score() {
 		lisReportComplete=false;
 		score = 0;
+		homeworkScore = 0;
 		maxPossibleScore = 0;
 		numberOfAttempts = 0;
 		mostRecentAttempt = null;
@@ -90,9 +92,18 @@ public class Score {    // this object represents a best score achieved by a use
 				ofy().save().entity(a);
 			}
 			s.maxPossibleScore = a.questionKeys.size();
-			for (HWTransaction ht : hwTransactions) {				
+			List<Key<Question>> scoredQuestionKeys = new ArrayList<Key<Question>>();
+			for (HWTransaction ht : hwTransactions) {
 				s.numberOfAttempts++;
-				if (ht.score > 0 && assignmentQuestionKeys.remove(key(Question.class,ht.questionId))) s.score++; 
+				Key<Question> questionKey = key(Question.class,ht.questionId);
+				if (assignmentQuestionKeys.contains(questionKey) && !scoredQuestionKeys.contains(questionKey)) {
+					scoredQuestionKeys.add(questionKey);
+					double bestScore = 0;
+					for (HWTransaction attempt : hwTransactions) {
+						if (attempt.questionId == ht.questionId) bestScore = Math.max(bestScore, attempt.score);
+					}
+					s.homeworkScore += bestScore;
+				}
 				if (s.mostRecentAttempt == null || ht.graded.after(s.mostRecentAttempt)) s.mostRecentAttempt = ht.graded;  // most recent transaction
 			}
 			break;
@@ -166,6 +177,7 @@ public class Score {    // this object represents a best score achieved by a use
 		}
 		
 		if (s.score > s.maxPossibleScore) s.score = s.maxPossibleScore;  // max really is the limit for LTI reporting
+		if (s.homeworkScore > s.maxPossibleScore) s.homeworkScore = s.maxPossibleScore;
 		return s;
 	}
 		
@@ -194,11 +206,11 @@ public class Score {    // this object represents a best score achieved by a use
 	}
 	
 	public String getScore() {
-		return numberOfAttempts>0?Integer.toString(score):"-";
+		return numberOfAttempts>0?(homeworkScore>0?Double.toString(homeworkScore):Integer.toString(score)):"-";
 	}
 	
 	public double getPctScore() {
-		if (maxPossibleScore>0) return Math.round(1000.*score/maxPossibleScore)/10.;
+		if (maxPossibleScore>0) return Math.round(1000.*(homeworkScore>0?homeworkScore:score)/maxPossibleScore)/10.;
 		else return 0.;
 	}
 	
@@ -217,6 +229,7 @@ public class Score {    // this object represents a best score achieved by a use
     			&& s.assignmentId == this.assignmentId
     			&& s.owner.equals(this.owner)
     			&& s.score == this.score
+				&& s.homeworkScore == this.homeworkScore
     			&& s.maxPossibleScore == this.maxPossibleScore
     			&& s.numberOfAttempts == this.numberOfAttempts
     			&& s.mostRecentAttempt.equals(s.mostRecentAttempt);

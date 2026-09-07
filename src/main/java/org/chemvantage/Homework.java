@@ -1007,7 +1007,7 @@ public class Homework extends HttpServlet {
 		String studentAnswer = null;
 		JsonObject essay_score = new JsonObject(); // contains essay score and feedback
 		ChemicalStructureScorer.ComparisonResult structureComparison = null;
-		int studentScore = 0;
+		double studentScore = 0;
 		Score s = null;
 		
 		/*
@@ -1073,7 +1073,7 @@ public class Homework extends HttpServlet {
 				// Extract the numeric part of the student's answer, removing any trailing units
 				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
 				studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
-				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
+				studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctValue ? q.pointValue * 0.25 : 0);
 				break;
 			case 6:  // Handle five-star rating response
 				studentScore = q.pointValue;  // full marks for submitting a response
@@ -1424,8 +1424,8 @@ public class Homework extends HttpServlet {
 						if (t.studentAnswer==null) buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td colspan=2 style='padding-right:20px'>(response detail is unavailable)</td>");
 						else buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td style='padding-right:20px'>" + t.studentAnswer + "</td><td style='padding-right:20px'>" + t.correctAnswer + "</td>");
 						
-						if (t.score==1) buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
-						else if (q.agreesToRequiredPrecision(t.studentAnswer)) buf.append("<td><img src=/images/partCredit.png alt='partial credit' height=25 width=25></td>");
+						if (t.score==t.possibleScore) buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
+						else if (t.score>0) buf.append("<td><img src=/images/partCredit.png alt='partial credit' height=25 width=25></td>");
 						else buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
 						buf.append("</tr>");
 					}

@@ -523,6 +523,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		StringBuffer buf = new StringBuffer("<h2>PostUserScoreDebug</h2>");
 		try {
 			Assignment a = ofy().load().type(Assignment.class).id(s.assignmentId).safe();
+			if (a == null) throw new Exception("Assignment not found: " + s.assignmentId);
 			String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
 			buf.append("AssignmentId=" + (a==null?"unknown":a.id) + "<br/>");
 			String hashedId = Subject.hashId(userId);
@@ -543,9 +544,10 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
 			JsonObject j = new JsonObject();
 			j.addProperty("timestamp", sdf2.format(timestamp));
-			j.addProperty("scoreGiven", Double.valueOf(s.score));
+			double scoreGiven = "Homework".equals(a.assignmentType) ? s.homeworkScore : s.score;
+			j.addProperty("scoreGiven", scoreGiven);
 			j.addProperty("scoreMaximum", Double.valueOf(s.maxPossibleScore));
-			if (s.numberOfAttempts>0) j.addProperty("comment", "Attempt "+s.numberOfAttempts+": "+s.score+"/"+s.maxPossibleScore);
+			if (s.numberOfAttempts>0) j.addProperty("comment", "Attempt "+s.numberOfAttempts+": "+scoreGiven+"/"+s.maxPossibleScore);
 			j.addProperty("activityProgress", "Completed");
 			j.addProperty("gradingProgress", "FullyGraded");
 			j.addProperty("userId", raw_id);
