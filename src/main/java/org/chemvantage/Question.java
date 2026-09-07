@@ -658,7 +658,7 @@ public class Question implements Serializable, Cloneable {
 			switch (getQuestionType()) {
 			case 5: // Numeric Answer
 				buf.append("<b>The answer submitted was: " + escapeHtml(studentAnswer) + "</b>&nbsp;");
-				if (this.isCorrect(studentAnswer)) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
+				if (correctValue && correctSigFigs && correctWork) buf.append("&nbsp;<IMG SRC=/images/checkmark.png ALT='Check mark' align=bottom>");
 				else if (!correctValue) // check if the value is wrong
 						buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=middle>"
 						+ "<br/>Your answer must be within " + requiredPrecision + "% of the correct answer.");

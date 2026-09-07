@@ -1070,12 +1070,9 @@ public class Homework extends HttpServlet {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
 				studentAnswer = studentAnswer.replaceAll("\\s+", ""); // remove all whitespace from the student's answer
-				String parsed = q.parseString(studentAnswer,1);  // parse the student's answer as a mathematical expression; do not enforce sig figs
-				if (parsed.equals(studentAnswer)) { // studentAnswer is not a valid mathematical expression.
-					// Extract the numeric part of the student's answer, removing any trailing units
-					var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
-					studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
-				} else studentAnswer = parsed; // use the parsed version of the student's answer
+				// Extract the numeric part of the student's answer, removing any trailing units
+				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+				studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
 				studentScore = q.isCorrect(studentAnswer)?q.pointValue:0;
 				break;
 			case 6:  // Handle five-star rating response
@@ -1278,7 +1275,7 @@ public class Homework extends HttpServlet {
 
 			}
 			
-			buf.append(q.printAllToStudents(studentAnswer) + "<br/>");
+			buf.append(q.printAllToStudents(originalStudentAnswer) + "<br/>");
 			
 			if (q.getQuestionType()==7) { // ESSAY
 				int essayScore = essay_score.get("score").getAsInt();
