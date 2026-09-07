@@ -995,7 +995,7 @@ public class Homework extends HttpServlet {
 				}
 				</style>""");
 		StringBuffer debug = new StringBuffer("Homework.printScore...");
-		debug.append("User exp: " + new Date(User.encode(user.sig)) + "<br/>");
+		debug.append("User exp: " + user.exp + "<br/>");
 		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.LONG,DateFormat.FULL);
 		Date now = new Date();
 		String originalStudentAnswer = null;
