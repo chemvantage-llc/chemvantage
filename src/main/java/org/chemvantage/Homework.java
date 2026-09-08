@@ -200,10 +200,13 @@ public class Homework extends HttpServlet {
 				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				else out.println("Synchronization request failed for assignment " + aId + ".");
 				break;
+			case "Submit Revised Homework Score":
+				submitRevisedHomeworkScore(user,a,request);
+				out.println(Subject.header("Your Class ChemVantage Scores") + showSummary(user, a) + Subject.footer);
+				break;
 			case "Email Report":
 				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				//Utilities.synchronizeScores(user,a);
-				showSummary(user,a,true);
+				showSummary(user,a);
 				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
 			case "IncludeCustomQuestions":
@@ -1162,7 +1165,7 @@ public class Homework extends HttpServlet {
 			
 			if (!user.isAnonymous() && hwa != null) {
 				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),now,studentScore,hwa.id,q.pointValue,showWork);
-				ht.studentAnswer = studentAnswer;
+				ht.studentAnswer = originalStudentAnswer;
 				ht.correctAnswer = q.getCorrectAnswer();				
 				ofy().save().entity(ht).now();
 			
@@ -1379,11 +1382,13 @@ public class Homework extends HttpServlet {
 	}
 	
 	static String reviewSubmissions(User user, Assignment a, String forUserId, String forUserName) {
+
+		if (!user.isInstructor()) return "<h2>You must be logged in as an instructor to view this page</h2>";
+
 		StringBuffer buf = new StringBuffer();
 		StringBuffer debug = new StringBuffer("Debug: ");
 		try {
-			// this line restricts non-instructor users to viewing their own scores
-			String forUserHashedId = user.isInstructor()?Subject.hashId(forUserId):user.getHashedId();
+			String forUserHashedId = forUserId==null?user.getHashedId():Subject.hashId(forUserId);
 			
 			Map<Key<Question>,Question> questions = ofy().load().keys(a.questionKeys);
 			List<HWTransaction> transactions = ofy().load().type(HWTransaction.class).filter("userId",forUserHashedId).filter("assignmentId",a.id).order("-graded").list();
@@ -1392,6 +1397,11 @@ public class Homework extends HttpServlet {
 					+ (forUserName==null || forUserName.isEmpty()?"":"Name: " + forUserName + "<br/>")
 					+ "Assignment: " + a.title + "<br/>"
 					+ "Date: " + new Date() + "<br/><br/>");
+			buf.append("<form action=/Homework method=post>"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type=hidden name=StudentUserId value=" + forUserId + " />"
+					+ "<input type=hidden name=StudentUserName value=" + (forUserName==null?"":HtmlUtils.htmlEscape(forUserName)) + " />"
+					+ "<input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /><br/><br/>");
 			debug.append("0");
 			
 			buf.append("<table>");
@@ -1405,17 +1415,33 @@ public class Homework extends HttpServlet {
 				for (HWTransaction t : transactions) if (q.id.longValue() == t.questionId) qTransactions.add(t);
 				debug.append("2");
 				
-				String studentAnswer = null;
 				String showWork = null;
 				HWTransaction hwt = qTransactions.isEmpty()?null:qTransactions.get(0);
-				if (hwt!=null) {
-					showWork = hwt.showWork;
-					studentAnswer = hwt.studentAnswer;
+				if (hwt!=null) showWork = hwt.showWork;
+				double currentScore = 0;
+				HWTransaction latestOverride = null;
+				for (HWTransaction transaction : qTransactions) {
+					currentScore = Math.max(currentScore, transaction.score);
+					if (transaction.scoreOverride && (latestOverride == null || transaction.graded.after(latestOverride.graded))) latestOverride = transaction;
 				}
+				if (latestOverride != null) currentScore = latestOverride.score;
+				int rangeValue = q.pointValue == 0 ? 0 : (int)Math.round(4 * currentScore / q.pointValue);
+
 				debug.append("3");
 				
-				buf.append("<tr><td style='text-align:right;vertical-align:text-top;padding-right:10px;'><b>" + (a.questionKeys.indexOf(k)+1) + ".</b></td><td>" + q.printAllToStudents(studentAnswer,true,true,showWork) + "<br/></td></tr>");
+				// print the question itself
+				buf.append("<tr><td style='text-align:right;vertical-align:text-top;padding-right:10px;'><b>" + (a.questionKeys.indexOf(k)+1) + ".</b></td>"
+					//+ "<td>" + q.printAllToStudents(studentAnswer,true,true,showWork) + "<br/></td></tr>"
+					+ "<td>" + q.print() + "</td>"
+					+ "<td style='text-align:center;vertical-align:middle'><label><span id='score" + q.id + "'>" + (rangeValue * 25) + "%</span><br/>"
+					+ "<input type=range name=Range" + q.id + " value=" + rangeValue + " min=0 max=4 step=1 oninput=\"document.getElementById('score" + q.id + "').innerHTML=(this.value*25)+'%';\" /></label></td></tr>"
+				);
 				
+				// Print a box containing the current showWork
+				if (showWork!=null && !showWork.isEmpty()) {
+					buf.append("<tr><td></td><td><b>Show Work:</b><br/><pre>" + showWork + "</pre></td></tr>");
+				}
+
 				// print a small table of student submissions for this question
 				buf.append("<tr><td></td><td>");
 				if (!qTransactions.isEmpty()) {
@@ -1425,19 +1451,62 @@ public class Homework extends HttpServlet {
 						else buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td style='padding-right:20px'>" + t.studentAnswer + "</td><td style='padding-right:20px'>" + t.correctAnswer + "</td>");
 						
 						if (t.score==t.possibleScore) buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
-						else if (t.score>0) buf.append("<td><img src=/images/partCredit.png alt='partial credit' height=25 width=25></td>");
-						else buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+						else {
+							q.isCorrect(t.studentAnswer);
+							if (!q.correctValue) buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+							else if (!q.correctSigFigs) buf.append("<td><img src=/images/partCredit.png alt='x-mark' height=24 width=24></td>");
+							else buf.append("<td><img src=/images/show_work.png alt='x-mark-show-work' height=24 width=24></td>");
+						}
 						buf.append("</tr>");
 					}
 					buf.append("</table><br/>");
 				}
 				buf.append("</td></tr>");
 			}
-			buf.append("</table><br/>");
+			buf.append("</table><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /></form><br/>");
 		} catch (Exception e) {
 			buf.append("Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>" + debug.toString());
 		}
 		return buf.toString();
+	}
+
+	boolean submitRevisedHomeworkScore(User instructor, Assignment a, HttpServletRequest request) throws Exception {
+		if (!instructor.isInstructor()) throw new Exception("You must be the instructor for this course.");
+		String studentUserId = request.getParameter("StudentUserId");
+		if (studentUserId == null || studentUserId.isBlank()) throw new Exception("Student user ID is required.");
+
+		String studentHashedId = Subject.hashId(studentUserId);
+		Map<Key<Question>,Question> questions = ofy().load().keys(a.questionKeys);
+		// Load existing transactions once so overrides can be applied to them in place, rather than
+		// inserting new rows (which would show up as bogus "(response detail is unavailable)" entries).
+		List<HWTransaction> transactions = ofy().load().type(HWTransaction.class).filter("userId",studentHashedId).filter("assignmentId",a.id).order("-graded").list();
+
+		for (Key<Question> questionKey : a.questionKeys) {
+			Question question = questions.get(questionKey);
+			if (question == null) continue;
+			int rangeValue = Integer.parseInt(request.getParameter("Range" + question.id));
+			if (rangeValue < 0 || rangeValue > 4) throw new Exception("Invalid score selection.");
+			double revisedScore = question.pointValue * rangeValue / 4.0;
+
+			HWTransaction target = null;
+			for (HWTransaction t : transactions) if (t.questionId == question.id) { target = t; break; }
+
+			if (target == null) {
+				if (revisedScore == 0) continue;  // unattempted questions already default to zero; no row needed
+				target = new HWTransaction(question.id,studentHashedId,new Date(),revisedScore,a.id,question.pointValue,null);
+				target.scoreOverride = true;
+				ofy().save().entity(target).now();
+			} else if (target.score != revisedScore || !target.scoreOverride) {
+				target.score = revisedScore;
+				target.scoreOverride = true;
+				ofy().save().entity(target).now();
+			}
+		}
+
+		Score score = Score.getInstance(studentUserId,a);
+		ofy().save().entity(score).now();
+		if (a.lti_ags_lineitem_url != null) LTIMessage.postUserScore(score,studentUserId);
+		return true;
 	}
 	
 	void saveQuestion(User user, HttpServletRequest request) {
@@ -1659,10 +1728,6 @@ public class Homework extends HttpServlet {
 	}
 	
 	static String showSummary(User user,Assignment a) {
-		return showSummary(user,a,false);
-	}
-
-	static String showSummary(User user, Assignment a, boolean showDetails) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -1683,22 +1748,13 @@ public class Homework extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			//if (showDetails)
-				buf.append("<table style='text-align: center;'><tr><th>#</th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
+			buf.append("<table style='text-align: center;'><tr><th>#</th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
 			
 			int i=0;
 			int nMismatched = 0;
-			//String instructorEmail = null;
-			//String currentUserLmsId = user.getId()==null?null:user.getId().substring(user.getId().lastIndexOf("/")+1);
 			
 			for (Map.Entry<String,String[]> entry : membership.entrySet()) {
 				if (entry == null) continue;
-				/* 
-				if (currentUserLmsId != null && currentUserLmsId.equals(entry.getKey()) && entry.getValue()!=null && entry.getValue().length>2) { // this is the current user, so save their email address for later
-					String role = entry.getValue()[0];
-					if (role != null && (role.contains("Instructor") || role.contains("Administrator"))) instructorEmail = entry.getValue()[2];
-				}
-				*/
 				i++;
 				String lmsScoreString = scores.get(entry.getKey());
 				lmsScoreString = (lmsScoreString==null?" - ":lmsScoreString + "%");
@@ -1710,17 +1766,15 @@ public class Homework extends HttpServlet {
 					&& !(cvScoreString.equals(" - ") && Double.valueOf(scores.get(entry.getKey())) == 0.0) // except: 
 				) nMismatched++;
 				
-				//if (showDetails)
-					buf.append("<tr><td>" + i + ". </td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td>" + lmsScoreString + "</td>"
-						+ "<td>" + cvScoreString + "</td>"
-						+ "<td><a href='/Homework?UserRequest=Review&ForUserName=" + URLEncoder.encode(entry.getValue()[1], "UTF-8") + "&ForUserId=" + platform_id + entry.getKey() + "&sig=" + user.getTokenSignature() + "'>View</a></td>"
-						+ "</tr>");
+				buf.append("<tr><td>" + i + ". </td>"
+					+ "<td>" + entry.getValue()[1] + "</td>"
+					+ "<td>" + entry.getValue()[2] + "</td>"
+					+ "<td>" + entry.getValue()[0] + "</td>"
+					+ "<td>" + lmsScoreString + "</td>"
+					+ "<td>" + cvScoreString + "</td>"
+					+ "<td><a href='/Homework?UserRequest=Review&ForUserName=" + URLEncoder.encode(entry.getValue()[1], "UTF-8") + "&ForUserId=" + platform_id + entry.getKey() + "&sig=" + user.getTokenSignature() + "'>View</a></td>"
+					+ "</tr>");
 			}
-			//if (showDetails)
 				buf.append("</table><br/>");
 			
 			if (nMismatched > 0) {
@@ -1728,29 +1782,14 @@ public class Homework extends HttpServlet {
 					+ "This may happen for one or more of the following reasons:<ul>"
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
-					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				//if (!showDetails) 
-					buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
-						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
-						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
-						+ "</form><br/><br/>");
+					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>"
+					+ "<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+					+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+					+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+					+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
-/* 
-			if (instructorEmail == null || instructorEmail.isEmpty()) {
-				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
-			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-	return instructorPage(user,a);			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
-						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
-						.append("<input type=hidden name=UserRequest value='Email Report' />")
-						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
-						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
-						.append("</form>");
-			} 
-*/
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}

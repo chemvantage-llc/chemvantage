@@ -99,10 +99,13 @@ public class Score {    // this object represents a best score achieved by a use
 				if (assignmentQuestionKeys.contains(questionKey) && !scoredQuestionKeys.contains(questionKey)) {
 					scoredQuestionKeys.add(questionKey);
 					double bestScore = 0;
+					HWTransaction latestOverride = null;
 					for (HWTransaction attempt : hwTransactions) {
-						if (attempt.questionId == ht.questionId) bestScore = Math.max(bestScore, attempt.score);
+						if (attempt.questionId != ht.questionId) continue;
+						bestScore = Math.max(bestScore, attempt.score);
+						if (attempt.scoreOverride && (latestOverride == null || attempt.graded.after(latestOverride.graded))) latestOverride = attempt;
 					}
-					s.homeworkScore += bestScore;
+					s.homeworkScore += latestOverride == null ? bestScore : latestOverride.score;
 				}
 				if (s.mostRecentAttempt == null || ht.graded.after(s.mostRecentAttempt)) s.mostRecentAttempt = ht.graded;  // most recent transaction
 			}
