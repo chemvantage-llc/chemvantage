@@ -732,18 +732,23 @@ public class Homework extends HttpServlet {
 			buf.append("</UL>");
 
 			// Review the HWTransactions for this user to record which problems have been solved for this assignment and retrieve the current showWork strings:
-			List<Long> solvedQuestions = new ArrayList<Long>();
-			Map<Long,String> workStrings = new HashMap<Long,String>();
 			List<HWTransaction> hwTransactions = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("assignmentId",hwa.id).order("-graded").list();
-			Map<Long,Integer> priorAttempts = new HashMap<Long,Integer>();
 			
+			Map<Long,Integer> priorAttempts = new HashMap<Long,Integer>();
+			Map<Long,Double> questionScores = new HashMap<Long,Double>();
+			Map<Long,String> workStrings = new HashMap<Long,String>();
+			Map <Long,HWTransaction> latestOverrides = new HashMap<Long,HWTransaction>();
+
+			// Process each HWTransaction to determine prior attempts, most recent showWork strings, best scores, and latest score overrides.
 			for (HWTransaction ht : hwTransactions) {
 				int att = priorAttempts.get(ht.questionId)==null?1:priorAttempts.get(ht.questionId)+1; // prior attempts of this question
 				priorAttempts.put(ht.questionId, att); // maintain a Map of prior attempts for each question
-				if (solvedQuestions.contains(ht.questionId)) continue;
-				if (ht.score > 0) solvedQuestions.add(ht.questionId);
-				if (workStrings.containsKey(ht.questionId)) continue;
 				workStrings.put(ht.questionId,ht.showWork);
+				if (ht.scoreOverride && (latestOverrides.get(ht.questionId) == null || ht.graded.after(latestOverrides.get(ht.questionId).graded))) {
+					latestOverrides.put(ht.questionId, ht);
+				}
+				if (latestOverrides.containsKey(ht.questionId)) questionScores.put(ht.questionId,latestOverrides.get(ht.questionId).score);
+				else questionScores.put(ht.questionId,Math.max(questionScores.get(ht.questionId)==null?0:questionScores.get(ht.questionId),ht.score));
 			}
 			
 			Map<Key<Question>,Question> questions = ofy().load().keys(hwa.questionKeys);  // container for the questions to be presented
@@ -767,7 +772,12 @@ public class Homework extends HttpServlet {
 					if (attemptsRemaining < 0) attemptsRemaining = 0;
 				}
 
-				if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
+				if (questionScores.get(q.id) != null) {
+					Double pctScore = Math.round(1000*questionScores.get(q.id)/q.pointValue.doubleValue())/10.0;
+					if (pctScore == 100.0) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
+					else if (pctScore > 0) buf.append("<span style='color:#B20000'>" + pctScore + "%&nbsp;</span>");
+					else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=top>&nbsp;");
+				}
 				
 				buf.append("</div>");
 
@@ -813,8 +823,13 @@ public class Homework extends HttpServlet {
 						if (attemptsRemaining < 0) attemptsRemaining = 0;
 					}
 
-					if (solvedQuestions.contains(q.id)) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
-					
+					if (questionScores.get(q.id) != null) {
+						Double pctScore = questionScores.get(q.id)*100/(Double.valueOf(q.pointValue.doubleValue()));
+						if (pctScore == 100) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
+						else if (pctScore == 0) buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=top>&nbsp;");
+						else buf.append("<span style='color:#B20000'>" + pctScore + "%</span>");
+					}
+
 					buf.append("</div>");
 
 					buf.append("<FORM METHOD=POST ACTION=/Homework class='homework-response-form' data-question-id='" + q.id + "' data-question-type='" + q.getQuestionType() + "' onsubmit='return validateHomeworkSubmit(this," + q.id + ");'>"
