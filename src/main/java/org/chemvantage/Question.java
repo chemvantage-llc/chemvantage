@@ -692,6 +692,7 @@ public class Question implements Serializable, Cloneable {
 
 		if (reportable) {
 			try {
+				if (this.showWork != null && !this.showWork.isEmpty()) studentAnswer += "<br/><b>Show work:</b><pre>" + showWork + "</pre>";
 				studentAnswer = URLEncoder.encode(studentAnswer,"UTF-8");  // to send with URL
 			} catch (Exception e) {}
 			buf.append("<div id='feedback" + this.id + "'>");

@@ -743,10 +743,13 @@ public class Homework extends HttpServlet {
 			for (HWTransaction ht : hwTransactions) {
 				int att = priorAttempts.get(ht.questionId)==null?1:priorAttempts.get(ht.questionId)+1; // prior attempts of this question
 				priorAttempts.put(ht.questionId, att); // maintain a Map of prior attempts for each question
-				workStrings.put(ht.questionId,ht.showWork);
+				// maintain a Map of the most recent showWork string for each question:
+				if (ht.showWork != null && workStrings.get(ht.questionId) == null) workStrings.put(ht.questionId,ht.showWork);
+				// maintain a Map of the latest score override for each question:
 				if (ht.scoreOverride && (latestOverrides.get(ht.questionId) == null || ht.graded.after(latestOverrides.get(ht.questionId).graded))) {
 					latestOverrides.put(ht.questionId, ht);
 				}
+				// maintain a Map of the best score for each question, considering any score overrides:
 				if (latestOverrides.containsKey(ht.questionId)) questionScores.put(ht.questionId,latestOverrides.get(ht.questionId).score);
 				else questionScores.put(ht.questionId,Math.max(questionScores.get(ht.questionId)==null?0:questionScores.get(ht.questionId),ht.score));
 			}
@@ -775,7 +778,7 @@ public class Homework extends HttpServlet {
 				if (questionScores.get(q.id) != null) {
 					Double pctScore = Math.round(1000*questionScores.get(q.id)/q.pointValue.doubleValue())/10.0;
 					if (pctScore == 100.0) buf.append("<IMG SRC=/images/checkmark.png ALT='Check mark' align=top>&nbsp;");
-					else if (pctScore > 0) buf.append("<span style='color:#B20000'>" + pctScore + "%&nbsp;</span>");
+					else if (pctScore > 0) buf.append("<span style='color:#B20000;font-weight: bold'>" + pctScore + "%&nbsp;</span>");
 					else buf.append("<IMG SRC=/images/xmark.png ALT='X mark' align=top>&nbsp;");
 				}
 				
