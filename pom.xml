@@ -11,14 +11,10 @@
     <version>3.5.8</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent> 
+  
+  <!-- Project-specific properties -->
   <properties>
-    <!-- App Engine runtime targets Java 25 -->
-    <maven.compiler.source>25</maven.compiler.source>
-    <maven.compiler.target>25</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    
-    <!-- Project-specific properties -->
-    <exec.mainClass>org.chemvantage.SpringbootMain</exec.mainClass>
+     <exec.mainClass>org.chemvantage.SpringbootMain</exec.mainClass>
     <googleCloudProjectId>GCLOUD_CONFIG</googleCloudProjectId>
   </properties>
 

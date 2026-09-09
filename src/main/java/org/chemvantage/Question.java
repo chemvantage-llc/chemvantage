@@ -723,7 +723,10 @@ public class Question implements Serializable, Cloneable {
 			buf.append("<label>Your Comment: <INPUT TYPE=TEXT SIZE=60 NAME=Notes /></label><br/>");
 			buf.append("<label>Your Email: <INPUT TYPE=TEXT SIZE=40 PLACEHOLDER=' optional, if you want a response' NAME=Email /></label><br/>");
 			buf.append("<INPUT TYPE=BUTTON VALUE='Submit Feedback' "
-					+ "onClick=\" return ajaxSubmit('/Feedback?UserRequest=ReportAProblem','" + this.id + "','" + Arrays.toString(this.parameters) + "','" + studentAnswer + "',encodeURIComponent(document.getElementById('suggest" + this.id + "').Notes.value),encodeURIComponent(document.getElementById('suggest" + this.id + "').Email.value)); return false;\" />"
+					+ "onClick=\" return ajaxSubmit('/Feedback?UserRequest=ReportAProblem','" + this.id + "','" 
+					+ Arrays.toString(this.parameters) + "','" + studentAnswer + "',"
+					+ "encodeURIComponent(document.getElementById('suggest" + this.id + "').Notes.value),"
+					+ "encodeURIComponent(document.getElementById('suggest" + this.id + "').Email.value)); return false;\" />"
 					+ "</div></FORM><br/>");
 			buf.append("</div>");
 		}
