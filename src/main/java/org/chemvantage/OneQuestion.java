@@ -26,7 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class OneQuestion extends HttpServlet {
 	@Serial
 	private static final long serialVersionUID = 137L;
-       
+    
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		StringBuffer buf = new StringBuffer();
 		
@@ -113,17 +113,24 @@ public class OneQuestion extends HttpServlet {
 				} catch (Exception e2) {}
 			}
 			Question q = ofy().load().type(Question.class).id(qid).safe();
-			long p = Long.parseLong(request.getParameter("p"));
-			q.setParameters(p);
+			
+			Long p = 0L;
+			try {
+				p = Long.parseLong(request.getParameter("p"));
+				q.setParameters(p);
+			} catch (Exception e2) {}
+
 			String answer = orderResponses(request.getParameterValues(String.valueOf(qid)));
 			String showWork = request.getParameter("ShowWork"+q.id);
 			q.setShowWork(showWork==null?"":showWork);
 
-			if (q.isCorrect(answer)) {
+			if (answer.isBlank()) { 
+				buf.append("<h2>The answer to the question was left blank.</h2>");
+			} else if (q.isCorrect(answer)) {
 				buf.append("<div style='max-width:800px'>"
 						+ "<h2>Congratulations! Your answer is correct.</h2>" 
 						+ "<img src='/images/parrot.png' alt='cartoon image of professor parrot' style='float:right;padding:10px;max-width:30%;height:auto'  />"
-						+ q.printAllToStudents(answer,true) 
+						+ q.printAllToStudents(answer,true,true,showWork) 
 						+ "</div>"
 						+ " <p>\n"
 						+ " <div id=explanation style='max-width:800px'>"
@@ -153,8 +160,6 @@ public class OneQuestion extends HttpServlet {
 						+ "}\n"
 						+ "</script>\n"
 						+ "<p>\n");
-			} else if (answer.isEmpty()) { 
-				buf.append("<h2>The answer to the question was left blank.</h2>");
 			} else {
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question

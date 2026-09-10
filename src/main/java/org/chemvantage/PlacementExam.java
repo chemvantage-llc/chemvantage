@@ -539,15 +539,6 @@ public class PlacementExam extends HttpServlet {
 				String studentAnswer = orderResponses(request.getParameterValues(Long.toString(k.getId())));
 				if (!studentAnswer.isEmpty()) { // an answer was submitted
 					q = questions.get(k);				
-					try {
-						if ("NUMERIC".equals(q.type)) {  // this section converts ionic charge 2+ to +2 and 3- to -3
-							int length = studentAnswer.length();  // length of the trimmed String
-							int charge = Integer.parseInt(studentAnswer.substring(0,length-1));  // magnitude of the charge
-							char last = studentAnswer.charAt(length-1); // sign of the charge
-							if (last=='+' || last=='-') studentAnswer = last + String.valueOf(charge);  // move the sign to the front of the String
-						}
-					} catch (Exception e) {}
-
 					q.setParameters((int)(pt.id ^ q.id));
 					
 					int score = studentAnswer.length()==0?0:q.isCorrect(studentAnswer)?q.pointValue:0;

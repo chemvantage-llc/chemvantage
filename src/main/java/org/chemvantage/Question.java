@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 import com.bestcode.mathparser.IMathParser;
 import com.bestcode.mathparser.MathParserFactory;
@@ -55,6 +56,8 @@ import org.springframework.web.util.HtmlUtils;
 public class Question implements Serializable, Cloneable {
 	@Serial
 	private static final long serialVersionUID = 137L;
+	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
+	private static final Pattern IONIC_CHARGE = Pattern.compile("^\\s*(\\d+)([+-])\\s*$");
 	private static final PolicyFactory EXPLANATION_HTML_POLICY = new HtmlPolicyBuilder()
 			.allowElements("p", "br", "b", "strong", "i", "em", "u", "sub", "sup", "code", "pre", "blockquote", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td")
 			.allowAttributes("colspan", "rowspan").onElements("th", "td")
@@ -652,7 +655,7 @@ public class Question implements Serializable, Cloneable {
 		}
 		
 		buf.append("<br/>");
-		if (showWork != null && !showWork.isEmpty()) buf.append("<b>Student work:</b><br/><div style='border-style: solid; border-width: thin; white-space: pre-wrap;'>" + escapeHtml(showWork) + "</div>");	
+		if (showWork != null && !showWork.isEmpty()) buf.append("<b>Student work:</b><br/><div style='border-style: solid; border-width: thin; white-space: pre-wrap; max-width: 450px; overflow-x: auto;'>" + escapeHtml(showWork) + "</div>");	
 		if (studentAnswer==null || studentAnswer.isEmpty()) buf.append("<b>No answer was submitted for this question item.</b><p></p>");
 		else {
 			switch (getQuestionType()) {
@@ -692,7 +695,7 @@ public class Question implements Serializable, Cloneable {
 
 		if (reportable) {
 			try {
-				if (this.showWork != null && !this.showWork.isEmpty()) studentAnswer += "<br/><b>Show work:</b><pre>" + showWork + "</pre>";
+				if (showWork != null && !showWork.isEmpty()) studentAnswer += "\n\nShow work:\n" + showWork;
 				studentAnswer = URLEncoder.encode(studentAnswer,"UTF-8");  // to send with URL
 			} catch (Exception e) {}
 			buf.append("<div id='feedback" + this.id + "'>");
@@ -1254,6 +1257,11 @@ public class Question implements Serializable, Cloneable {
 			}
 			return false;
 		case 5: // Numeric Answer
+			studentAnswer = studentAnswer.replaceAll("\\s+", ""); // remove all whitespace from the student's answer
+			studentAnswer = calculateIonicCharge(studentAnswer);
+			// Extract the numeric part of the student's answer, removing any trailing units
+			var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+			studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
 			correctValue = agreesToRequiredPrecision(studentAnswer);
 			correctSigFigs = correctValue && hasCorrectSigFigs(studentAnswer);
 			correctWork = correctSigFigs && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work
@@ -1269,6 +1277,16 @@ public class Question implements Serializable, Cloneable {
 		}
 	}
 	
+	String calculateIonicCharge(String studentAnswer) {
+		if (studentAnswer == null) return null;
+		var matcher = IONIC_CHARGE.matcher(studentAnswer);
+		if (!matcher.matches()) return studentAnswer;
+
+		String magnitude = matcher.group(1).replaceFirst("^0+(?!$)", "");
+		if ("0".equals(magnitude)) return "0";
+		return "+".equals(matcher.group(2)) ? magnitude : "-" + magnitude;
+	}
+
 	boolean closeEnough(String studentAnswer,String correctAnswer) {
 		if (correctAnswer.length() < 4) return false;  			// exact answer needed for 3-char answers
 		int maxEditDistance = correctAnswer.length()<6?1:2;		// 1 error allowed for 4,5-char answers; otherwise 2 errors allowed

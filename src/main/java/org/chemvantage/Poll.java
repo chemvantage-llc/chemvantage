@@ -485,25 +485,7 @@ public class Poll extends HttpServlet {
 		if (pt == null) pt = new PollTransaction(user.getId(),new Date(),user.getAssignmentId());
 		return pt;
 	}
-/*	
-	Question getQuestion(Key<Question> k) {
-		Question q = pollQuestions.get(k);
-		if (q == null) {
-			q = ofy().load().key(k).now();
-			if (q != null) pollQuestions.put(k,q);
-		}
-		return q;  // returns null only if the question has been deleted
-	}
 	
-	void cacheQuestions(Assignment a) {
-		List<Key<Question>> newKeys = new ArrayList<Key<Question>>();
-		for (Key<Question> k : a.questionKeys) {
-			if (!this.pollQuestions.containsKey(k)) newKeys.add(k);
-		}
-		if (newKeys.size()>0) pollQuestions.putAll(ofy().load().keys(newKeys));
-		return;
-	}
-*/	
 	static String waitForResults(User user, Assignment a) {
 		
 		if (a.pollIsClosed) return resultsPage(user,a);
@@ -536,49 +518,7 @@ public class Poll extends HttpServlet {
 		}		
 		return buf.toString();	
 	}
-/*	
-	static String timer(User u) {
-		return "\n<SCRIPT>"
-				+ "var seconds;"
-				+ "var minutes;"
-				+ "var oddSeconds;"
-				+ "var endMillis;"
-				+ "var clock;"
-				+ "var timer0 = document.getElementById('timer0');"
-				+ "var timer1 = document.getElementById('timer1');"
-				+ "var form = document.getElementById('pollForm');"
-				+ "function countdown() {"
-				+ "	var seconds=Math.round((endMillis-Date.now())/1000);"
-				+ "	var minutes = seconds<0?Math.ceil(seconds/60.):Math.floor(seconds/60.);"
-				+ "	var oddSeconds = seconds%60;"
-				+ " if (oddSeconds<10) oddSeconds = '0'+ oddSeconds;"
-				+ " clock = seconds<=0?'0:00':minutes + ':' + oddSeconds;"
-				+ " if (timer0!=null) timer0.innerHTML = 'Time remaining: ' + clock;"
-				+ " if (timer1!=null) timer1.innerHTML = 'Time remaining: ' + clock;"
-				+ "	if (seconds <= 0) form.submit();"
-				+ " else setTimeout(() => countdown(), 1000);"
-				+ "}\n"
-				+ "function synchTimer() {"
-				+ "  var xmlhttp=new XMLHttpRequest();"
-				+ "  if (xmlhttp==null) {"
-				+ "    alert ('Sorry, your browser does not support AJAX!');"
-				+ "    return false;"
-				+ "  }"
-				+ "  xmlhttp.onreadystatechange=function() {"
-				+ "    if (xmlhttp.readyState==4) {"
-				+ "     const serverNowMillis = xmlhttp.responseText.trim();"  // server returned new Date().getTime()
-				+ "     endMillis += Date.now() - serverNowMillis;"          // corrects for fast or slow browser clock
-				+ "    }"
-				+ "  }\n"
-				+ "  var url = 'Poll?UserRequest=Synch&sig=" +u.getTokenSignature() + "';"
-				+ "  timer0.innerHTML = 'synchronizing clocks...';"
-				+ "  xmlhttp.open('GET',url,true);"
-				+ "  xmlhttp.send(null);"
-				+ "  return false;"
-				+ "}\n"
-				+ "</SCRIPT>";
-	}
-*/	
+	
 	static String resultsPage(User user,Assignment a) {
 		return resultsPage(user,null,a);
 	}
@@ -680,9 +620,12 @@ public class Poll extends HttpServlet {
 						userResponse = pt.studentAnswers.get(k);
 					} catch (Exception e) {}
 
-					buf.append(q.hasNoCorrectAnswer()?q.print():q.printAllToStudents(userResponse));
-					//buf.append(q.printAll());
-
+					if (q.hasNoCorrectAnswer()) buf.append(q.print());
+					else {
+						q.isCorrect(userResponse);
+						buf.append(q.printAllToStudents(userResponse));
+					}
+					
 					buf.append("</div>"   // end of question cell
 							+ "<div style='display: table-cell;vertical-align: top;'></div>");  // horizontal buffer
 

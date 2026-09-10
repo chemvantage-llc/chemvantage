@@ -60,8 +60,7 @@ public class Homework extends HttpServlet {
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
-	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
-
+	
 	public String getServletInfo() {
 		return "This servlet presents a homework assignment for the user.";
 	}
@@ -1019,7 +1018,7 @@ public class Homework extends HttpServlet {
 		debug.append("User exp: " + user.exp + "<br/>");
 		DateFormat df = DateFormat.getDateTimeInstance(DateFormat.LONG,DateFormat.FULL);
 		Date now = new Date();
-		String originalStudentAnswer = null;
+		//String originalStudentAnswer = null;
 		
 		String qn = null;
 		String qAnchor = null;
@@ -1041,7 +1040,7 @@ public class Homework extends HttpServlet {
 			q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 
 			String answerParam = Long.toString(questionId);
-			studentAnswer = originalStudentAnswer = orderResponses(request.getParameterValues(answerParam));
+			studentAnswer = orderResponses(request.getParameterValues(answerParam));
 			
 			qAnchor = request.getParameter("QAnchor");
 			boolean noResponseSubmitted;
@@ -1090,10 +1089,6 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
-				studentAnswer = studentAnswer.replaceAll("\\s+", ""); // remove all whitespace from the student's answer
-				// Extract the numeric part of the student's answer, removing any trailing units
-				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
-				studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
 				studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctValue ? q.pointValue * 0.25 : 0);
 				break;
 			case 6:  // Handle five-star rating response
@@ -1183,7 +1178,7 @@ public class Homework extends HttpServlet {
 			
 			if (!user.isAnonymous() && hwa != null) {
 				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),now,studentScore,hwa.id,q.pointValue,showWork);
-				ht.studentAnswer = originalStudentAnswer;
+				ht.studentAnswer = studentAnswer;
 				ht.correctAnswer = q.getCorrectAnswer();				
 				ofy().save().entity(ht).now();
 			
@@ -1230,18 +1225,18 @@ public class Homework extends HttpServlet {
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
 								+ "<p class='explanation-text'>"
 								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
 								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					} catch (Exception e2) {
 						buf.append("<div class='status-text'>Wrong Format</div>"
@@ -1249,7 +1244,7 @@ public class Homework extends HttpServlet {
 								+ "This question requires a numeric response expressed as an integer, decimal number, "
 								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
 								+ "was unable to recognize your answer as one of these types.<br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					}
 					break;
@@ -1296,7 +1291,7 @@ public class Homework extends HttpServlet {
 
 			}
 			
-			buf.append(q.printAllToStudents(originalStudentAnswer) + "<br/>");
+			buf.append(q.printAllToStudents(studentAnswer,true,true,q.showWork) + "<br/>");
 			
 			if (q.getQuestionType()==7) { // ESSAY
 				int essayScore = essay_score.get("score").getAsInt();
@@ -1457,7 +1452,7 @@ public class Homework extends HttpServlet {
 				
 				// Print a box containing the current showWork
 				if (showWork!=null && !showWork.isEmpty()) {
-					buf.append("<tr><td></td><td><b>Show Work:</b><br/><pre>" + showWork + "</pre></td></tr>");
+					buf.append("<tr><td></td><td><b>Student Work:</b><br/><pre>" + HtmlUtils.htmlEscape(showWork) + "</pre></td></tr>");
 				}
 
 				// print a small table of student submissions for this question
@@ -1479,7 +1474,7 @@ public class Homework extends HttpServlet {
 					}
 					buf.append("</table><br/>");
 				}
-				buf.append("</td></tr>");
+				buf.append("</td></tr><tr><td colspan=5><hr/></td></tr>");
 			}
 			buf.append("</table><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /></form><br/>");
 		} catch (Exception e) {
@@ -1514,7 +1509,7 @@ public class Homework extends HttpServlet {
 				target = new HWTransaction(question.id,studentHashedId,new Date(),revisedScore,a.id,question.pointValue,null);
 				target.scoreOverride = true;
 				ofy().save().entity(target).now();
-			} else if (target.score != revisedScore || !target.scoreOverride) {
+			} else if (target.score != revisedScore) {
 				target.score = revisedScore;
 				target.scoreOverride = true;
 				ofy().save().entity(target).now();
