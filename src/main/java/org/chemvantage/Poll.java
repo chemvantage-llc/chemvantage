@@ -217,7 +217,7 @@ public class Poll extends HttpServlet {
 		
 		if (a.questionKeys.size()==0) return editPage(user,a,0);
 		else {
-			buf.append("<a class='btn' href=/Poll?UserRequest=EditPoll&sig=" + user.getTokenSignature() + ">Review/Edit Questions For This Poll</a>.<br/><br/>");
+			buf.append("<a href=/Poll?UserRequest=EditPoll&sig=" + user.getTokenSignature() + ">Review/Edit Questions For This Poll</a>.<br/><br/>");
 		}
 		
 		buf.append("This Poll assignment allows you to pose questions to your class and get real-time responses without the use of clicker devices. "
@@ -1275,7 +1275,7 @@ public class Poll extends HttpServlet {
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Class Poll Scores</h1>");
-			buf.append("Title: "+ a.title + "<br/>");
+			//buf.append("Title: "+ a.title + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
 			
