@@ -1089,7 +1089,8 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
-				studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctValue ? q.pointValue * 0.25 : 0);
+				// Award 0.5pt for correct value, 0.75pt for correct sig figs and full credit for acceptable work shown, if applicable.
+				studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctSigFigs ? q.pointValue * 0.75 : (q.correctValue ? q.pointValue*0.5 : 0));
 				break;
 			case 6:  // Handle five-star rating response
 				studentScore = q.pointValue;  // full marks for submitting a response
