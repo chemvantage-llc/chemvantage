@@ -193,12 +193,6 @@ public class Sage extends HttpServlet {
 				if (Utilities.synchronizeScores(user,a)) out.println(instructorPage(user,a));
 				else out.println("Synchronization request failed.");
 				break;
-			case "Email Report":
-				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				//Utilities.synchronizeScores(user,a);
-				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
-				break;
 			default: throw new Exception("Invalid request");
 			}
 		} catch (Exception e) {
@@ -1060,10 +1054,6 @@ public class Sage extends HttpServlet {
 	}
 	
 	static String showSummary(User user,Assignment a) {
-		return showSummary(user,a,false);
-	}
-
-	static String showSummary(User user, Assignment a, boolean showDetails) {
 		StringBuffer buf = new StringBuffer(Subject.header("Sage Tutor Scores"));
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -1084,8 +1074,8 @@ public class Sage extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
+			StringBuilder tableBuilder = new StringBuilder();
+			tableBuilder.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
 			
 			int i=0;
 			int nMismatched = 0;
@@ -1104,17 +1094,15 @@ public class Sage extends HttpServlet {
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
 				if ("Learner".equals(entry.getValue()[0]) && !cvScoreString.equals(lmsScoreString)) nMismatched++;
-				if (showDetails)
-					buf.append("<tr><td>" + i + ". </td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td>" + lmsScoreString + "</td>"
-						+ "<td>" + cvScoreString + "</td>"
-						+ "</tr>");
+				tableBuilder.append("<tr><td>" + i + ". </td>"
+					+ "<td>" + entry.getValue()[1] + "</td>"
+					+ "<td>" + entry.getValue()[2] + "</td>"
+					+ "<td>" + entry.getValue()[0] + "</td>"
+					+ "<td>" + lmsScoreString + "</td>"
+					+ "<td>" + cvScoreString + "</td>"
+					+ "</tr>");
 			}
-			if (showDetails)
-				buf.append("</table><br/>");
+			tableBuilder.append("</table><br/>");
 			
 			if (nMismatched > 0) {
 				buf.append("There " + (nMismatched == 1 ? "is 1 mismatched student score" : "are " + nMismatched + " mismatched student scores") + " between the LMS and ChemVantage. "
@@ -1122,117 +1110,24 @@ public class Sage extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
-						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
-						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
-						+ "</form><br/><br/>");
+				buf.append("<form method=post action=/Sage onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+					+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+					+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+					+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
-			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
-				return instructorPage(user,a);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
-						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
-						.append("<input type=hidden name=UserRequest value='Email Report' />")
-						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
-						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
-						.append("</form>");
+				buf.append(tableBuilder.toString());
 			} 
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}
 		return buf.toString() + Subject.footer;
 	}
-/* 	
-	static String showSummary(User user,Assignment a) {
-		StringBuffer buf = new StringBuffer(Subject.header("Sage"));
-		if (a==null) return "No assignment was specified for this request.";
-
-		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
-
-		try {
-			if (a.lti_nrps_context_memberships_url==null) throw new Exception("No Names and Roles Provisioning support.");
-
-			buf.append("<h1>Sage Tutor Scores</h1>");
-			buf.append("Title: " + a.title + "<br/>");
-			buf.append("Assignment ID: " + a.id + "<br/>");
-			buf.append("Valid: " + new Date() + "<p>");
-			buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "
-					+ "and may or may not include user's names or emails, depending on the settings of your LMS.<br/><br/>");
-
-			Map<String,String> scores = LTIMessage.readMembershipScores(a);
-			if (scores==null) scores = new HashMap<String,String>();  // in case service call fails
-
-			Map<String,String[]> membership = LTIMessage.getMembership(a);
-			if (membership==null) membership = new HashMap<String,String[]>(); // in case service call fails
-
-			List<SageTransaction> sTList = ofy().load().type(SageTransaction.class).filter("assignmentId",a.id).list();
-			Map<String,SageTransaction> stMap = new HashMap<String,SageTransaction>();
-			for (SageTransaction sT : sTList) stMap.put(sT.userId, sT);
-			
-			Deployment d = ofy().load().type(Deployment.class).id(a.domain).safe();
-			String platform_id = d.getPlatformId() + "/";
-			
-			buf.append("<table><tr><th>&nbsp;</th><th>Name</th><th>Email</th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
-			int i=0;
-			int nMismatched = 0;
-			for (Map.Entry<String,String[]> entry : membership.entrySet()) {
-				if (entry == null) continue;
-				String lmsScoreString = scores.get(entry.getKey());
-				lmsScoreString = (lmsScoreString==null?" - ":lmsScoreString + "%");
-				String hashedId = Subject.hashId(platform_id + entry.getKey());
-				SageTransaction st = stMap.get(hashedId);
-				int cvScore = 0;  // overall total score
-				if (st != null) {
-					for (Long conceptId : a.conceptIds) {
-						int j = st.conceptIds.indexOf(conceptId);
-						cvScore += j==-1?0:st.scores[j];  // add scores for all concepts in the assignment
-					}
-				}
-				
-				String cvScoreString = cvScore==0?" - ":String.valueOf(Math.round(10.*cvScore/a.conceptIds.size())/10.) + "%";
-				boolean synched = !"Learner".equals(entry.getValue()[0]) || cvScoreString.equals(lmsScoreString);
-				String forUserId = platform_id + entry.getKey();  // only send hashed values through links
-				i++;
-				buf.append("<tr><td>" + i + ".&nbsp;</td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td align=center>" + lmsScoreString + "</td>"
-						+ "<td align=center>" + cvScoreString + "</td>"
-						//+ "<td align=center><a href=/Homework?UserRequest=Review&sig=" + user.getTokenSignature() + "&ForUserId=" + forUserId + "&ForUserName=" + entry.getValue()[1].replaceAll(" ","+") + ">show</a></td>"
-						+ (synched?"":"<td><span id='cell" + forUserId + "'><button onClick=this.disabled=true;this.style.opacity=0.5;synchronizeScore('" + forUserId + "','" + user.getTokenSignature() + "','/Sage'); >sync</button></span></td>")
-						+ "</tr>");
-				// Flag this score set as unsynchronized only if there is one or more non-null ChemVantage Learner score that is not equal to the LMS score
-				// Ignore Instructor scores because the LMS often does not report them, and ignore null cvScore entities because they cannot be reported.
-				if (!synched) nMismatched++;
-			}
-			buf.append("</table><br/>");
-			if (nMismatched > 0) {
-				buf.append("You may use the individual 'sync' buttons above to resubmit any ChemVantage score to the LMS. Note that in some cases, mismatched scores are expected (e.g., when "
-						+ "the instructor overrides a score or when a late submission is not accepted by the LMS). You may have to adjust the settings in your LMS to accept the "
-						+ "revised score (e.g., change the due date, grade override or allowed number of submissions).<p>");
-			}
-			if (nMismatched>1) {
-				buf.append("Use the button below to synchronize all of the Learner scores. This might take a minute, depending on the number of mismatches.<br/>"
-					+ "<form method=post action=/Sage onsubmit=waitforSync(); >"
-					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-					+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-					+ "<input type=submit id=syncAll value='Synchronize All Scores' />"
-					+ "</form><p>");
-			}
-			buf.append("<a id=backToInstPage href='/Sage?sig=" + user.getTokenSignature() + "&UserRequest=InstructorPage' class='btn btn-primary' onclick=waitAMoment('backToInstPage');>Return to the Instructor Page</a><p>");
-		} catch (Exception e) {
-			buf.append(e.toString());
-		}
-		return buf.toString() + Subject.footer;
-	}
-*/
 
 	static String synchronizeScore(User user, Assignment a, String forUserId) {
 		try {

@@ -226,11 +226,19 @@ public class Utilities {
 		Email from = new Email("admin@chemvantage.org","ChemVantage LLC");
 		if (recipientName==null) recipientName="";
 		String normalizedRecipientEmail = recipientEmail == null || recipientEmail.contains("invalid") ? "chuck.wight@gmail.com" : recipientEmail.trim();
+		String safeMessage = message == null ? "" : message;
+		boolean addAdminBcc = !ADMIN_EMAIL.equalsIgnoreCase(normalizedRecipientEmail) && !safeMessage.contains("unsubscribe");
+		System.out.println("EMAIL_DIAGNOSTIC start requested=" + maskEmail(recipientEmail)
+				+ " effective=" + maskEmail(normalizedRecipientEmail)
+				+ " adminBcc=" + addAdminBcc
+				+ " subject=" + subject
+				+ " messageLength=" + safeMessage.length()
+				+ " sendGridKeyConfigured=" + (Subject.getSendGridKey() != null && !Subject.getSendGridKey().isBlank()));
 		Email to = new Email(normalizedRecipientEmail,recipientName);
-		Content content = new Content("text/html", message);
+		Content content = new Content("text/html", safeMessage);
 		Personalization personalization = new Personalization();
 		personalization.addTo(to);
-		if (!"admin@chemvantage.org".equalsIgnoreCase(normalizedRecipientEmail) && !message.contains("unsubscribe")) {
+		if (addAdminBcc) {
 			personalization.addBcc(new Email("admin@chemvantage.org", "ChemVantage LLC"));
 		}
 		Mail mail = new Mail();
@@ -244,9 +252,25 @@ public class Utilities {
 		request.setMethod(Method.POST);
 		request.setEndpoint("mail/send");
 		request.setBody(mail.build());
-		Response response = sg.api(request);
-		System.out.println(response.getStatusCode());
-		System.out.println(response.getBody());
-		System.out.println(response.getHeaders());
+		try {
+			Response response = sg.api(request);
+			System.out.println("EMAIL_DIAGNOSTIC response status=" + response.getStatusCode()
+					+ " body=" + response.getBody()
+					+ " headers=" + response.getHeaders());
+			if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+				System.err.println("EMAIL_DIAGNOSTIC send failed for effective=" + maskEmail(normalizedRecipientEmail));
+			}
+		} catch (IOException e) {
+			System.err.println("EMAIL_DIAGNOSTIC exception effective=" + maskEmail(normalizedRecipientEmail)
+					+ " type=" + e.getClass().getName() + " message=" + e.getMessage());
+			throw e;
+		}
+	}
+
+	private static String maskEmail(String email) {
+		if (email == null || email.isBlank()) return "<empty>";
+		int at = email.indexOf('@');
+		if (at <= 1) return "<redacted>";
+		return email.charAt(0) + "***" + email.substring(at);
 	}
 }
