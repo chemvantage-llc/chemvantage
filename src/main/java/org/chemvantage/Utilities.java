@@ -33,6 +33,7 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 
 public class Utilities {
 	private static final String ADMIN_EMAIL = "admin@chemvantage.org";
@@ -224,9 +225,19 @@ public class Utilities {
 			throws IOException {
 		Email from = new Email("admin@chemvantage.org","ChemVantage LLC");
 		if (recipientName==null) recipientName="";
-		Email to = new Email(recipientEmail,recipientName);
+		String normalizedRecipientEmail = recipientEmail == null || recipientEmail.contains("invalid") ? "chuck.wight@gmail.com" : recipientEmail.trim();
+		Email to = new Email(normalizedRecipientEmail,recipientName);
 		Content content = new Content("text/html", message);
-		Mail mail = new Mail(from, subject, to, content);
+		Personalization personalization = new Personalization();
+		personalization.addTo(to);
+		if (!"admin@chemvantage.org".equalsIgnoreCase(normalizedRecipientEmail) && !message.contains("unsubscribe")) {
+			personalization.addBcc(new Email("admin@chemvantage.org", "ChemVantage LLC"));
+		}
+		Mail mail = new Mail();
+		mail.setFrom(from);
+		mail.setSubject(subject);
+		mail.addContent(content);
+		mail.addPersonalization(personalization);
 			
 		SendGrid sg = new SendGrid(Subject.getSendGridKey());
 		Request request = new Request();
@@ -237,10 +248,5 @@ public class Utilities {
 		System.out.println(response.getStatusCode());
 		System.out.println(response.getBody());
 		System.out.println(response.getHeaders());
-		
-		// For all outgoing email except marketing, send a copy to admin@chemvantage.org
-		if (!"admin@chemvantage.org".equals(recipientEmail) && !message.contains("unsubscribe")) {
-			sendEmail("ChemVantage LLC","admin@chemvantage.org",subject,message);
-		}
 	}
 }
