@@ -926,7 +926,7 @@ public class Quiz extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Homework onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+				if (!showDetails) buf.append("<form method=post action=/Quiz onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
 						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
 						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
@@ -937,10 +937,10 @@ public class Quiz extends HttpServlet {
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
 			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Homework Scores Report",buf.toString());
+				Utilities.sendEmail("",instructorEmail,"ChemVantage Quiz Scores Report",buf.toString());
 				return instructorPage(user,a);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Homework onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
+				buf.append("<form id='emailReportForm' method=post action=/Quiz onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
 						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
 						.append("<input type=hidden name=UserRequest value='Email Report' />")
 						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
