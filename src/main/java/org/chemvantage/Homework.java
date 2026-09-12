@@ -60,6 +60,7 @@ public class Homework extends HttpServlet {
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
+	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
 	
 	public String getServletInfo() {
 		return "This servlet presents a homework assignment for the user.";
@@ -178,6 +179,7 @@ public class Homework extends HttpServlet {
 			case "Set Scoring Method":
 				a = ofy().load().type(Assignment.class).id(user.getAssignmentId()).safe();
 				a.scoreWork = Boolean.parseBoolean(request.getParameter("ScoreWork"));
+				a.partialCreditOption = Boolean.parseBoolean(request.getParameter("PartialCreditOption"));
 				ofy().save().entity(a).now();
 				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
@@ -312,7 +314,7 @@ public class Homework extends HttpServlet {
 		Date now = new Date();
 		Date minutesAgo = new Date(now.getTime()-retryDelayMinutes*60000);  // about 1 minute ago
 		HWTransaction lastTransaction = ofy().load().type(HWTransaction.class).filter("userId",user.getHashedId()).filter("questionId",q.id).filter("graded >",minutesAgo).first().now();
-		if (lastTransaction==null || lastTransaction.score>0) return null;
+		if (lastTransaction==null || lastTransaction.score == q.pointValue) return null;
 		long secondsRemaining = retryDelayMinutes*60 - (now.getTime()-lastTransaction.graded.getTime())/1000L;
 
 		buf.append("<h2>Please Wait For The Retry Delay To Complete</h2>");
@@ -395,11 +397,14 @@ public class Homework extends HttpServlet {
 					+ "<input type=submit name=UserRequest value='Set Allowed Attempts' />"
 					+ "</form><br/>\n"
 				);
-			buf.append("Numeric questions are currently scored on " + (a.scoreWork?"the final answer AND the work shown.":"the final answer only.") + "<br/>"
-					+ "<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+			buf.append("<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 					+ "<fieldset><legend>Scoring method for numeric questions:</legend>"
-					+ "<label><input type=radio name=ScoreWork value=false " + (a.scoreWork?"":"checked") + " /> Final answer only</label>&nbsp;"
-					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>&nbsp;"
+					//+ "Currently based on " + (a.scoreWork?"the final answer and the work shown. ":"the final answer only. ") 
+					//+ (a.partialCreditOption==true?"Partial credit is enabled.":"Partial credit is not enabled.")
+					//+ "<br/>"
+					+ "<label><input type=radio name=ScoreWork value=false " + (a.scoreWork?"":"checked") + " /> Final answer only</label>" + (a.scoreWork?"":"&nbsp;&#x2705;") + "<br/>"
+					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>" + (a.scoreWork?"&nbsp;&#x2705;":"") + "<br/>"
+					+ "<label><input type=checkbox name=PartialCreditOption value=true " + (a.partialCreditOption?"checked":"") + " /> Enable partial credit</label>" + (a.partialCreditOption?"&nbsp;&#x2705;":"") + "<br/>"
 					+ "</fieldset>"
 					+ "<input type=submit name=UserRequest value='Set Scoring Method' />"
 					+ "</form><br/>\n"
@@ -727,7 +732,9 @@ public class Homework extends HttpServlet {
 			else buf.append("<LI>Numeric problems include a \"Show your work\" box that serves as optional scratch space for you.</LI>");
 			buf.append("<LI>There is a retry delay of " + retryDelayMinutes + " minute" +(retryDelayMinutes==1?"":"s") + " between answer submissions for any single question.</LI>");
 			buf.append("<LI>Most questions are customized, so the correct answers are different for each student.</LI>");
-			if (!user.isAnonymous()) buf.append("\n<LI>A checkmark will appear to the left of each correctly solved problem.</LI>");
+			if (!user.isAnonymous()) buf.append("\n<LI>A checkmark will appear to the left of each correctly solved problem."
+				+ (hwa.partialCreditOption!=null && hwa.partialCreditOption ? " Partial credit may be awarded for some questions." : "")
+				+ "</LI>");
 			buf.append("</UL>");
 
 			// Review the HWTransactions for this user to record which problems have been solved for this assignment and retrieve the current showWork strings:
@@ -1089,8 +1096,13 @@ public class Homework extends HttpServlet {
 			switch (q.getQuestionType()) {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
-				// Award 0.5pt for correct value, 0.75pt for correct sig figs and full credit for acceptable work shown, if applicable.
-				studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctSigFigs ? q.pointValue * 0.75 : (q.correctValue ? q.pointValue*0.5 : 0));
+				if (hwa != null && hwa.partialCreditOption != null && hwa.partialCreditOption) {
+					// Award 0.5pt for correct value, 0.75pt for correct sig figs and full credit for acceptable work shown, if applicable.
+					studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctSigFigs ? q.pointValue * 0.75 : (q.correctValue ? q.pointValue*0.5 : 0));
+				} else {
+					// Full credit only for completely correct answers
+					studentScore = q.isCorrect(studentAnswer) ? q.pointValue : 0;
+				}
 				break;
 			case 6:  // Handle five-star rating response
 				studentScore = q.pointValue;  // full marks for submitting a response
@@ -1221,23 +1233,29 @@ public class Homework extends HttpServlet {
 			} else {  // studentAnswer is incorrect or incomplete
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question
+					String originalStudentAnswer = studentAnswer; // keep the original answer for display purposes
 					try {
-						Double.parseDouble(studentAnswer);  // throws exception for non-numeric answer
+						studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
+						studentAnswer = q.calculateIonicCharge(studentAnswer); // calculate the ionic charge as a number, if applicable
+						var matcher = NUMERIC_PREFIX.matcher(studentAnswer); // Extract the numeric part of the student's answer, removing any trailing units
+						if (!matcher.find()) throw new Exception();
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
 								+ "<p class='explanation-text'>"
 								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
 								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
 								+ "</p>");
 						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
 								+ "<p class='explanation-text'>"
 								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+								+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
 								+ "</p>");
 					} catch (Exception e2) {
 						buf.append("<div class='status-text'>Wrong Format</div>"
@@ -1245,7 +1263,7 @@ public class Homework extends HttpServlet {
 								+ "This question requires a numeric response expressed as an integer, decimal number, "
 								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
 								+ "was unable to recognize your answer as one of these types.<br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(studentAnswer) + "</b>&nbsp;"
+								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
 								+ "</p>");
 					}
 					break;
@@ -1415,10 +1433,12 @@ public class Homework extends HttpServlet {
 					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 					+ "<input type=hidden name=StudentUserId value=" + forUserId + " />"
 					+ "<input type=hidden name=StudentUserName value=" + (forUserName==null?"":HtmlUtils.htmlEscape(forUserName)) + " />"
-					+ "<input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /><br/><br/>");
+					+ "<input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> "
+					+ "<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a>"
+					+ "<br/><br/>");
 			debug.append("0");
 			
-			buf.append("<table>");
+			buf.append("<div style='display:table;max-width:800px;'>");
 			for (Key<Question> k : a.questionKeys) {  // this is the main loop through the assigned questions
 				Question q = questions.get(k);
 				String hashMe = forUserId + a.id;
@@ -1444,40 +1464,38 @@ public class Homework extends HttpServlet {
 				debug.append("3");
 				
 				// print the question itself
-				buf.append("<tr><td style='text-align:right;vertical-align:text-top;padding-right:10px;'><b>" + (a.questionKeys.indexOf(k)+1) + ".</b></td>"
+				buf.append("<div style='display:table-row'><div style='display:table-cell;text-align:right;vertical-align:text-top;padding-right:10px;'><b>" + (a.questionKeys.indexOf(k)+1) + ".</b></div>"
 					//+ "<td>" + q.printAllToStudents(studentAnswer,true,true,showWork) + "<br/></td></tr>"
-					+ "<td>" + q.print() + "</td>"
-					+ "<td style='text-align:center;vertical-align:middle'><label><span id='score" + q.id + "'>" + (rangeValue * 25) + "%</span><br/>"
-					+ "<input type=range name=Range" + q.id + " value=" + rangeValue + " min=0 max=4 step=1 oninput=\"document.getElementById('score" + q.id + "').innerHTML=(this.value*25)+'%';\" /></label></td></tr>"
+					+ "<div style='display:table-cell'>" + q.print() + "</div>"
+					+ "<div style='display:table-cell;text-align:center;vertical-align:middle'><label><span id='score" + q.id + "'>" + (rangeValue * 25) + "%</span><br/>"
+					+ "<input type=range name=Range" + q.id + " value=" + rangeValue + " min=0 max=4 step=1 oninput=\"document.getElementById('score" + q.id + "').innerHTML=(this.value*25)+'%';\" /></label></div></div>"
 				);
 				
 				// Print a box containing the current showWork
 				if (showWork!=null && !showWork.isEmpty()) {
-					buf.append("<tr><td></td><td><b>Student Work:</b><br/><pre>" + HtmlUtils.htmlEscape(showWork) + "</pre></td></tr>");
+					buf.append("<div style='display:table-row'><div style='display:table-cell'></div><div style='display:table-cell'><b>Student Work:</b><br/><pre style='max-width: 450px; white-space: pre-wrap; word-break: break-word;'>" + HtmlUtils.htmlEscape(showWork) + "</pre></div></div>");
 				}
 
 				// print a small table of student submissions for this question
-				buf.append("<tr><td></td><td>");
+				buf.append("<div style='display:table-row'><div style='display:table-cell'></div><div style='display:table-cell'>");
 				if (!qTransactions.isEmpty()) {
 					buf.append("<table style='text-align: center'><tr><th style='padding-right:20px'>Timestamp</th><th style='padding-right:20px'>Student Response</th><th style='padding-right:20px'>Correct Answer</th><th>Correct</th></tr>");
 					for (HWTransaction t : qTransactions) {
 						if (t.studentAnswer==null) buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td colspan=2 style='padding-right:20px'>(response detail is unavailable)</td>");
 						else buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td style='padding-right:20px'>" + t.studentAnswer + "</td><td style='padding-right:20px'>" + t.correctAnswer + "</td>");
 						
-						if (t.score==t.possibleScore) buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
-						else {
-							q.isCorrect(t.studentAnswer);
-							if (!q.correctValue) buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
-							else if (!q.correctSigFigs) buf.append("<td><img src=/images/partCredit.png alt='x-mark' height=24 width=24></td>");
-							else buf.append("<td><img src=/images/show_work.png alt='x-mark-show-work' height=24 width=24></td>");
-						}
+						q.isCorrect(t.studentAnswer);
+						if (!q.correctValue) buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+						else if (!q.correctSigFigs) buf.append("<td><img src=/images/partCredit.png alt='x-mark for significant figs' height=24 width=24></td>");
+						else if (!q.correctWork) buf.append("<td><img src=/images/show_work.png alt='x-mark-show-work' height=24 width=24></td>");
+						else buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
 						buf.append("</tr>");
 					}
 					buf.append("</table><br/>");
 				}
-				buf.append("</td></tr><tr><td colspan=5><hr/></td></tr>");
+				buf.append("</div></div><hr/>");
 			}
-			buf.append("</table><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /></form><br/>");
+			buf.append("</div><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> <a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a></form><br/>");
 		} catch (Exception e) {
 			buf.append("Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>" + debug.toString());
 		}

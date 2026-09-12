@@ -1257,7 +1257,7 @@ public class Question implements Serializable, Cloneable {
 			}
 			return false;
 		case 5: // Numeric Answer
-			studentAnswer = studentAnswer.replaceAll("\\s+", ""); // remove all whitespace from the student's answer
+			studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
 			studentAnswer = calculateIonicCharge(studentAnswer);
 			// Extract the numeric part of the student's answer, removing any trailing units
 			var matcher = NUMERIC_PREFIX.matcher(studentAnswer);

@@ -54,6 +54,7 @@ public class Assignment implements java.lang.Cloneable {
 			Date pollClosesAt = null;
 			String password;
 			boolean scoreWork = false;
+			Boolean partialCreditOption = false;
 			List<Long> conceptIds = new ArrayList<Long>();
 			List<Long> topicIds = new ArrayList<Long>(); // used for practice exams which have multiple topicIds
 			List<String> resourceLinkIds = new ArrayList<String>();  // deprecated
