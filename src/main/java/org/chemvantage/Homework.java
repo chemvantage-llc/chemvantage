@@ -1441,12 +1441,13 @@ public class Homework extends HttpServlet {
 			buf.append("<div style='display:table;max-width:800px;'>");
 			for (Key<Question> k : a.questionKeys) {  // this is the main loop through the assigned questions
 				Question q = questions.get(k);
+				if (q == null) continue;
 				String hashMe = forUserId + a.id;
 				q.setParameters(hashMe.hashCode());  // creates different parameters for different assignments
 				debug.append("1");
 				
 				List<HWTransaction> qTransactions = new ArrayList<HWTransaction>();
-				for (HWTransaction t : transactions) if (q.id.longValue() == t.questionId) qTransactions.add(t);
+				for (HWTransaction t : transactions) if (q.id != null && q.id.longValue() == t.questionId) qTransactions.add(t);
 				debug.append("2");
 				
 				String showWork = null;
@@ -1479,23 +1480,32 @@ public class Homework extends HttpServlet {
 				// print a small table of student submissions for this question
 				buf.append("<div style='display:table-row'><div style='display:table-cell'></div><div style='display:table-cell'>");
 				if (!qTransactions.isEmpty()) {
-					buf.append("<table style='text-align: center'><tr><th style='padding-right:20px'>Timestamp</th><th style='padding-right:20px'>Student Response</th><th style='padding-right:20px'>Correct Answer</th><th>Correct</th></tr>");
+					buf.append("<table style='text-align: center'><tr><th style='padding-right:20px'>Timestamp</th><th style='padding-right:20px'>Student Response</th><th style='padding-right:20px'>Correct Answer </th><th>Result </th><th>Override</th></tr>");
 					for (HWTransaction t : qTransactions) {
 						if (t.studentAnswer==null) buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td colspan=2 style='padding-right:20px'>(response detail is unavailable)</td>");
 						else buf.append("<tr><td style='padding-right:20px'>" + t.graded + "</td><td style='padding-right:20px'>" + t.studentAnswer + "</td><td style='padding-right:20px'>" + t.correctAnswer + "</td>");
 						
-						q.isCorrect(t.studentAnswer);
-						if (!q.correctValue) buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
-						else if (!q.correctSigFigs) buf.append("<td><img src=/images/partCredit.png alt='x-mark for significant figs' height=24 width=24></td>");
-						else if (!q.correctWork) buf.append("<td><img src=/images/show_work.png alt='x-mark-show-work' height=24 width=24></td>");
-						else buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
+						if ("NUMERIC".equals(q.type)) {
+							q.showWork = null;
+							q.isCorrect(t.studentAnswer);
+							boolean workRequiredAndInvalid = a != null && a.scoreWork && t.showWork != null && t.score < q.pointValue;
+							if (!q.correctValue) buf.append("<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+							else if (!q.correctSigFigs) buf.append("<td><img src=/images/partCredit.png alt='x-mark for significant figs' height=24 width=24></td>");
+							else if (workRequiredAndInvalid) buf.append("<td><img src=/images/show_work.png alt='x-mark-show-work' height=24 width=24></td>");
+							else buf.append("<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>");
+						} else if ("ESSAY".equals(q.type)) {
+							buf.append(t.score == q.pointValue ? "<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>" : "<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+						} else if (q.hasACorrectAnswer()){
+							buf.append(q.isCorrect(t.studentAnswer) ? "<td><img src=/images/checkmark.png alt='checkmark' height=24 width=17></td>" : "<td><img src=/images/xmark.png alt='x-mark' height=24 width=24></td>");
+						}
+						buf.append(t.scoreOverride?"<td>&nbsp;" + Math.round(t.score*100) + "%&nbsp;&#x1F4CC;</td>":"");
 						buf.append("</tr>");
 					}
 					buf.append("</table><br/>");
 				}
 				buf.append("</div></div><hr/>");
 			}
-			buf.append("</div><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> <a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a></form><br/>");
+			buf.append("</div><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> <a href='/Homework?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a></form><br/>");
 		} catch (Exception e) {
 			buf.append("Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>" + debug.toString());
 		}
@@ -1780,7 +1790,7 @@ public class Homework extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			buf.append("<table style='text-align: center;'><tr><th>#</th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th><th>Submissions</tr>");
+			buf.append("<table style='text-align: center;'><tr><th>#</th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score </th><th>CV Score </th><th>Submissions</tr>");
 			
 			int i=0;
 			int nMismatched = 0;
@@ -1822,6 +1832,7 @@ public class Homework extends HttpServlet {
 					+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
 					+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
+			buf.append("<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}

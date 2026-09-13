@@ -1159,7 +1159,7 @@ public class Question implements Serializable, Cloneable {
 				+ "const drawPanel=document.getElementById('" + drawPanelId + "');"
 				+ "const smilesPanel=document.getElementById('" + smilesPanelId + "');"
 				+ "const deferredOpen=" + deferredOpen + ";"
-				+ "const hostForm=frame?frame.closest('form'):null;"
+				+ "const hostForm=frame?frame.closest('form.homework-response-form, form#previewQuestionForm'):null;"
 				+ "const hostSessionId='sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);"
 				+ "let ready=false;"
 				+ "let editorLoadRequested=!deferredOpen;"

@@ -71,7 +71,7 @@ public class OneQuestion extends HttpServlet {
 
 				buf.append("<br/><br/><div style='max-width:800px'>"
 						+ "<img src=/images/thoughtful_parrot.png alt='thoughtful parrot' style='float:right;padding:10px;height:200px;vertical-align:text-top;' />"
-						+ "<form method=post action=/item onsubmit=waitForScore(); >"
+						+ "<form method=post action=/item class='homework-response-form' onsubmit=waitForScore(); >"
 						+ "<input type=hidden name=p value=" + parameter + " />"
 						+ q.print("","",null,true) + "<input id=SubmitButton type=submit value='Grade This Exercise' class='btn btn-primary'/>" 
 						+ "</form>"
