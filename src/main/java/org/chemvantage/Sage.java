@@ -95,7 +95,7 @@ public class Sage extends HttpServlet {
 				out.println(assignConcepts(user,a));
 				break;
 			case "ShowSummary":
-				out.println(showSummary(user,a));
+				out.println(Subject.header("Sage Tutor Scores") + showSummary(user,a) + Subject.footer);
 				break;
 			case "ConceptDescription":
 				out.println(printConceptDescription(user,concept));
@@ -103,8 +103,9 @@ public class Sage extends HttpServlet {
 			case "menu":
 				out.println(menuPage(user,st));
 				break;
+			case "Instructor":
 			case "InstructorPage":
-				out.println(instructorPage(user,a));
+				out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				break;
 			case "SynchronizeScore":
 				out.println(synchronizeScore(user,a,request.getParameter("ForUserId")));
@@ -190,7 +191,7 @@ public class Sage extends HttpServlet {
 				}
 				break;
 			case "Synchronize Scores":
-				if (Utilities.synchronizeScores(user,a)) out.println(instructorPage(user,a));
+				if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
 				else out.println("Synchronization request failed.");
 				break;
 			default: throw new Exception("Invalid request");
@@ -1054,7 +1055,7 @@ public class Sage extends HttpServlet {
 	}
 	
 	static String showSummary(User user,Assignment a) {
-		StringBuffer buf = new StringBuffer(Subject.header("Sage Tutor Scores"));
+		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
 			buf.append("<h1>Sage Tutor Scores</h1>");
@@ -1123,10 +1124,11 @@ public class Sage extends HttpServlet {
 			} else {
 				buf.append(tableBuilder.toString());
 			} 
+			buf.append("<a href='/Sage?UserRequest=InstructorPage&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}
-		return buf.toString() + Subject.footer;
+		return buf.toString();
 	}
 
 	static String synchronizeScore(User user, Assignment a, String forUserId) {

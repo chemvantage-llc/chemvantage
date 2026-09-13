@@ -927,6 +927,7 @@ public class Quiz extends HttpServlet {
 			} else {
 				buf.append(tableBuilder.toString());
 			} 
+			buf.append("<a href='/Quiz?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}
