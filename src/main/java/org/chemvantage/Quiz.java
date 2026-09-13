@@ -170,12 +170,6 @@ public class Quiz extends HttpServlet {
 					out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
 				}
 				break;
-			case "Email Report":
-				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				//Utilities.synchronizeScores(user,a);
-				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
-				break;
 			default:
 				out.println(Subject.header("Quiz Results") + printScore(user,a,request) + Subject.footer);
 			}
@@ -863,11 +857,7 @@ public class Quiz extends HttpServlet {
 		return buf.toString();
 	}
 
-	static String showSummary(User user,Assignment a) {
-		return showSummary(user,a,false);
-	}
-
-	static String showSummary(User user, Assignment a, boolean showDetails) {
+	static String showSummary(User user, Assignment a) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -888,8 +878,8 @@ public class Quiz extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
+			StringBuilder tableBuilder = new StringBuilder();
+			tableBuilder.append("<table><tr><th>#</th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
 			
 			int i=0;
 			int nMismatched = 0;
@@ -908,17 +898,15 @@ public class Quiz extends HttpServlet {
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
 				if ("Learner".equals(entry.getValue()[0]) && !cvScoreString.equals(lmsScoreString)) nMismatched++;
-				if (showDetails)
-					buf.append("<tr><td>" + i + ". </td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td>" + lmsScoreString + "</td>"
-						+ "<td>" + cvScoreString + "</td>"
-						+ "</tr>");
+				tableBuilder.append("<tr><td>" + i + ". </td>"
+					+ "<td>" + entry.getValue()[1] + "</td>"
+					+ "<td>" + entry.getValue()[2] + "</td>"
+					+ "<td>" + entry.getValue()[0] + "</td>"
+					+ "<td>" + lmsScoreString + "</td>"
+					+ "<td>" + cvScoreString + "</td>"
+					+ "</tr>");
 			}
-			if (showDetails)
-				buf.append("</table><br/>");
+			tableBuilder.append("</table><br/>");
 			
 			if (nMismatched > 0) {
 				buf.append("There " + (nMismatched == 1 ? "is 1 mismatched student score" : "are " + nMismatched + " mismatched student scores") + " between the LMS and ChemVantage. "
@@ -926,26 +914,18 @@ public class Quiz extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Quiz onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
-						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
-						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
-						+ "</form><br/><br/>");
+				buf.append("<form method=post action=/Quiz onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+					+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+					+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+					+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
-			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Quiz Scores Report",buf.toString());
-				return instructorPage(user,a);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Quiz onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
-						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
-						.append("<input type=hidden name=UserRequest value='Email Report' />")
-						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
-						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
-						.append("</form>");
+				buf.append(tableBuilder.toString());
 			} 
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";

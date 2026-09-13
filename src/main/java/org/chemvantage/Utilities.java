@@ -33,6 +33,7 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 
 public class Utilities {
 	private static final String ADMIN_EMAIL = "admin@chemvantage.org";
@@ -224,23 +225,52 @@ public class Utilities {
 			throws IOException {
 		Email from = new Email("admin@chemvantage.org","ChemVantage LLC");
 		if (recipientName==null) recipientName="";
-		Email to = new Email(recipientEmail,recipientName);
-		Content content = new Content("text/html", message);
-		Mail mail = new Mail(from, subject, to, content);
+		String normalizedRecipientEmail = recipientEmail == null || recipientEmail.contains("invalid") ? "chuck.wight@gmail.com" : recipientEmail.trim();
+		String safeMessage = message == null ? "" : message;
+		boolean addAdminBcc = !ADMIN_EMAIL.equalsIgnoreCase(normalizedRecipientEmail) && !safeMessage.contains("unsubscribe");
+		System.out.println("EMAIL_DIAGNOSTIC start requested=" + maskEmail(recipientEmail)
+				+ " effective=" + maskEmail(normalizedRecipientEmail)
+				+ " adminBcc=" + addAdminBcc
+				+ " subject=" + subject
+				+ " messageLength=" + safeMessage.length()
+				+ " sendGridKeyConfigured=" + (Subject.getSendGridKey() != null && !Subject.getSendGridKey().isBlank()));
+		Email to = new Email(normalizedRecipientEmail,recipientName);
+		Content content = new Content("text/html", safeMessage);
+		Personalization personalization = new Personalization();
+		personalization.addTo(to);
+		if (addAdminBcc) {
+			personalization.addBcc(new Email("admin@chemvantage.org", "ChemVantage LLC"));
+		}
+		Mail mail = new Mail();
+		mail.setFrom(from);
+		mail.setSubject(subject);
+		mail.addContent(content);
+		mail.addPersonalization(personalization);
 			
 		SendGrid sg = new SendGrid(Subject.getSendGridKey());
 		Request request = new Request();
 		request.setMethod(Method.POST);
 		request.setEndpoint("mail/send");
 		request.setBody(mail.build());
-		Response response = sg.api(request);
-		System.out.println(response.getStatusCode());
-		System.out.println(response.getBody());
-		System.out.println(response.getHeaders());
-		
-		// For all outgoing email except marketing, send a copy to admin@chemvantage.org
-		if (!"admin@chemvantage.org".equals(recipientEmail) && !message.contains("unsubscribe")) {
-			sendEmail("ChemVantage LLC","admin@chemvantage.org",subject,message);
+		try {
+			Response response = sg.api(request);
+			System.out.println("EMAIL_DIAGNOSTIC response status=" + response.getStatusCode()
+					+ " body=" + response.getBody()
+					+ " headers=" + response.getHeaders());
+			if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+				System.err.println("EMAIL_DIAGNOSTIC send failed for effective=" + maskEmail(normalizedRecipientEmail));
+			}
+		} catch (IOException e) {
+			System.err.println("EMAIL_DIAGNOSTIC exception effective=" + maskEmail(normalizedRecipientEmail)
+					+ " type=" + e.getClass().getName() + " message=" + e.getMessage());
+			throw e;
 		}
+	}
+
+	private static String maskEmail(String email) {
+		if (email == null || email.isBlank()) return "<empty>";
+		int at = email.indexOf('@');
+		if (at <= 1) return "<redacted>";
+		return email.charAt(0) + "***" + email.substring(at);
 	}
 }

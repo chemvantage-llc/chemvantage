@@ -115,13 +115,7 @@ public class SmartText extends HttpServlet {
                 if (Utilities.synchronizeScores(user,a)) out.println(Subject.header("ChemVantage Instructor Page") + instructorPage(user,a) + Subject.footer);
                 else out.println("Synchronization request failed.");
                 break;
-            case "Email Report":
-				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-                //Utilities.synchronizeScores(user,a);
-				reviewScores(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
-				break;
-			default:
+            default:
             }
 
         } catch (Exception e) {
@@ -497,11 +491,7 @@ public class SmartText extends HttpServlet {
         return buf.toString();
     }
   
-    	static String reviewScores(User user,Assignment a) {
-		return reviewScores(user,a,false);
-	}
-
-	static String reviewScores(User user, Assignment a, boolean showDetails) {
+    static String reviewScores(User user, Assignment a) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -522,8 +512,8 @@ public class SmartText extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
+            StringBuilder tableBuilder = new StringBuilder();
+			tableBuilder.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
 			
 			int i=0;
 			int nMismatched = 0;
@@ -542,119 +532,41 @@ public class SmartText extends HttpServlet {
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
 				if ("Learner".equals(entry.getValue()[0]) && !cvScoreString.equals(lmsScoreString)) nMismatched++;
-				if (showDetails)
-					buf.append("<tr><td>" + i + ". </td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td>" + lmsScoreString + "</td>"
-						+ "<td>" + cvScoreString + "</td>"
-						+ "</tr>");
-			}
-			if (showDetails)
-				buf.append("</table><br/>");
-			
+				tableBuilder.append("<tr><td>" + i + ". </td>"
+                    + "<td>" + entry.getValue()[1] + "</td>"
+                    + "<td>" + entry.getValue()[2] + "</td>"
+                    + "<td>" + entry.getValue()[0] + "</td>"
+                    + "<td>" + lmsScoreString + "</td>"
+                    + "<td>" + cvScoreString + "</td>"
+                    + "</tr>");
+            }
+            tableBuilder.append("</table><br/>");
+            
 			if (nMismatched > 0) {
 				buf.append("There " + (nMismatched == 1 ? "is 1 mismatched student score" : "are " + nMismatched + " mismatched student scores") + " between the LMS and ChemVantage. "
 					+ "This may happen for one or more of the following reasons:<ul>"
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/SmartText onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
-						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
-						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
-						+ "</form><br/><br/>");
+				buf.append("<form method=post action=/SmartText onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+                    + "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+                    + "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+                    + "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+                    + "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+                    + "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
-			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage SmartText Scores Report",buf.toString());
-				return instructorPage(user,a);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/SmartText onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
-						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
-						.append("<input type=hidden name=UserRequest value='Email Report' />")
-						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
-						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
-						.append("</form>");
+				buf.append(tableBuilder.toString());
 			} 
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}
 		return buf.toString();
 	}
-	
-    /* 
-    static String reviewScores(User user, Assignment a) throws Exception {
-        if (!user.isInstructor()) throw new Exception("Unauthorized.");
-        // from here on, User is the instructor
-    
-        StringBuffer buf = new StringBuffer();
-        buf.append("<h1>Reading Assignment</h1>"
-            + "<h2>" + (a.title==null?"":a.title) + "</h2>");
-        buf.append("Valid: " + new Date() + "<p>");
-    
-        try {
-            if (a.lti_nrps_context_memberships_url==null) throw new Exception("No Names and Roles Provisioning support.");
-    
-            buf.append("The roster below is obtained using the Names and Role Provisioning service offered by your learning management system, "
-                + "and may or may not include user's names or emails, depending on the settings of your LMS.<br/><br/>");
-    
-            Map<String,String> scores = LTIMessage.readMembershipScores(a);
-            if (scores==null) scores = new HashMap<String,String>();  // in case service call fails
-    
-            Map<String,String[]> membership = LTIMessage.getMembership(a);
-            if (membership==null) membership = new HashMap<String,String[]>(); // in case service call fails
-    
-            Map<String,Key<Score>> keys = new HashMap<String,Key<Score>>();
-            Deployment d = ofy().load().type(Deployment.class).id(a.domain).safe();
-            String platform_id = d.getPlatformId() + "/";
-            for (String id : membership.keySet()) {
-                keys.put(id,key(key(User.class,Subject.hashId(platform_id+id)),Score.class,a.id));
-            }
-            Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
-            buf.append("<table><tr><th>&nbsp;</th><th>Name</th><th>Email</th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
-            int i=0;
-            boolean synched = true;
-            for (Map.Entry<String,String[]> entry : membership.entrySet()) {
-                if (entry == null) continue;
-                String s = scores.get(entry.getKey());
-                Score cvScore = cvScores.get(keys.get(entry.getKey()));
-                i++;
-                buf.append("<tr><td>" + i + ".&nbsp;</td>"
-                    + "<td>" + entry.getValue()[1] + "</td>"
-                    + "<td>" + entry.getValue()[2] + "</td>"
-                    + "<td>" + entry.getValue()[0] + "</td>"
-                    + "<td align=center>" + (s == null?" - ":s + "%") + "</td>"
-                    + "<td align=center>" + (cvScore == null?" - ":String.valueOf(cvScore.getPctScore()) + "%") + "</td>"
-                    + "</tr>");
-                // Flag this score set as unsynchronizde only if there is one or more non-null ChemVantage Learner score that is not equal to the LMS score
-                // Ignore Instructor scores because the LMS often does not report them, and ignore null cvScore entities because they cannot be reported.
-                synched = synched && (!"Learner".equals(entry.getValue()[0]) || (cvScore!=null?String.valueOf(cvScore.getPctScore()).equals(s):true));
-            }
-            buf.append("</table><br/>");
-            if (!synched) {
-                buf.append("If any of the Learner scores above are not synchronized, you may use the button below to launch a background task " 
-                    + "where ChemVantage will resubmit them to your LMS. This can take several seconds to minutes depending on the "
-                    + "number of scores to process. Please note that you may have to adjust the settings in your LMS to accept the "
-                    + "revised scores. For example, in Canvas you may need to change the assignment settings to Unlimited Submissions. "
-                    + "This may also cause the submission to be counted as late if the LMS assignment deadline has passed.<br/>"
-                    + "<form method=post action=/SmartText >"
-                    + "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-                    + "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-                    + "<input type=submit value='Synchronize Scores' />"
-                    + "</form>");
-            }
-            return buf.toString();
-        } catch (Exception e) {
-            buf.append(e.toString());
-        }
-        return buf.toString();
-    }
- */   
+	 
     boolean synchronizeScores(User user,Assignment a) {
         // This method looks for assignment scores that are different from the LMS scores and resubmits the score to the LMS
         try {
@@ -682,10 +594,10 @@ public class SmartText extends HttpServlet {
                 Utilities.createTask("/ReportScore","AssignmentId=" + a.id + "&UserId=" + URLEncoder.encode(platform_id + entry.getKey(),"UTF-8"));
                 //QueueFactory.getDefaultQueue().add(withUrl("/ReportScore").param("AssignmentId",String.valueOf(a.id)).param("UserId",URLEncoder.encode(platform_id + entry.getKey(),"UTF-8")));  // put report into the Task Queue
             }
+            return true;
         } catch (Exception e) {
             return false;
         }
-        return true;
     }
     
     String orderResponses(String[] answers) {

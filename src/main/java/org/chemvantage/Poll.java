@@ -193,12 +193,6 @@ public class Poll extends HttpServlet {
 			case "Quit":
 				doGet(request,response);
 				break;
-			case "Email Report":
-				if (!user.isInstructor()) throw new Exception("You must be an instructor to perform this function.");
-				//Utilities.synchronizeScores(user,a);
-				showSummary(user,a,true);
-				out.println(Subject.header("Instructor Page") + instructorPage(user,a) + Subject.footer);
-				break;
 			default:
 				doGet(request,response);
 			}
@@ -485,25 +479,7 @@ public class Poll extends HttpServlet {
 		if (pt == null) pt = new PollTransaction(user.getId(),new Date(),user.getAssignmentId());
 		return pt;
 	}
-/*	
-	Question getQuestion(Key<Question> k) {
-		Question q = pollQuestions.get(k);
-		if (q == null) {
-			q = ofy().load().key(k).now();
-			if (q != null) pollQuestions.put(k,q);
-		}
-		return q;  // returns null only if the question has been deleted
-	}
 	
-	void cacheQuestions(Assignment a) {
-		List<Key<Question>> newKeys = new ArrayList<Key<Question>>();
-		for (Key<Question> k : a.questionKeys) {
-			if (!this.pollQuestions.containsKey(k)) newKeys.add(k);
-		}
-		if (newKeys.size()>0) pollQuestions.putAll(ofy().load().keys(newKeys));
-		return;
-	}
-*/	
 	static String waitForResults(User user, Assignment a) {
 		
 		if (a.pollIsClosed) return resultsPage(user,a);
@@ -536,49 +512,7 @@ public class Poll extends HttpServlet {
 		}		
 		return buf.toString();	
 	}
-/*	
-	static String timer(User u) {
-		return "\n<SCRIPT>"
-				+ "var seconds;"
-				+ "var minutes;"
-				+ "var oddSeconds;"
-				+ "var endMillis;"
-				+ "var clock;"
-				+ "var timer0 = document.getElementById('timer0');"
-				+ "var timer1 = document.getElementById('timer1');"
-				+ "var form = document.getElementById('pollForm');"
-				+ "function countdown() {"
-				+ "	var seconds=Math.round((endMillis-Date.now())/1000);"
-				+ "	var minutes = seconds<0?Math.ceil(seconds/60.):Math.floor(seconds/60.);"
-				+ "	var oddSeconds = seconds%60;"
-				+ " if (oddSeconds<10) oddSeconds = '0'+ oddSeconds;"
-				+ " clock = seconds<=0?'0:00':minutes + ':' + oddSeconds;"
-				+ " if (timer0!=null) timer0.innerHTML = 'Time remaining: ' + clock;"
-				+ " if (timer1!=null) timer1.innerHTML = 'Time remaining: ' + clock;"
-				+ "	if (seconds <= 0) form.submit();"
-				+ " else setTimeout(() => countdown(), 1000);"
-				+ "}\n"
-				+ "function synchTimer() {"
-				+ "  var xmlhttp=new XMLHttpRequest();"
-				+ "  if (xmlhttp==null) {"
-				+ "    alert ('Sorry, your browser does not support AJAX!');"
-				+ "    return false;"
-				+ "  }"
-				+ "  xmlhttp.onreadystatechange=function() {"
-				+ "    if (xmlhttp.readyState==4) {"
-				+ "     const serverNowMillis = xmlhttp.responseText.trim();"  // server returned new Date().getTime()
-				+ "     endMillis += Date.now() - serverNowMillis;"          // corrects for fast or slow browser clock
-				+ "    }"
-				+ "  }\n"
-				+ "  var url = 'Poll?UserRequest=Synch&sig=" +u.getTokenSignature() + "';"
-				+ "  timer0.innerHTML = 'synchronizing clocks...';"
-				+ "  xmlhttp.open('GET',url,true);"
-				+ "  xmlhttp.send(null);"
-				+ "  return false;"
-				+ "}\n"
-				+ "</SCRIPT>";
-	}
-*/	
+	
 	static String resultsPage(User user,Assignment a) {
 		return resultsPage(user,null,a);
 	}
@@ -682,10 +616,9 @@ public class Poll extends HttpServlet {
 
 					if (q.hasNoCorrectAnswer()) buf.append(q.print());
 					else {
-						if (q.getQuestionType() == Question.NUMERIC) q.isCorrect(userResponse);
+						q.isCorrect(userResponse);
 						buf.append(q.printAllToStudents(userResponse));
 					}
-				
 					buf.append("</div>"   // end of question cell
 							+ "<div style='display: table-cell;vertical-align: top;'></div>");  // horizontal buffer
 
@@ -1267,10 +1200,6 @@ public class Poll extends HttpServlet {
 	}
 
 	static String showSummary(User user,Assignment a) {
-		return showSummary(user,a,false);
-	}
-
-	static String showSummary(User user, Assignment a, boolean showDetails) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
 		try {
@@ -1291,8 +1220,8 @@ public class Poll extends HttpServlet {
 			}
 			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
 			
-			if (showDetails)
-				buf.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
+			StringBuilder tableBuilder = new StringBuilder();
+			tableBuilder.append("<table><tr><th> </th><th>Name </th><th>Email </th><th>Role</th><th>LMS Score</th><th>CV Score</th></tr>");
 			
 			int i=0;
 			int nMismatched = 0;
@@ -1311,17 +1240,15 @@ public class Poll extends HttpServlet {
 				Score cvScore = cvScores.get(keys.get(entry.getKey()));
 				String cvScoreString = cvScore==null?" - ":String.valueOf(cvScore.getPctScore() + "%");
 				if ("Learner".equals(entry.getValue()[0]) && !cvScoreString.equals(lmsScoreString)) nMismatched++;
-				if (showDetails)
-					buf.append("<tr><td>" + i + ". </td>"
-						+ "<td>" + entry.getValue()[1] + "</td>"
-						+ "<td>" + entry.getValue()[2] + "</td>"
-						+ "<td>" + entry.getValue()[0] + "</td>"
-						+ "<td>" + lmsScoreString + "</td>"
-						+ "<td>" + cvScoreString + "</td>"
-						+ "</tr>");
+				tableBuilder.append("<tr><td>" + i + ". </td>"
+					+ "<td>" + entry.getValue()[1] + "</td>"
+					+ "<td>" + entry.getValue()[2] + "</td>"
+					+ "<td>" + entry.getValue()[0] + "</td>"
+					+ "<td>" + lmsScoreString + "</td>"
+					+ "<td>" + cvScoreString + "</td>"
+					+ "</tr>");
 			}
-			if (showDetails)
-				buf.append("</table><br/>");
+			tableBuilder.append("</table><br/>");
 			
 			if (nMismatched > 0) {
 				buf.append("There " + (nMismatched == 1 ? "is 1 mismatched student score" : "are " + nMismatched + " mismatched student scores") + " between the LMS and ChemVantage. "
@@ -1329,27 +1256,19 @@ public class Poll extends HttpServlet {
 					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
 					+ "<li>A late student submission was not accepted by the LMS.</li>"
 					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul><br/>");
-				if (!showDetails) buf.append("<form method=post action=/Poll onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
-						+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
-						+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
-						+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
-						+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
-						+ "</form><br/><br/>");
+				buf.append("<form method=post action=/Poll onsubmit=\"document.getElementById('syncScores').disabled=true;document.getElementById('syncScoresStatus').style.display='inline';return true;\">"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type=hidden name=UserRequest value='Synchronize Scores' />"
+					+ "<input type=submit id=syncScores value='Synchronize Scores Now' />"
+					+ "<span id='syncScoresStatus' style='display:none; margin-left:8px; color:#b20000;'>Synchronizing scores now. This may take a minute...</span>"
+					+ "</form><br/><br/>");
 			} else buf.append("All of the student ChemVantage scores are synchronized with the LMS grade book.<br/><br/>");
 
 			if (instructorEmail == null || instructorEmail.isEmpty()) {
 				buf.append("To protect privacy, individual scores are not shown.<br/><br/>");
-			} else if (showDetails) {
-				Utilities.sendEmail("",instructorEmail,"ChemVantage Poll Scores Report",buf.toString());
-				return instructorPage(user,a);
 			} else {
-				buf.append("<form id='emailReportForm' method=post action=/Poll onsubmit=\"document.getElementById('emailReport').disabled=true;document.getElementById('emailReportStatus').style.display='inline';return true;\">")
-						.append("<input type=hidden name=sig value=" + user.getTokenSignature() + " />")
-						.append("<input type=hidden name=UserRequest value='Email Report' />")
-						.append("<input type=submit id=emailReport value='Get a detailed report via email' />")
-						.append("<span id='emailReportStatus' style='display:none; margin-left:8px; color:#b20000;'>Sending the report now. This may take a minute...</span>")
-						.append("</form>");
-			} 
+				buf.append(tableBuilder.toString());
+			}
 		} catch (Exception e) {
 			return buf.toString() + "<br/>Error: " + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>";
 		}

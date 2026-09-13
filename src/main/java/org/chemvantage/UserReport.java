@@ -41,6 +41,8 @@ public class UserReport implements Serializable {
 			String studentAnswer;
 			String comments = "";
 			float riskScore = -1.0f;
+			private static final String SHOW_WORK_MARKER = "\n\nShow work:\n";
+			private static final String LEGACY_SHOW_WORK_MARKER = "&lt;br/&gt;&lt;b&gt;Show work:&lt;/b&gt;";
 	
 	UserReport() {}
 	
@@ -78,7 +80,7 @@ public class UserReport implements Serializable {
 			Question q = ofy().load().type(Question.class).id(this.questionId).safe();
 			q.parameters = this.params;
 
-			buf.append(q.printAllToStudents(studentAnswer,true,false));
+			buf.append(renderQuestionReport(q));
 		}
 		return buf.toString();
 	}
@@ -98,7 +100,8 @@ public class UserReport implements Serializable {
 			if (this.questionId>0) {			
 				Question q = ofy().load().type(Question.class).id(this.questionId).safe();
 				q.parameters = this.params;
-				buf.append(q.printAllToStudents(studentAnswer,true,false));
+				q.isCorrect(studentAnswer);
+				buf.append(renderQuestionReport(q));
 				buf.append("<a href=Edit?UserRequest=Edit&QuestionId=" + this.questionId + "&AssignmentType=" + q.assignmentType + ">Edit Question</a>&nbsp;or&nbsp;");
 			}
 			buf.append("<FORM METHOD=POST style='display: inline' ACTION=Feedback>"
@@ -115,5 +118,22 @@ public class UserReport implements Serializable {
 			buf.append("<br>" + e.toString());
 		}
 		return buf.toString();
+	}
+
+	private String renderQuestionReport(Question question) {
+		String answer = studentAnswer == null ? "" : studentAnswer;
+		String showWork = null;
+		int markerIndex = answer.indexOf(SHOW_WORK_MARKER);
+		if (markerIndex >= 0) {
+			showWork = answer.substring(markerIndex + SHOW_WORK_MARKER.length());
+			answer = answer.substring(0, markerIndex);
+		} else {
+			int legacyMarkerIndex = answer.indexOf(LEGACY_SHOW_WORK_MARKER);
+			if (legacyMarkerIndex >= 0) {
+				showWork = HtmlUtils.htmlUnescape(answer.substring(legacyMarkerIndex + LEGACY_SHOW_WORK_MARKER.length()));
+				answer = HtmlUtils.htmlUnescape(answer.substring(0, legacyMarkerIndex));
+			}
+		}
+		return question.printAllToStudents(answer, true, false, showWork);
 	}
 }

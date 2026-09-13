@@ -34,17 +34,18 @@ public class HWTransaction implements Serializable {
 	@Index	long topicId;
 	@Index	String userId;
 	@Index	Date graded;
-	@Index	int score;
+	@Index	double score;
 	@Index	long assignmentId;
 			int possibleScore;
 			String topicTitle;
 			String showWork;
 			String studentAnswer;
 			String correctAnswer;
+			boolean scoreOverride;
 	
     HWTransaction() {}
     
-    HWTransaction(long questionId,String hashedId,Date graded,int score,long assignmentId,int possibleScore,String showWork) {
+	HWTransaction(long questionId,String hashedId,Date graded,double score,long assignmentId,int possibleScore,String showWork) {
     	this.questionId = questionId;
     	this.userId = hashedId;
         this.graded = graded;

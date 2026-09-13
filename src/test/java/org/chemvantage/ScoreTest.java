@@ -47,12 +47,13 @@ class ScoreTest {
     @Test
     @DisplayName("Score with decimal points should calculate correctly")
     void testDecimalScore() {
-        int earned = 7;
-        int possible = 10;
-        
-        double percentage = (double) earned / possible * 100.0;
-        
-        assertEquals(70.0, percentage, 0.01);
+        Score score = new Score();
+        score.numberOfAttempts = 1;
+        score.homeworkScore = 0.25;
+        score.maxPossibleScore = 1;
+
+        assertEquals("0.25", score.getScore());
+        assertEquals(25.0, score.getPctScore(), 0.01);
     }
 
     @Test

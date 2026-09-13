@@ -78,7 +78,7 @@ public class Feedback extends HttpServlet {
 				} catch (Exception e) {}
 				String notes = HtmlUtils.htmlEscape(request.getParameter("Notes"));
 				String email = HtmlUtils.htmlEscape(request.getParameter("Email"));
-				String studentAnswer = HtmlUtils.htmlEscape(request.getParameter("StudentAnswer"));
+				String studentAnswer = request.getParameter("StudentAnswer");
 				UserReport r = new UserReport(userId,questionId,params,studentAnswer,notes);
 				ofy().save().entity(r);
 				sendEmailToAdmin(r,user,email);
