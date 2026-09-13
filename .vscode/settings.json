@@ -2,7 +2,7 @@
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-25",
-            "path": "/Users/wight/.jdk/jdk-25.0.2/jdk-25.0.2+10/Contents/Home",
+            "path": "/Users/wight/.jdk/jdk-25.0.4.1.jdk/Contents/Home",
             "default": true
         }
     ],
