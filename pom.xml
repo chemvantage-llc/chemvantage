@@ -14,7 +14,8 @@
   
   <!-- Project-specific properties -->
   <properties>
-     <exec.mainClass>org.chemvantage.SpringbootMain</exec.mainClass>
+    <java.version>25</java.version>
+    <exec.mainClass>org.chemvantage.SpringbootMain</exec.mainClass>
     <googleCloudProjectId>GCLOUD_CONFIG</googleCloudProjectId>
   </properties>
 
