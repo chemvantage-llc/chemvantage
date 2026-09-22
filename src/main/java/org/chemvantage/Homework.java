@@ -399,12 +399,11 @@ public class Homework extends HttpServlet {
 				);
 			buf.append("<form action=/Homework method=post><input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 					+ "<fieldset><legend>Scoring method for numeric questions:</legend>"
-					//+ "Currently based on " + (a.scoreWork?"the final answer and the work shown. ":"the final answer only. ") 
-					//+ (a.partialCreditOption==true?"Partial credit is enabled.":"Partial credit is not enabled.")
-					//+ "<br/>"
 					+ "<label><input type=radio name=ScoreWork value=false " + (a.scoreWork?"":"checked") + " /> Final answer only</label>" + (a.scoreWork?"":"&nbsp;&#x2705;") + "<br/>"
-					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>" + (a.scoreWork?"&nbsp;&#x2705;":"") + "<br/>"
-					+ "<label><input type=checkbox name=PartialCreditOption value=true " + (a.partialCreditOption?"checked":"") + " /> Enable partial credit</label>" + (a.partialCreditOption?"&nbsp;&#x2705;":"") + "<br/>"
+					+ "<label><input type=radio name=ScoreWork value=true " + (a.scoreWork?"checked":"") + " /> Final answer and work shown</label>" + (a.scoreWork?"&nbsp;&#x2705;":"")
+					+ "&nbsp;<a role='button' href=# onclick=\"alert('Students must show clear evidence of sound thinking to receive full credit for a correct answer.');return false;\">&#9432;</a><br/>"
+					+ "<label><input type=checkbox name=PartialCreditOption value=true " + (a.partialCreditOption?"checked":"") + " /> Enable partial credit</label>" + (a.partialCreditOption?"&nbsp;&#x2705;":"") 
+					+ "&nbsp;<a role='button' href=# onclick=\"alert('The scorer awards 50% for the correct value, 25% for sig figs and 25% for the work shown.');return false;\">&#9432;</a><br/>"
 					+ "</fieldset>"
 					+ "<input type=submit name=UserRequest value='Set Scoring Method' />"
 					+ "</form><br/>\n"
@@ -1466,10 +1465,10 @@ public class Homework extends HttpServlet {
 				
 				// print the question itself
 				buf.append("<div style='display:table-row'><div style='display:table-cell;text-align:right;vertical-align:text-top;padding-right:10px;'><b>" + (a.questionKeys.indexOf(k)+1) + ".</b></div>"
-					//+ "<td>" + q.printAllToStudents(studentAnswer,true,true,showWork) + "<br/></td></tr>"
 					+ "<div style='display:table-cell'>" + q.print() + "</div>"
-					+ "<div style='display:table-cell;text-align:center;vertical-align:middle'><label><span id='score" + q.id + "'>" + (rangeValue * 25) + "%</span><br/>"
-					+ "<input type=range name=Range" + q.id + " value=" + rangeValue + " min=0 max=4 step=1 oninput=\"document.getElementById('score" + q.id + "').innerHTML=(this.value*25)+'%';\" /></label></div></div>"
+					+ (!qTransactions.isEmpty() ?"<div style='display:table-cell;text-align:center;vertical-align:middle'><label><span id='score" + q.id + "'>" + (rangeValue * 25) + "%</span><br/>"
+					+ "<input type=range name=Range" + q.id + " value=" + rangeValue + " min=0 max=4 step=1 oninput=\"document.getElementById('score" + q.id + "').innerHTML=(this.value*25)+'%';\" /></label></div>" : "") 
+					+ "</div>"
 				);
 				
 				// Print a box containing the current showWork
@@ -1502,8 +1501,8 @@ public class Homework extends HttpServlet {
 						buf.append("</tr>");
 					}
 					buf.append("</table><br/>");
-				}
-				buf.append("</div></div><hr/>");
+				} else buf.append("<b>No response was submitted for this question.</b>");
+				buf.append("<hr/></div></div>");
 			}
 			buf.append("</div><br/><input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> <a href='/Homework?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a></form><br/>");
 		} catch (Exception e) {

@@ -121,6 +121,7 @@ public class DataStoreCleaner extends HttpServlet {
 		case "CleanAssignments": buf.append(cleanAssignments(testOnly,request)); break;
 		//case "CleanDeployments": buf.append(cleanDeployments(testOnly)); break;
 		case "CleanUsers": buf.append(cleanUsers(testOnly)); break;
+		case "FixHWTransactionScores": buf.append(fixHWTransactionScores(testOnly)); break;
 		case "CleanAll":
 			Utilities.createTask("/DataStoreCleaner","Task=CleanTransactions&TestOnly="+testOnly);
 			Utilities.createTask("/DataStoreCleaner","Task=CleanScores&TestOnly="+testOnly);
@@ -154,6 +155,7 @@ public class DataStoreCleaner extends HttpServlet {
 		buf.append("<label><input type=radio name=Task value=CleanAssignments> Assignments unused more than 1 year with no lineitem_url</label><br>");
 		buf.append("<label><input type=radio name=Task value=CleanDeployments> Deployments with no logins for more than 1 year</label><br>");
 		buf.append("<label><input type=radio name=Task value=CleanUsers> Users whose tokens have expired</label><p>");
+		buf.append("<label><input type=radio name=Task value=FixHWTransactionScores> HWTransaction entities with legacy integer score values (repairs a load error)</label><p>");
 		buf.append("<label><input type=radio name=Task value=CleanAll>All of the entities above (launches background job)</label><p>");
 		buf.append("<input type=submit><br>");
 		buf.append("</form>");
@@ -255,6 +257,39 @@ public class DataStoreCleaner extends HttpServlet {
 		return buf.toString();
 	}
 	
+	/*
+	 * Some legacy HWTransaction entities were written with an integer (LongValue) 'score'
+	 * property before the field was changed to double. Objectify's translator refuses to
+	 * load a double field backed by a LongValue, so these entities can only be repaired
+	 * with the low-level Datastore client, bypassing Objectify entirely.
+	 */
+	String fixHWTransactionScores(boolean testOnly) throws Exception {
+		StringBuffer buf = new StringBuffer();
+		com.google.cloud.datastore.Datastore datastore = com.google.cloud.datastore.DatastoreOptions.newBuilder().build().getService();
+		com.google.cloud.datastore.QueryResults<com.google.cloud.datastore.Entity> results =
+				datastore.run(com.google.cloud.datastore.Query.newEntityQueryBuilder().setKind("HWTransaction").build());
+
+		int scanned = 0, fixed = 0;
+		List<com.google.cloud.datastore.Entity> toPut = new ArrayList<com.google.cloud.datastore.Entity>();
+		while (results.hasNext()) {
+			com.google.cloud.datastore.Entity e = results.next();
+			scanned++;
+			if (e.contains("score") && e.getValue("score") instanceof com.google.cloud.datastore.LongValue) {
+				double repairedScore = e.getLong("score");
+				toPut.add(com.google.cloud.datastore.Entity.newBuilder(e).set("score", repairedScore).build());
+				fixed++;
+			}
+		}
+		if (!testOnly) {
+			for (int i = 0; i < toPut.size(); i += 500) {
+				List<com.google.cloud.datastore.Entity> batch = toPut.subList(i, Math.min(i + 500, toPut.size()));
+				datastore.put(batch.toArray(new com.google.cloud.datastore.Entity[0]));
+			}
+		}
+		buf.append("Scanned " + scanned + " HWTransaction entities; " + (testOnly?"found ":"repaired ") + fixed + " with a legacy integer score value.<br/>");
+		return buf.toString();
+	}
+
 	String cleanHWTransactions(boolean testOnly, Long startId) throws Exception {
 		StringBuffer buf = new StringBuffer();
 		int count = 0;
