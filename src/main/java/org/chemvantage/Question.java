@@ -1261,11 +1261,12 @@ public class Question implements Serializable, Cloneable {
 			return false;
 		case 5: // Numeric Answer
 			studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
+			String studentValue = parseString(studentAnswer); // parse the student's answer into a numeric value
 			studentAnswer = calculateIonicCharge(studentAnswer);
 			// Extract the numeric part of the student's answer, removing any trailing units
 			var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
 			studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
-			correctValue = agreesToRequiredPrecision(studentAnswer);
+			correctValue = agreesToRequiredPrecision(studentAnswer) || agreesToRequiredPrecision(studentValue);
 			correctSigFigs = correctValue && hasCorrectSigFigs(studentAnswer);
 			correctWork = correctSigFigs && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work
 			return correctValue && correctSigFigs && correctWork;
