@@ -1235,6 +1235,7 @@ public class Homework extends HttpServlet {
 					String originalStudentAnswer = studentAnswer; // keep the original answer for display purposes
 					try {
 						studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
+						studentAnswer = q.parseString(studentAnswer,0); // parse the student's math expression into a String representing a numeric value
 						studentAnswer = q.calculateIonicCharge(studentAnswer); // calculate the ionic charge as a number, if applicable
 						var matcher = NUMERIC_PREFIX.matcher(studentAnswer); // Extract the numeric part of the student's answer, removing any trailing units
 						if (!matcher.find()) throw new Exception();
