@@ -28,6 +28,7 @@ import java.text.Collator;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -87,6 +88,7 @@ public class Question implements Serializable, Cloneable {
 			String explanation;
 			boolean scrambleChoices;
 			boolean strictSpelling;
+			Date revisedAt;
 	@Ignore	boolean correctValue = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
 	@Ignore	boolean correctSigFigs = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
 	@Ignore boolean correctWork = false; // used for scoring student answers to NUMERIC questions, not stored in datastore

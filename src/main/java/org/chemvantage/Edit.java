@@ -29,6 +29,7 @@ import org.springframework.web.util.HtmlUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2044,6 +2045,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			q = assembleQuestion(request,q);
 			q.editorId = user.getId();
 			q.isActive = true;
+			q.revisedAt = new Date();
 			ofy().save().entity(q).now();
 			questions.replace(key(q), q);
 		} catch (Exception e) {
