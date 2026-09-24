@@ -1432,7 +1432,7 @@ public class Homework extends HttpServlet {
 					+ "<input type=hidden name=StudentUserId value=" + forUserId + " />"
 					+ "<input type=hidden name=StudentUserName value=" + (forUserName==null?"":HtmlUtils.htmlEscape(forUserName)) + " />"
 					+ "<input type=submit class='btn btn-primary' name=UserRequest value='Submit Revised Homework Score' /> "
-					+ "<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a>"
+					+ "<a href='/Homework?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Cancel</a>"
 					+ "<br/><br/>");
 			debug.append("0");
 			
