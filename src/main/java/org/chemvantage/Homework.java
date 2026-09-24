@@ -1197,7 +1197,6 @@ public class Homework extends HttpServlet {
 				try {  // try to find the time that the question was last presented from the JWT timestamp
 					if (user.isInstructor()) throw new Exception("Collect data for Learners only");
 					if (q.getQuestionType() == 6 || q.getQuestionType() == 7) throw new Exception("Collect data only for non-essay and non-rating questions");
-					if (studentScore < q.pointValue) throw new Exception("Collect data only for fully correct responses");
 					if (!hwa.questionKeys.contains(key(Question.class,questionId))) throw new Exception("Collect data only for assigned questions");
 					Algorithm algorithm = Algorithm.HMAC256(Subject.getHMAC256Secret());
 					presented = JWT.require(algorithm).build().verify(request.getParameter("sig")).getIssuedAt();
