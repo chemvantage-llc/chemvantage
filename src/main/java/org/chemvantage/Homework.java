@@ -40,6 +40,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.web.util.HtmlUtils;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -1191,7 +1193,12 @@ public class Homework extends HttpServlet {
 			debug.append("2");
 			
 			if (!user.isAnonymous() && hwa != null) {
-				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),now,studentScore,hwa.id,q.pointValue,showWork);
+				Date presented = null;
+				try {  // try to find the time that the question was last presented from the JWT timestamp
+					Algorithm algorithm = Algorithm.HMAC256(Subject.getHMAC256Secret());
+					presented = JWT.require(algorithm).build().verify(request.getParameter("sig")).getIssuedAt();
+				} catch (Exception e) {}
+				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),presented,now,studentScore,hwa.id,q.pointValue,showWork);
 				ht.studentAnswer = studentAnswer;
 				ht.correctAnswer = q.getCorrectAnswer();				
 				ofy().save().entity(ht).now();
@@ -1533,7 +1540,7 @@ public class Homework extends HttpServlet {
 
 			if (target == null) {
 				if (revisedScore == 0) continue;  // unattempted questions already default to zero; no row needed
-				target = new HWTransaction(question.id,studentHashedId,new Date(),revisedScore,a.id,question.pointValue,null);
+				target = new HWTransaction(question.id,studentHashedId,null,new Date(),revisedScore,a.id,question.pointValue,null);
 				target.scoreOverride = true;
 				ofy().save().entity(target).now();
 			} else if (target.score != revisedScore) {
