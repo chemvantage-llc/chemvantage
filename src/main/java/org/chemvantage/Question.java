@@ -380,6 +380,7 @@ public class Question implements Serializable, Cloneable {
 					+ "aria-label='show your work here'>" + escapeHtml(showWork == null ? "" : showWork) + "</TEXTAREA>"
 					+ "<br/></div>"
 					+ "<label for='answer" + this.id + "'>");
+			
 			switch (getNumericItemType()) {
 			case 0: buf.append("<span style='color:#B20000;font-size: small;'>Enter the exact value. <a role='button' href=# onclick=\"alert('Your answer must have exactly the correct value. You may use scientific E notation. Example: enter 3.56E-12 to represent the number 3.56&#215;10&#8315;&#185;&#178;');return false;\">&#9432;</a></span><br/>"); break;
 			case 1: buf.append("<span style='color:#B20000;font-size: small;'>Enter the value with the appropriate number of significant figures. <a role='button' href=# onclick=\"alert('Use the information in the problem to determine the correct number of sig figs in your answer. You may use scientific E notation. Example: enter 3.56E-12 to represent the number 3.56&#215;10&#8315;&#185;&#178;');return false;\">&#9432;</a></span><br/>"); break;
@@ -388,6 +389,7 @@ public class Question implements Serializable, Cloneable {
 			case 3: buf.append("<span style='color:#B20000;font-size: small;'>Enter the value with the appropriate number of significant figures. <a role='button' href=# onclick=\"alert('Use the information in the problem to determine the correct number of sig figs in your answer. You may use scientific E notation. Example: enter 3.56E-12 to represent the number 3.56&#215;10&#8315;&#185;&#178;');return false;\">&#9432;</a></span><br/>"); break;
 			default:
 			}
+			
 			buf.append("</label><br/><input aria-label='student answer' size=25 type=text name=" + this.id + " id=answer" + this.id + " value='" + escapeHtml(studentAnswer) + "' placeholder='" + placeholder + "' onFocus=showWorkBox('" + this.id + "'); />");
 			buf.append("&nbsp;" + parseString(tag) + "<br/><br/>");
 			break;        
@@ -1262,14 +1264,15 @@ public class Question implements Serializable, Cloneable {
 		case 5: // Numeric Answer
 			studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
 			String studentValue = parseString(studentAnswer,0); // parse the student's math expression into a String representing a numeric value
+			boolean parsingFailed = studentValue.equals(studentAnswer); // parsing fails if the studentAnswer is not a valid expression; studentAnswer is unchanged
 			studentAnswer = calculateIonicCharge(studentAnswer); // calculate the ionic charge if applicable by removing a trailing sign
 			// Extract the numeric part of the student's answer, removing any trailing units
 			var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
 			studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
 			// Evaluate the correctness of the answer:
-			correctValue = agreesToRequiredPrecision(studentAnswer) || agreesToRequiredPrecision(studentValue);
-			correctSigFigs = correctValue && hasCorrectSigFigs(studentAnswer);
-			correctWork = correctSigFigs && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work
+			correctValue = agreesToRequiredPrecision(studentAnswer) || agreesToRequiredPrecision(studentValue);  // evaluates trimmed studentAnswer or parsed studentValue
+			correctSigFigs = significantFigures==0 || parsingFailed && correctValue && hasCorrectSigFigs(studentAnswer); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
+			correctWork = correctValue && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work if correctValue is true
 			return correctValue && correctSigFigs && correctWork;
 		case 6: // Five star rating
 			return !studentAnswer.isEmpty();

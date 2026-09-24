@@ -1096,8 +1096,8 @@ public class Homework extends HttpServlet {
 				case 5:  // Handle numeric response
 				if (hwa != null && hwa.scoreWork) q.setShowWork(showWork);
 				if (hwa != null && hwa.partialCreditOption != null && hwa.partialCreditOption) {
-					// Award 0.5pt for correct value, 0.75pt for correct sig figs and full credit for acceptable work shown, if applicable.
-					studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctSigFigs ? q.pointValue * 0.75 : (q.correctValue ? q.pointValue*0.5 : 0));
+					// Award 50% for correct value, 25% for correct sig figs and 25% for acceptable work shown
+					studentScore = q.isCorrect(studentAnswer) ? q.pointValue : (q.correctValue ? q.pointValue * 0.50 : 0) + (q.correctSigFigs ? q.pointValue * 0.25 : 0) + (q.correctWork ? q.pointValue * 0.25 : 0);
 				} else {
 					// Full credit only for completely correct answers
 					studentScore = q.isCorrect(studentAnswer) ? q.pointValue : 0;
