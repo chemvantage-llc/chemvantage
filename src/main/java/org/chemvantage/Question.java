@@ -1271,7 +1271,7 @@ public class Question implements Serializable, Cloneable {
 			studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
 			// Evaluate the correctness of the answer:
 			correctValue = agreesToRequiredPrecision(studentAnswer) || agreesToRequiredPrecision(studentValue);  // evaluates trimmed studentAnswer or parsed studentValue
-			correctSigFigs = significantFigures==0 || parsingFailed && correctValue && hasCorrectSigFigs(studentAnswer); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
+			correctSigFigs = correctValue && (significantFigures==0 || parsingFailed && hasCorrectSigFigs(studentAnswer)); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
 			correctWork = correctValue && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work if correctValue is true
 			return correctValue && correctSigFigs && correctWork;
 		case 6: // Five star rating

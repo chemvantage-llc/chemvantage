@@ -1031,6 +1031,7 @@ public class Homework extends HttpServlet {
 		Question q = null;
 		String hashMe = user.getId() + (user.isAnonymous()?0:hwa.id);  //used to setParameters
 		String studentAnswer = null;
+		String originalStudentAnswer = null;
 		JsonObject essay_score = new JsonObject(); // contains essay score and feedback
 		ChemicalStructureScorer.ComparisonResult structureComparison = null;
 		double studentScore = 0;
@@ -1047,7 +1048,8 @@ public class Homework extends HttpServlet {
 
 			String answerParam = Long.toString(questionId);
 			studentAnswer = orderResponses(request.getParameterValues(answerParam));
-			
+			originalStudentAnswer = studentAnswer;
+
 			qAnchor = request.getParameter("QAnchor");
 			boolean noResponseSubmitted;
 			switch (q.getQuestionType()) {
@@ -1232,11 +1234,7 @@ public class Homework extends HttpServlet {
 			} else {  // studentAnswer is incorrect or incomplete
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question
-					String originalStudentAnswer = studentAnswer; // keep the original answer for display purposes
 					try {
-						studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
-						studentAnswer = q.parseString(studentAnswer,0); // parse the student's math expression into a String representing a numeric value
-						studentAnswer = q.calculateIonicCharge(studentAnswer); // calculate the ionic charge as a number, if applicable
 						var matcher = NUMERIC_PREFIX.matcher(studentAnswer); // Extract the numeric part of the student's answer, removing any trailing units
 						if (!matcher.find()) throw new Exception();
 						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
