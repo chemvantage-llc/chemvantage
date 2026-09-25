@@ -41,15 +41,18 @@ public class Subject {
 	private static final Logger logger = Logger.getLogger(Subject.class.getName());
 	private static final int REFRESH_RETRY_LIMIT = 5;
 	private static final long REFRESH_RETRY_DELAY_MS = 200L;
+	private static final long REFRESH_TTL_MS = 60000L;
 	private static final String PRIVACY_BANNER_EXPIRY_DATE = "2026-05-16"; // 30 days from policy update
 	private static final Map<String,String> secrets = new ConcurrentHashMap<>();
 	private static final Set<String> secretWarnings = ConcurrentHashMap.newKeySet();
 
 	@Id Long id;
-	private static Subject s;
+	private static volatile Subject s;
+	private static volatile long refreshedAt;
 	
 	private String title;
 	private String announcement;
+	private boolean blockLaunches;
 	private int nStarReports;
 	private double avgStars;
 	private String projectId;
@@ -79,41 +82,51 @@ public class Subject {
 		return fallback;
 	}
 	
-	private static synchronized void refresh() {
-		if (s != null) return;
+	private static void refresh() {
+		long now = System.currentTimeMillis();
+		if (s != null && now-refreshedAt < REFRESH_TTL_MS) return;
 
-		for (int attempt = 1; attempt <= REFRESH_RETRY_LIMIT; attempt++) {
-			try {
-				s = ofy().load().type(Subject.class).id(1L).safe();
-				return;
-			} catch (NotFoundException e) {  // runs only once at inception of datastore
-				s = createDefaultSubject();
+		synchronized (Subject.class) {
+			now = System.currentTimeMillis();
+			if (s != null && now-refreshedAt < REFRESH_TTL_MS) return;
+
+			for (int attempt = 1; attempt <= REFRESH_RETRY_LIMIT; attempt++) {
 				try {
-					ofy().save().entity(s).now();
-				} catch (Exception saveException) {
-					logger.log(Level.WARNING, "Unable to persist default Subject during initialization.", saveException);
-				}
-				return;
-			} catch (Exception e) {  // ofy() may not be ready during classloading
-				if (attempt == REFRESH_RETRY_LIMIT) {
-					s = createDefaultSubject();
-					logger.log(Level.WARNING, "Subject datastore initialization unavailable; using fallback defaults.", e);
+					s = ofy().load().type(Subject.class).id(1L).safe();
+					refreshedAt = System.currentTimeMillis();
 					return;
-				}
-				try {
-					Thread.sleep(REFRESH_RETRY_DELAY_MS);
-				} catch (InterruptedException ie) {
-					Thread.currentThread().interrupt();
+				} catch (NotFoundException e) {  // runs only once at inception of datastore
 					s = createDefaultSubject();
-					logger.log(Level.WARNING, "Interrupted while waiting for Subject initialization; using fallback defaults.", ie);
+					try {
+						ofy().save().entity(s).now();
+					} catch (Exception saveException) {
+						logger.log(Level.WARNING, "Unable to persist default Subject during initialization.", saveException);
+					}
+					refreshedAt = System.currentTimeMillis();
 					return;
+				} catch (Exception e) {  // ofy() may not be ready during classloading
+					if (attempt == REFRESH_RETRY_LIMIT) {
+						if (s == null) s = createDefaultSubject();
+						refreshedAt = System.currentTimeMillis();
+						logger.log(Level.WARNING, "Subject datastore refresh unavailable; using cached or fallback values.", e);
+						return;
+					}
+					try {
+						Thread.sleep(REFRESH_RETRY_DELAY_MS);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						if (s == null) s = createDefaultSubject();
+						refreshedAt = System.currentTimeMillis();
+						logger.log(Level.WARNING, "Interrupted while waiting for Subject refresh; using cached or fallback values.", ie);
+						return;
+					}
 				}
 			}
 		}
 	}
 	
 	static String getTitle() {
-		if (s==null) refresh();
+		refresh();
 		return s.title; 
 	}
 	
@@ -130,8 +143,13 @@ public class Subject {
 	}
 	
 	static String getAnnouncement() { 
-		if (s==null) refresh();
+		refresh();
 		return s.announcement; 
+	}
+
+	static boolean getBlockLaunches() {
+		refresh();
+		return s.blockLaunches;
 	}
 	
 	static String getSendGridKey() {
@@ -139,7 +157,7 @@ public class Subject {
 	}
 	
 	static String getPayPalClientId() {
-		if (s==null) refresh();
+		refresh();
 		return s.payPalClientId;
 	}
 	
@@ -148,24 +166,26 @@ public class Subject {
 	}
 	
 	static int getNStarReports() { 
-		if (s==null) refresh();
+		refresh();
 		return s.nStarReports; 
 	}
 	
-	static void setAnnouncement(String msg) {
-		if (s==null) refresh();
+	static void setAnnouncement(String msg, boolean blockLaunches) {
+		refresh();
 		s.announcement = msg;
-		ofy().save().entity(s);
+		s.blockLaunches = blockLaunches;
+		ofy().save().entity(s).now();
+		refreshedAt = System.currentTimeMillis();
 	}
 	
 	static double getAvgStars() {
 		DecimalFormat df2 = new DecimalFormat("#.#");
-		if (s==null) refresh();
+		refresh();
 		return Double.valueOf(df2.format(s.avgStars));
 	}
 	
 	static void addStarReport(int stars) {
-		if (s==null) refresh();
+		refresh();
 		s.avgStars = (s.avgStars*s.nStarReports + stars)/(s.nStarReports+1);
 		s.nStarReports++;
 		ofy().save().entity(s);
@@ -173,7 +193,7 @@ public class Subject {
 		
 	static String hashId(String userId) {
 		try {
-			if (s==null) refresh();
+			refresh();
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 	    	byte[] bytes = md.digest((userId + getSalt()).getBytes("UTF-8"));
         	StringBuilder sb = new StringBuilder();
@@ -187,17 +207,17 @@ public class Subject {
 	}
 	
 	static String getGPTModel() {  // GPT-4.0 is "gpt-4-0613", GPT-3.5 is "gpt-3.5-turbo-0613"
-		if (s==null) refresh(); 
+		refresh();
 		return s.gptModel;
 	}
 	
 	static String getGemModel() { // Gemini is Google's family of LLMs, e.g. "gemini-3.5-flash-lite"
-		if (s==null) refresh(); 
+		refresh();
 		return s.gemModel;
 	}
 	
 	static String getGemModelLocation() { // Returns the location of the Gemini model, e.g. "us-central1"
-		if (s==null) refresh();
+		refresh();
 		return s.gemModelLocation;
 	}
 
@@ -226,12 +246,12 @@ public class Subject {
 	}
 	
 	static String getProjectId() {
-		if (s==null) refresh();
+		refresh();
 		return s.projectId;
 	}
 	
 	static String getServerUrl() {
-		if (s==null) refresh();
+		refresh();
 		return s.serverUrl;
 	}
 	

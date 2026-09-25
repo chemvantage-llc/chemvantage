@@ -157,7 +157,7 @@ public class Admin extends HttpServlet {
 			
 			switch (userRequest) {
 			case "Announce": 
-				Subject.setAnnouncement(request.getParameter("Announcement"));
+				Subject.setAnnouncement(request.getParameter("Announcement"),Boolean.parseBoolean(request.getParameter("BlockLaunches")));
 				break;
 			case "OpenStaxReport":  // for monthly cron job
 				if (Subject.getProjectId().equals("chem-vantage-hrd")) {
@@ -261,12 +261,14 @@ public class Admin extends HttpServlet {
 				+ "    </section><p>");
 		try {
 			// Announcements
+			boolean blockLaunches = Subject.getBlockLaunches();
 			buf.append("<h2>Announcements</h2>");
 			buf.append("The following message will be posted in red font at the top of each main page: ");
 			
 			buf.append("<FORM ACTION=Admin METHOD=POST>"
 					+ "<INPUT TYPE=HIDDEN NAME=UserRequest VALUE=Announce>"
 					+ "<INPUT TYPE=TEXT SIZE=80 NAME=Announcement VALUE='" + Subject.getAnnouncement() + "'><BR>"
+					+ "<label><INPUT TYPE=CHECKBOX NAME=BlockLaunches VALUE=true " + (blockLaunches?"CHECKED ":"") + "/> Block new LTI launches</label>" + (blockLaunches?" &#x2705;":"") + "<BR>"
 					+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
 					+ "<INPUT TYPE=SUBMIT VALUE='Post this message now'></FORM><p>");
 

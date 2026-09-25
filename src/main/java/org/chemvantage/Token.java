@@ -90,6 +90,7 @@ public class Token extends HttpServlet {
 			
 			debug.append("Sending token: " + oidc_auth_url + "<p>");
 			
+			boolean blockLaunches = Subject.getBlockLaunches();
 			StringBuffer buf = new StringBuffer();
 			buf.append(Subject.header());
 			buf.append("<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;'>"
@@ -97,10 +98,12 @@ public class Token extends HttpServlet {
 					+ "<img src='/images/CVLogo.png' alt='ChemVantage logo'><br/><br/>"
 					+ "<span style='font-size:2em;font-weight:bold;color:navy'>ChemVantage</span>"
 				+ "</div></div>");
-			buf.append("<script>"
-				+ "window.location.replace('" + oidc_auth_url + "');"
-				//+ "setTimeout(function(){window.location.replace('" + oidc_auth_url + "');},1000);"
-				+ "</script>");
+			if (!blockLaunches) {
+				buf.append("<script>"
+					+ "window.location.replace('" + oidc_auth_url + "');"
+					//+ "setTimeout(function(){window.location.replace('" + oidc_auth_url + "');},1000);"
+					+ "</script>");
+			}
 			buf.append(Subject.footer);
 			//if (oidc_auth_url.contains("imc")) Utilities.sendEmail("ChemVantage", "admin@chemvantage.org", "IMC OIDC Auth URL", oidc_auth_url);
 			out.println(buf.toString());
