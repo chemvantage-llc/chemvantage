@@ -92,7 +92,11 @@ public class Token extends HttpServlet {
 			
 			StringBuffer buf = new StringBuffer();
 			buf.append(Subject.header());
-			//buf.append("<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;'><img src='/images/logo.png' alt='ChemVantage logo'></div>");
+			buf.append("<div style='min-height:100vh;display:flex;align-items:center;justify-content:center;'>"
+				+ "<div>" 
+					+ "<img src='/images/CVLogo.png' alt='ChemVantage logo'><br/><br/>"
+					+ "<span style='font-size:2em;font-weight:bold;color:navy'>ChemVantage</span>"
+				+ "</div></div>");
 			buf.append("<script>"
 				+ "window.location.replace('" + oidc_auth_url + "');"
 				//+ "setTimeout(function(){window.location.replace('" + oidc_auth_url + "');},1000);"
