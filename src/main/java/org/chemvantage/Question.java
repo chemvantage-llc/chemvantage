@@ -1265,15 +1265,19 @@ public class Question implements Serializable, Cloneable {
 			return false;
 		case 5: // Numeric Answer
 			studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
-			String studentValue = parseString(studentAnswer,0); // parse the student's math expression into a String representing a numeric value
-			boolean parsingFailed = studentValue.equals(studentAnswer); // parsing fails if the studentAnswer is not a valid expression; studentAnswer is unchanged
 			studentAnswer = calculateIonicCharge(studentAnswer); // calculate the ionic charge if applicable by removing a trailing sign
-			// Extract the numeric part of the student's answer, removing any trailing units
-			var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
-			studentAnswer = matcher.find() ? matcher.group(1) : studentAnswer;
+			correctValue = agreesToRequiredPrecision(studentAnswer); 
+			if (!correctValue) { // Extract the numeric part of the student's answer, removing any trailing units
+				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+				String numericPart = matcher.find() ? matcher.group(1) : studentAnswer;
+				correctValue = agreesToRequiredPrecision(numericPart); 
+				if (correctValue) studentAnswer = numericPart;
+			}
+			if (!correctValue) { // Parse the math expression to get its value
+				correctValue = agreesToRequiredPrecision(parseString(studentAnswer,0)); 
+			}
 			// Evaluate the correctness of the answer:
-			correctValue = agreesToRequiredPrecision(studentAnswer) || agreesToRequiredPrecision(studentValue);  // evaluates trimmed studentAnswer or parsed studentValue
-			correctSigFigs = correctValue && (significantFigures==0 || parsingFailed && hasCorrectSigFigs(studentAnswer)); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
+			correctSigFigs = correctValue && (significantFigures==0 || hasCorrectSigFigs(studentAnswer)); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
 			correctWork = correctValue && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work if correctValue is true
 			return correctValue && correctSigFigs && correctWork;
 		case 6: // Five star rating
@@ -1333,7 +1337,7 @@ public class Question implements Serializable, Cloneable {
 		if (significantFigures==0) return true;  // no sig figs required
 		
 		studentAnswer = studentAnswer.replaceAll(",", "").replaceAll("\\s", "");  // removes comma separators and whitespace from numbers
-		
+				
 		int exponentPosition = studentAnswer.toUpperCase().indexOf("E");  		// turns "e" to "E"
 		String mantissa = exponentPosition>=0?studentAnswer.substring(0,exponentPosition):studentAnswer;
 		
@@ -1356,10 +1360,6 @@ public class Question implements Serializable, Cloneable {
 	boolean agreesToRequiredPrecision(String studentAnswer) {
 		// This method is used for numeric questions to determine if the student's response agrees with the correct answer to within the required precision
 		if (!"NUMERIC".equals(type) || studentAnswer == null || studentAnswer.isEmpty() || hasNoCorrectAnswer()) return false;
-		if (studentAnswer.length()<3 && (studentAnswer.endsWith("+") || studentAnswer.endsWith("-"))) {  // deal with oxidation state like 5+ or 3-
-			char sign = studentAnswer.charAt(studentAnswer.length()-1);
-			studentAnswer = sign + studentAnswer.substring(0,studentAnswer.length()-1);
-		}
 		try {
 			studentAnswer = studentAnswer.replaceAll(",", "").replaceAll("\\s", "").toUpperCase();  // removes comma separators and whitespace from numbers, turns e to E
 			double dStudentAnswer = Double.parseDouble(parseString(studentAnswer,0));
