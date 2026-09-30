@@ -4,13 +4,19 @@ import static com.googlecode.objectify.ObjectifyService.key;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import com.auth0.jwk.GuavaCachedJwkProvider;
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.UrlJwkProvider;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
@@ -37,6 +43,30 @@ import com.sendgrid.helpers.mail.objects.Personalization;
 
 public class Utilities {
 	private static final String ADMIN_EMAIL = "admin@chemvantage.org";
+
+	// Platform WAFs (MoodleCloud, Schoology) return 403 to a spoofed browser user-agent arriving
+	// from a datacenter IP, so outbound LTI calls identify themselves honestly instead.
+	static final String LTI_USER_AGENT = "ChemVantage-LTI/1.0 (+https://www.chemvantage.org)";
+	private static final int LTI_TIMEOUT_MILLIS = 10000;
+	private static final Map<String,JwkProvider> jwkProviders = new ConcurrentHashMap<String,JwkProvider>();
+
+	static void setLtiRequestDefaults(URLConnection uc) {
+		uc.setRequestProperty("User-Agent", LTI_USER_AGENT);
+		uc.setConnectTimeout(LTI_TIMEOUT_MILLIS);
+		uc.setReadTimeout(LTI_TIMEOUT_MILLIS);
+	}
+
+	// Providers are cached (keys for 10 hours by default) so a transient platform outage or bot-filter
+	// block does not break every launch, and so the JWKS is not refetched on each launch.
+	static JwkProvider getJwkProvider(URL jwks_url) {
+		return jwkProviders.computeIfAbsent(jwks_url.toString(), u -> {
+			// A custom header map replaces the library default, so Accept must be supplied explicitly.
+			Map<String,String> headers = new HashMap<String,String>();
+			headers.put("Accept", "application/json");
+			headers.put("User-Agent", LTI_USER_AGENT);
+			return new GuavaCachedJwkProvider(new UrlJwkProvider(jwks_url, LTI_TIMEOUT_MILLIS, LTI_TIMEOUT_MILLIS, null, headers));
+		});
+	}
 	
 	public static void createTask(String relativeUri, String query) throws IOException {
 		createTask(relativeUri, query, 0);

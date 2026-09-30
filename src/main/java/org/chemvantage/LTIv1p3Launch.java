@@ -51,10 +51,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -64,7 +62,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -571,10 +568,7 @@ public class LTIv1p3Launch extends HttpServlet {
 			URL jwks_url = new URI(d.well_known_jwks_url).toURL();
 			String kid = id_token.getKeyId();
 			
-			// Header may be necessary to get the JWKS from Moodle
-			Map<String, String> headers = new HashMap<>();
-            headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36");
-            JwkProvider provider = new UrlJwkProvider(jwks_url, null, null, null, headers);
+			JwkProvider provider = Utilities.getJwkProvider(jwks_url);
 			
             if (kid == null || kid.isEmpty()) throw new Exception("No JWK id found.");
 			Jwk jwk = provider.get(kid); //throws Exception when not found or can't get one
@@ -586,8 +580,17 @@ public class LTIv1p3Launch extends HttpServlet {
 			JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
 			return d;
 		} catch (Exception e) {
-			throw new Exception("ID token could not be validated: " + e.getMessage());
+			throw new Exception("ID token could not be validated: " + describeFailure(e));
 		}
+	}
+
+	// JWKS retrieval errors wrap the underlying network/TLS failure, which is the only useful diagnostic
+	private static String describeFailure(Throwable e) {
+		StringBuilder buf = new StringBuilder(e.getMessage()==null?e.toString():e.getMessage());
+		for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+			buf.append(" Caused by: ").append(cause.getMessage()==null?cause.toString():cause.getClass().getSimpleName() + ": " + cause.getMessage());
+		}
+		return buf.toString();
 	}
 	
 	void verifyLtiMessageClaims(JsonObject claims) throws Exception {

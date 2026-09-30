@@ -27,7 +27,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -175,7 +174,7 @@ public class LTIDeepLinks extends HttpServlet {
 			// retrieve the public Java Web Key from the platform to verify the signature
 			if (d.well_known_jwks_url==null) throw new Exception("The deployment does not have a valid JWKS URL.");
 			URL jwks_url = new URI(d.well_known_jwks_url).toURL();
-			JwkProvider provider = new UrlJwkProvider(jwks_url);
+			JwkProvider provider = Utilities.getJwkProvider(jwks_url);
 			if (id_token.getKeyId() == null || id_token.getKeyId().isEmpty()) throw new Exception("No JWK id found.");
 			Jwk jwk = provider.get(id_token.getKeyId()); //throws Exception when not found or can't get one
 			RSAPublicKey public_key = (RSAPublicKey)jwk.getPublicKey();

@@ -785,6 +785,8 @@ public class LTIRegistration extends HttpServlet {
     	try {
     		URL u = new URI(request.getParameter("openid_configuration")).toURL();
     		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+    		Utilities.setLtiRequestDefaults(uc);
+    		uc.setRequestProperty("Accept", "application/json");
     		uc.setDoInput(true);
     		uc.setRequestMethod("GET");
     		uc.connect();
@@ -921,6 +923,7 @@ public class LTIRegistration extends HttpServlet {
 
 		URL u = new URI(reg_endpoint).toURL();
 		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+		Utilities.setLtiRequestDefaults(uc);
 		uc.setRequestMethod("POST");
 		if (registration_token != null) uc.setRequestProperty("Authorization", "Bearer " + registration_token);
 		uc.setRequestProperty("Content-Type", "application/json");
