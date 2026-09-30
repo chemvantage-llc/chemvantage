@@ -625,9 +625,12 @@ void assignToConcept(User user, HttpServletRequest request) {
 	private void createQuestion(User user,HttpServletRequest request) { //previously type long
 		try {
 			Question q = assembleQuestion(request);
+			if (q.authorId == null || q.authorId.isBlank()) q.authorId = user.getId();
 			q.isActive = true;
+			q.revisedAt = new Date();
 			ofy().save().entity(q).now();
-	} catch (Exception e) {}
+			questions.put(key(q),q);
+		} catch (Exception e) {}
 	}
 
 	void createText(User user,HttpServletRequest request) {
@@ -1465,13 +1468,15 @@ void assignToConcept(User user, HttpServletRequest request) {
 			}
 			Question question = new Question(questionType);
 			buf.append("<p><FORM METHOD=POST ACTION=Edit>"
-					+ "<INPUT TYPE=HIDDEN NAME=AssignmentType VALUE='" + assignmentType + "'>"
-					+ "<INPUT TYPE=HIDDEN NAME=AuthorId VALUE='" + user.getId() + "'>");
+					+ "<INPUT TYPE=HIDDEN NAME=AssignmentType VALUE='" + assignmentType + "'>");
 			buf.append("<INPUT TYPE=HIDDEN NAME=QuestionType VALUE=" + questionType + ">");
 			
 			buf.append("Concept: " + conceptSelectBox(conceptId) + "<br>");
 			
 			buf.append("Point Value: " + pointValueSelectBox(assignmentType) + "<br>");
+			
+			buf.append("AuthorId: <label><input type=checkbox NAME=AuthorId VALUE='OpenStax'> OpenStax</label><br>");
+
 			buf.append(question.edit());
 			buf.append("<INPUT TYPE=SUBMIT NAME=UserRequest VALUE='Preview'></FORM>");
 		} catch (Exception e) {
@@ -1539,6 +1544,7 @@ void assignToConcept(User user, HttpServletRequest request) {
 			} catch (Exception e) {}
 			
 			Question q = assembleQuestion(request);
+			if (q.authorId == null || q.authorId.isBlank()) q.authorId = user.getId();
 			if (q.requiresParser()) q.setParameters();
 			
 			buf.append("<h2>Preview Question</h2>");
