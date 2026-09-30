@@ -1534,7 +1534,14 @@ public class Homework extends HttpServlet {
 		for (Key<Question> questionKey : a.questionKeys) {
 			Question question = questions.get(questionKey);
 			if (question == null) continue;
-			int rangeValue = Integer.parseInt(request.getParameter("Range" + question.id));
+			String rangeParam = request.getParameter("Range" + question.id);
+			if (rangeParam == null || rangeParam.isBlank()) continue;  // no slider is rendered for unattempted questions
+			int rangeValue;
+			try {
+				rangeValue = Integer.parseInt(rangeParam.trim());
+			} catch (NumberFormatException e) {
+				throw new Exception("Invalid score selection.");
+			}
 			if (rangeValue < 0 || rangeValue > 4) throw new Exception("Invalid score selection.");
 			double revisedScore = question.pointValue * rangeValue / 4.0;
 
