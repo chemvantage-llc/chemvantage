@@ -30,6 +30,7 @@ public class ObjectifyWebListener implements ServletContextListener {
     ObjectifyService.register(Group.class);
     ObjectifyService.register(HWTransaction.class);
     ObjectifyService.register(Instructor.class);
+    ObjectifyService.register(JwksCache.class);
     ObjectifyService.register(Nonce.class);
     ObjectifyService.register(PayPalOrder.class);
     ObjectifyService.register(PollTransaction.class);
