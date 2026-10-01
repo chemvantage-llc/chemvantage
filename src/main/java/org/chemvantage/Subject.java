@@ -505,13 +505,15 @@ public class Subject {
 	}
 			
 	public static String footer = """
-			
 			</main>
-			<footer id=footer style='max-width: 600px;'><hr/>\
-			<a style='text-decoration:none;color:#000080;font-weight:bold' href=/index.html><img src=/images/logo_sq.png alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage</a> | \
-			<a href=/terms_and_conditions.html>Terms and Conditions</a> | \
-			<a href=/privacy.html>Privacy</a> | \
-			<a href=/copyright.html>Copyright</a></footer>\
+			<footer id=footer style='max-width: 600px;'><hr/>
+			  <a style='text-decoration:none;color:#000080;font-weight:bold' href='/index.html'>
+			    <img src='/images/logo_sq.png' alt='ChemVantage logo' style='vertical-align:middle;width:30px;' /> ChemVantage
+			  </a> | 
+			  <a href='/terms_and_conditions.html'>Terms and Conditions</a> | 
+			  <a href='/privacy.html'>Privacy</a> | 
+			  <a href='/copyright.html'>Copyright</a>
+			</footer>
 			<script>if (window===window.top)document.body.classList.add('has-padding');</script>
 			</body>
 			</html>""";
