@@ -179,7 +179,7 @@ public class Checkout extends HttpServlet {
 			ofy().save().entity(u).now();
 		}
 		Date freeTrialExpires = new Date(u.start.getTime()+ONE_WEEK);
-		boolean withinFreeTrialPeriod = u.order_id.equals("FREE_TRIAL") && now.before(freeTrialExpires);
+		boolean withinFreeTrialPeriod = u.order_id!=null && u.order_id.equals("FREE_TRIAL") && now.before(freeTrialExpires);
 
 		String title = null; 
 		if (withinFreeTrialPeriod) title = "Individual ChemVantage Subscription";
