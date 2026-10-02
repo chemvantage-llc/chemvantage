@@ -141,6 +141,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
 			uc.setRequestProperty("Accept", "application/json;charset=UTF-8");
 			uc.setRequestProperty("charset", "utf-8");
+			uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
 			uc.setUseCaches(false);
 			uc.setReadTimeout(15000);  // waits up to 15 s for server to respond
 			// send the message
@@ -174,6 +175,11 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 					}
 				}
 				debug.append("Error Stream: " + errorBody + "<br/>");
+				// These identify whether the platform's edge rejected the request before it reached the OAuth service
+				for (String h : new String[] {"x-amzn-errortype","x-amzn-requestid","x-amz-apigw-id","x-amzn-waf-action","cf-ray","server","www-authenticate"}) {
+					String v = uc.getHeaderField(h);
+					if (v != null) debug.append(h + ": " + v + "<br/>");
+				}
 				throw new Exception("Failed AuthToken Request");
 			}
 		} catch (Exception e) {
