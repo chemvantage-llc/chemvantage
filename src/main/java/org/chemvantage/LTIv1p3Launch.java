@@ -585,7 +585,7 @@ public class LTIv1p3Launch extends HttpServlet {
 	}
 
 	// JWKS retrieval errors wrap the underlying network/TLS failure, which is the only useful diagnostic
-	private static String describeFailure(Throwable e) {
+	static String describeFailure(Throwable e) {
 		StringBuilder buf = new StringBuilder(e.getMessage()==null?e.toString():e.getMessage());
 		for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
 			buf.append(" Caused by: ").append(cause.getMessage()==null?cause.toString():cause.getClass().getSimpleName() + ": " + cause.getMessage());

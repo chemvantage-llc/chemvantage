@@ -183,7 +183,7 @@ public class LTIDeepLinks extends HttpServlet {
 			if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
 			JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
 		} catch (Exception e) {
-			throw new Exception("The id_token could not be validated. " + e.getMessage());
+			throw new Exception("The id_token could not be validated. " + LTIv1p3Launch.describeFailure(e), e);
 		}
 		return d;
 	}

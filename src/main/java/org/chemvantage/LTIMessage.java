@@ -139,9 +139,10 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			uc.setDoInput(true);
 			uc.setRequestMethod("POST");
 			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
-			uc.setRequestProperty("Accept", "application/json;charset=UTF-8");
+			uc.setRequestProperty("Accept", "application/json, application/jwk-set+json");
 			uc.setRequestProperty("charset", "utf-8");
-			uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
+			uc.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
+			uc.setRequestProperty("Cache-Control", "no-cache");
 			uc.setUseCaches(false);
 			uc.setReadTimeout(15000);  // waits up to 15 s for server to respond
 			// send the message
