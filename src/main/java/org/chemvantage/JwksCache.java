@@ -98,11 +98,9 @@ public class JwksCache {
 
 		private JwksCache fetch() throws Exception {
 			Exception first = null;
-			// The honest ChemVantage agent is preferred, but some platform bot filters answer 403 to any
-			// unfamiliar agent, so a second attempt falls back to the default Java agent.
-			for (boolean customAgent : new boolean[] {true, false}) {
+			for (int attempt = 0; attempt < 2; attempt++) {
 				try {
-					JwksCache result = new JwksCache(jwks_url.toString(), read(customAgent));
+					JwksCache result = new JwksCache(jwks_url.toString(), read());
 					result.keys();  // reject a response that is not a parseable key set before caching it
 					memo = result;
 					try {
@@ -116,7 +114,7 @@ public class JwksCache {
 			throw first == null ? new Exception("Could not read jwks from " + jwks_url) : first;
 		}
 
-		private String read(boolean customAgent) throws Exception {
+		private String read() throws Exception {
 			HttpURLConnection uc = (HttpURLConnection) jwks_url.openConnection();
 			try {
 				uc.setRequestMethod("GET");
@@ -126,7 +124,7 @@ public class JwksCache {
 				uc.setRequestProperty("Host", jwks_url.getHost());
 				uc.setRequestProperty("Accept", "application/json");
 				uc.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
-				if (customAgent) uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
+				uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
 				int code = uc.getResponseCode();
 				InputStream in = code < 400 ? uc.getInputStream() : uc.getErrorStream();
 				String body = in == null ? "" : readAll(in);
