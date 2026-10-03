@@ -25,6 +25,7 @@ import com.google.gson.reflect.TypeToken;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
+import org.springframework.web.util.HtmlUtils;
 
 /*
  * Datastore-backed cache of a platform's JSON Web Key Set, keyed by the JWKS URL.
@@ -68,9 +69,11 @@ public class JwksCache {
 				Jwk jwk = cached.find(kid);
 				if (jwk != null) return jwk;  // a stale kid forces a refetch below (key rotation)
 			}
+			StringBuilder debug = new StringBuilder("Failed JWKS retrieval\nTime: ").append(new Date())
+					.append("\nJWKS URL: ").append(jwks_url).append("\nRequested kid: ").append(kid).append('\n');
 			Exception failure = null;
 			try {
-				JwksCache fresh = fetch();
+				JwksCache fresh = fetch(debug);
 				Jwk jwk = fresh.find(kid);
 				if (jwk != null) return jwk;
 			} catch (Exception e) {
@@ -80,7 +83,17 @@ public class JwksCache {
 				Jwk jwk = cached.find(kid);
 				if (jwk != null) return jwk;
 			}
-			if (failure != null) throw new SigningKeyNotFoundException("Cannot obtain jwks from url " + jwks_url, failure);
+			if (failure != null) {
+				debug.append("\nCached fallback: ").append(cached == null ? "No cached JWKS available." : "Requested kid not found in cached JWKS.");
+				try {
+					Utilities.sendEmail("ChemVantage", "admin@chemvantage.org", "LTI JWKS Retrieval Failure",
+							"<pre>" + HtmlUtils.htmlEscape(debug.toString()) + "</pre>");
+				} catch (Exception emailFailure) {
+					java.util.logging.Logger.getLogger(JwksCache.class.getName()).log(java.util.logging.Level.WARNING,
+							"Unable to send JWKS failure email.", emailFailure);
+				}
+				throw new SigningKeyNotFoundException("Cannot obtain jwks from url " + jwks_url, failure);
+			}
 			throw new SigningKeyNotFoundException("No key with kid " + kid + " was found at " + jwks_url, null);
 		}
 
@@ -96,11 +109,12 @@ public class JwksCache {
 			}
 		}
 
-		private JwksCache fetch() throws Exception {
+		private JwksCache fetch(StringBuilder debug) throws Exception {
 			Exception first = null;
 			for (int attempt = 0; attempt < 2; attempt++) {
+				debug.append("\nAttempt: ").append(attempt + 1).append('\n');
 				try {
-					JwksCache result = new JwksCache(jwks_url.toString(), read());
+					JwksCache result = new JwksCache(jwks_url.toString(), read(debug));
 					result.keys();  // reject a response that is not a parseable key set before caching it
 					memo = result;
 					try {
@@ -108,13 +122,15 @@ public class JwksCache {
 					} catch (Exception ignored) {}
 					return result;
 				} catch (Exception e) {
+					debug.append("Failure: ").append(LTIv1p3Launch.describeFailure(e)).append('\n');
 					if (first == null) first = e;
 				}
 			}
 			throw first == null ? new Exception("Could not read jwks from " + jwks_url) : first;
 		}
 
-		private String read() throws Exception {
+		private String read(StringBuilder debug) throws Exception {
+			debug.append("Request: GET ").append(jwks_url).append("\nRequest body: (none)\n");
 			HttpURLConnection uc = (HttpURLConnection) jwks_url.openConnection();
 			try {
 				uc.setRequestMethod("GET");
@@ -125,9 +141,20 @@ public class JwksCache {
 				uc.setRequestProperty("Accept", "application/json");
 				uc.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
 				uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
+				debug.append("Request headers:\n");
+				for (Map.Entry<String,List<String>> header : uc.getRequestProperties().entrySet()) {
+					debug.append(header.getKey()).append(": ").append(diagnosticHeader(header.getKey(), header.getValue())).append('\n');
+				}
+				debug.append("Response: (awaiting server; absent if connection fails)\n");
 				int code = uc.getResponseCode();
+				debug.append("ResponseCode: ").append(code).append("\nResponse URL: ").append(uc.getURL()).append("\nResponse headers:\n");
+				for (Map.Entry<String,List<String>> header : uc.getHeaderFields().entrySet()) {
+					debug.append(header.getKey() == null ? "Status" : header.getKey()).append(": ")
+							.append(diagnosticHeader(header.getKey(), header.getValue())).append('\n');
+				}
 				InputStream in = code < 400 ? uc.getInputStream() : uc.getErrorStream();
 				String body = in == null ? "" : readAll(in);
+				debug.append("Response body:\n").append(body).append('\n');
 				if (code != HttpURLConnection.HTTP_OK) {
 					throw new Exception("HTTP " + code + " from " + jwks_url
 							+ (body.isEmpty() ? "" : ": " + body.substring(0, Math.min(200, body.length()))));
@@ -136,6 +163,12 @@ public class JwksCache {
 			} finally {
 				uc.disconnect();
 			}
+		}
+
+		private static String diagnosticHeader(String name, List<String> values) {
+			if ("Authorization".equalsIgnoreCase(name) || "Proxy-Authorization".equalsIgnoreCase(name)
+					|| "Cookie".equalsIgnoreCase(name) || "Set-Cookie".equalsIgnoreCase(name)) return "(redacted)";
+			return String.join(", ", values);
 		}
 	}
 
