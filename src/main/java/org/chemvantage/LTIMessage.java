@@ -23,6 +23,7 @@ import static com.googlecode.objectify.ObjectifyService.key;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -47,10 +48,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.springframework.web.util.HtmlUtils;
 
 public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+JSON" messages to a Tool Consumer (LMS)
 	
 	private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LTIMessage.class.getName());
+
+	private static void setRequestHeaders(HttpURLConnection connection) {
+		connection.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
+		connection.setRequestProperty("Host", connection.getURL().getAuthority());
+	}
 	
 	// SECURITY FIX: Removed static HashMap authTokens - replaced with SecureCredentialManager
 	// The old implementation stored unencrypted OAuth tokens in memory
@@ -132,18 +139,18 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 					+ "&client_assertion_type=" + URLEncoder.encode("urn:ietf:params:oauth:client-assertion-type:jwt-bearer", StandardCharsets.UTF_8)
 					+ "&client_assertion=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
 					+ "&scope=" + URLEncoder.encode(d.scope, StandardCharsets.UTF_8);
-			debug.append("Body: " + body + "<br/>");
+			debug.append("Body: " + body.replace("&client_assertion=" + URLEncoder.encode(token, StandardCharsets.UTF_8),
+					"&client_assertion=(redacted)") + "<br/>");
 
 			URL u = new URI(d.oauth_access_token_url).toURL();
 			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+			setRequestHeaders(uc);
 			uc.setDoOutput(true);
 			uc.setDoInput(true);
 			uc.setRequestMethod("POST");
-			uc.setRequestProperty("Host", u.getHost());
 			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
 			uc.setRequestProperty("Accept", "application/json, application/jwk-set+json");
 			uc.setRequestProperty("charset", "utf-8");
-			uc.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
 			uc.setRequestProperty("Cache-Control", "no-cache");
 			debug.append("Headers: " + "<br/>");
 			for (Map.Entry<String, List<String>> header : uc.getRequestProperties().entrySet()) {
@@ -226,6 +233,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
     		URL u = new URI(lti_ags_lineitem_url).toURL();
     		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+    		setRequestHeaders(uc);
     		uc.setDoInput(true);
     		uc.setRequestMethod("GET");
     		uc.setRequestProperty("Authorization", bearerAuth);
@@ -263,6 +271,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
     		while (next_url != null) {
     			URL u = new URI(next_url).toURL();
     			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+    			setRequestHeaders(uc);
     			uc.setDoInput(true);
     			uc.setRequestMethod("GET");
     			uc.setRequestProperty("Authorization", bearerAuth);
@@ -295,6 +304,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
     		URL u = new URI(lti_ags_lineitems_url + "?resource_link_id=" + resourceLinkId).toURL();
     		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+    		setRequestHeaders(uc);
     		uc.setDoInput(true);
     		uc.setRequestMethod("GET");
     		uc.setRequestProperty("Authorization", bearerAuth);
@@ -354,6 +364,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			URL u = new URI(lti_ags_lineitems_url).toURL();
 
 			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+			setRequestHeaders(uc);
 			uc.setDoOutput(true);
 			uc.setDoInput(true);
 			uc.setRequestMethod("POST");
@@ -419,6 +430,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				u = new URI(next_url).toURL();
 
 				HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+				setRequestHeaders(uc);
 				uc.setDoInput(true);
 				uc.setRequestMethod("GET");
 				uc.setRequestProperty("Authorization", bearerAuth);
@@ -489,6 +501,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			
 			debug.append("0");
 			uc = (HttpURLConnection) u.openConnection();
+			setRequestHeaders(uc);
 			uc.setDoInput(true);
 			uc.setRequestMethod("GET");
 			uc.setRequestProperty("Authorization", bearerAuth);
@@ -573,6 +586,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				u = new URI(a.lti_ags_lineitem_url.substring(0,i) + "/scores" + a.lti_ags_lineitem_url.substring(i)).toURL();
 
 				HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+				setRequestHeaders(uc);
 				uc.setRequestMethod("POST");
 				uc.setRequestProperty("Authorization", bearerAuth);
 				uc.setRequestProperty("Content-Type", "application/vnd.ims.lis.v1.score+json");
@@ -640,6 +654,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			while (next_url != null) {
 				URL u = new URI(next_url).toURL();
 				HttpURLConnection uc = (HttpURLConnection) u.openConnection();
+				setRequestHeaders(uc);
 				//uc.setDoOutput(true);
 				uc.setDoInput(true);
 				uc.setRequestMethod("GET");
@@ -683,12 +698,18 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		// If this service is offered by providing the endpoint, the Json array MUST contain the user_id and roles
 		// values, but may also include other fields such as name, given_name, middle_name, family_name, email, ...
 		Map<String,String[]> membership = new HashMap<String,String[]>();
-		String bearerAuth = null;
+		String accessToken = null;
+		boolean rejectedResponse = false;
+		StringBuilder debug = new StringBuilder("Failed LTIMessage.getMembership()\nDeployment: ")
+				.append(a == null ? "unknown" : a.domain).append('\n');
 		
 		try {
+			if (a == null) throw new IllegalArgumentException("Assignment is required for a membership request.");
 			String scope = "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly";
-			if ((bearerAuth=getAccessToken(a.domain,scope)).startsWith("response")) throw new Exception("the LMS failed to issue an auth token: " + bearerAuth);
-			else bearerAuth = "Bearer " + bearerAuth;
+			accessToken = getAccessToken(a.domain,scope);
+			if (accessToken == null || accessToken.startsWith("Failed") || accessToken.startsWith("response"))
+				throw new Exception("The LMS failed to issue an access token.");
+			String bearerAuth = "Bearer " + accessToken;
 			
 			if (a.lti_nrps_context_memberships_url==null) throw new Exception("the service endpoint URL for this group is unknown");
 			
@@ -696,19 +717,35 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
     		
 			while (next_url != null) {
 				URL u = new URI(next_url).toURL();
+				debug.append("\nRequest: GET ").append(u).append("\nRequest body: (none)\n");
 				HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-				//uc.setDoOutput(true);
+				setRequestHeaders(uc);
 				uc.setDoInput(true);
 				uc.setRequestMethod("GET");
 				uc.setRequestProperty("Authorization", bearerAuth);
 				uc.setRequestProperty("Accept", "application/vnd.ims.lti-nrps.v2.membershipcontainer+json");
-				uc.connect();
+				for (Entry<String,List<String>> header : uc.getRequestProperties().entrySet()) {
+					String value = "Authorization".equalsIgnoreCase(header.getKey()) || "Cookie".equalsIgnoreCase(header.getKey())
+							? "(redacted)" : String.join(", ", header.getValue());
+					debug.append(header.getKey()).append(": ").append(value).append('\n');
+				}
+				try {
 
 				int responseCode = uc.getResponseCode();
+				rejectedResponse = responseCode < 200 || responseCode > 202;
+				debug.append("\nResponseCode: ").append(responseCode).append('\n');
+				for (Entry<String,List<String>> header : uc.getHeaderFields().entrySet()) {
+					String value = "Set-Cookie".equalsIgnoreCase(header.getKey())
+							? "(redacted)" : String.join(", ", header.getValue());
+					debug.append(header.getKey() == null ? "Status" : header.getKey()).append(": ").append(value).append('\n');
+				}
+				String responseBody;
+				try (InputStream responseStream = responseCode >= 400 ? uc.getErrorStream() : uc.getInputStream()) {
+					responseBody = responseStream == null ? "" : new String(responseStream.readAllBytes(), StandardCharsets.UTF_8);
+				}
+				debug.append("Response body:\n").append(responseBody).append('\n');
 				if (responseCode > 199 && responseCode < 203) { // OK
-					BufferedReader reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-					JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
-					reader.close();
+					JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
 
 					JsonArray members = json.get("members").getAsJsonArray();
 					Iterator<JsonElement> iterator = members.iterator();
@@ -735,16 +772,28 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 						String[] properties = {role, name, email};
 						membership.put(user_id,properties);
 					}
-				} else return null; 
+				} else throw new IOException("Membership request returned HTTP " + responseCode);
 				next_url = null;
 				try {  // per LTI NPRS specs, this section looks for a HttpLink to the next page of results
 					String[] links = uc.getHeaderField("Link").split(",");  // splits comma-separated list of Links
 					for (String l : links) if (l.contains("next")) next_url = l.substring(l.indexOf("<")+1,l.indexOf(">")); // url is enclosed in <>
 				} catch (Exception e2) {}
+				} finally {
+					uc.disconnect();
+				}
 			}
-		} catch (Exception e) {	
+		} catch (Exception e) {
+			debug.append("\nFailure: ").append(LTIv1p3Launch.describeFailure(e));
+			String diagnostic = debug.toString();
+			if (accessToken != null && !accessToken.isEmpty()) diagnostic = diagnostic.replace(accessToken, "(redacted)");
+			try {
+				Utilities.sendEmail("ChemVantage", "admin@chemvantage.org", "LTI Membership Request Failure",
+						"<pre>" + HtmlUtils.htmlEscape(diagnostic) + "</pre>");
+			} catch (Exception emailFailure) {
+				logger.log(java.util.logging.Level.WARNING, "Unable to send membership failure email.", emailFailure);
 			}
-			return membership;
 		}
+		return rejectedResponse ? null : membership;
+	}
 
 }
