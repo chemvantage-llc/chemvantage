@@ -30,6 +30,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -127,22 +128,27 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 					.withJWTId(Nonce.generateNonce())
 					.sign(Algorithm.RSA256(null,signingKey));
 
-			String body = "grant_type=client_credentials"
-					+ "&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-					+ "&client_assertion=" + token
-					+ "&scope=" + URLEncoder.encode(d.scope, "utf-8").replaceAll("%20", "+");
-			//debug.append("Body: " + body + "<br/>");
+			String body = "grant_type=" + URLEncoder.encode("client_credentials", StandardCharsets.UTF_8)
+					+ "&client_assertion_type=" + URLEncoder.encode("urn:ietf:params:oauth:client-assertion-type:jwt-bearer", StandardCharsets.UTF_8)
+					+ "&client_assertion=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
+					+ "&scope=" + URLEncoder.encode(d.scope, StandardCharsets.UTF_8);
+			debug.append("Body: " + body + "<br/>");
 
 			URL u = new URI(d.oauth_access_token_url).toURL();
 			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
 			uc.setDoOutput(true);
 			uc.setDoInput(true);
 			uc.setRequestMethod("POST");
+			uc.setRequestProperty("Host", u.getHost());
 			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
 			uc.setRequestProperty("Accept", "application/json, application/jwk-set+json");
 			uc.setRequestProperty("charset", "utf-8");
 			uc.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
 			uc.setRequestProperty("Cache-Control", "no-cache");
+			debug.append("Headers: " + "<br/>");
+			for (Map.Entry<String, List<String>> header : uc.getRequestProperties().entrySet()) {
+				debug.append(header.getKey() + ": " + String.join(", ", header.getValue()) + "<br/>");
+			}
 			uc.setUseCaches(false);
 			uc.setReadTimeout(15000);  // waits up to 15 s for server to respond
 			// send the message

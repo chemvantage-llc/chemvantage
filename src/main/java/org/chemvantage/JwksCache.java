@@ -123,6 +123,7 @@ public class JwksCache {
 				uc.setInstanceFollowRedirects(true);
 				uc.setConnectTimeout(Utilities.LTI_TIMEOUT_MILLIS);
 				uc.setReadTimeout(Utilities.LTI_TIMEOUT_MILLIS);
+				uc.setRequestProperty("Host", jwks_url.getHost());
 				uc.setRequestProperty("Accept", "application/json");
 				uc.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
 				if (customAgent) uc.setRequestProperty("User-Agent", Utilities.LTI_USER_AGENT);
