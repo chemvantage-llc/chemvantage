@@ -62,7 +62,6 @@ public class Homework extends HttpServlet {
 	static int retryDelayMinutes = 1;  // minimum time between answer submissions for any single question
 	private static final Pattern EMPTY_V2000_MOLFILE = Pattern.compile("\\n\\s*0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0\\s+0999\\s+V2000");
 	private static final Pattern EMPTY_V3000_MOLFILE = Pattern.compile("M\\s+V30\\s+COUNTS\\s+0\\s+0\\s+0\\s+0\\s+0");
-	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
 	
 	public String getServletInfo() {
 		return "This servlet presents a homework assignment for the user.";
@@ -1212,8 +1211,10 @@ public class Homework extends HttpServlet {
 					q.addAttemptSave(studentScore>0);
 					s = Score.getInstance(user.getId(),hwa);
 					ofy().save().entity(s).now();
-					String payload = "AssignmentId=" + hwa.id + "&UserId=" + URLEncoder.encode(user.getId(),"UTF-8");
-					Utilities.createTask("/ReportScore",payload);
+					if (!user.isInstructor()) { // report scores only for Learners
+						String payload = "AssignmentId=" + hwa.id + "&UserId=" + URLEncoder.encode(user.getId(),"UTF-8");
+						Utilities.createTask("/ReportScore",payload);
+					}
 				}
 			}
 			
@@ -1244,36 +1245,31 @@ public class Homework extends HttpServlet {
 			} else {  // studentAnswer is incorrect or incomplete
 				switch (q.getQuestionType()) {
 				case 5:  // Numeric question
-					try {
-						var matcher = NUMERIC_PREFIX.matcher(studentAnswer); // Extract the numeric part of the student's answer, removing any trailing units
-						if (!matcher.find()) throw new Exception();
-						if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
-								+ "<p class='explanation-text'>"
-								+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
-								+ "</p>");
-						else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
-								+ "<p class='explanation-text'>"
-								+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
-								+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
-								+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
-								+ "</p>");
-						else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
-								+ "<p class='explanation-text'>"
-								+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
-								+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
-								+ "</p>");
-					} catch (Exception e2) {
-						buf.append("<div class='status-text'>Wrong Format</div>"
-								+ "<p class='explanation-text'>"
-								+ "This question requires a numeric response expressed as an integer, decimal number, "
-								+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
-								+ "was unable to recognize your answer as one of these types.<br/>"
-								+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
-								+ "</p>");
-					}
+					if (!q.correctFormat) buf.append("<div class='status-text'>Wrong Format</div>"
+						+ "<p class='explanation-text'>"
+						+ "This question requires a numeric response expressed as an integer, decimal number, "
+						+ "or in scientific E notation (example: 6.022E-23). Your answer was scored incorrect because the computer "
+						+ "was unable to recognize your answer as one of these types.<br/>"
+						+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+						+ "</p>");
+					else if (!q.correctValue) buf.append("<div class='status-text'>Incorrect Answer</div>"
+						+ "<p class='explanation-text'>"
+						+ "Your answer does not " + (q.requiredPrecision==0?"exactly match the answer in the database. ":"agree with the answer in the database to within the required precision (" + q.requiredPrecision + "%).<br/><br/>")
+						+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+						+ "</p>");
+					else if (!q.correctSigFigs) buf.append("<div class='status-text'>Almost There!</div>"
+						+ "<p class='explanation-text'>"
+						+ "It appears that you've done the calculation correctly, but your answer does not have the correct number of significant figures appropriate for the data given in the question. "
+						+ "If your answer ends in a zero, be sure to include a decimal point to indicate which digits are significant or (better!) use <a href=https://en.wikipedia.org/wiki/Scientific_notation#E_notation>scientific E notation</a>.<br/><br/>"
+						+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+						+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
+						+ "</p>");
+					else if (!q.correctWork) buf.append("<div class='status-text'>Show Your Work!</div>"
+						+ "<p class='explanation-text'>"
+						+ "Your final answer is correct, but you did not include enough detail in the \"Show your work\" box to demonstrate that you used a valid method to solve the problem.<br/><br/>"
+						+ "<b>The answer submitted was: " + HtmlUtils.htmlEscape(originalStudentAnswer) + "</b>&nbsp;"
+						+ (hwa != null && hwa.partialCreditOption?"<div>You received partial credit for this answer.</div>":"")
+						+ "</p>");						
 					break;
 				case 6:  // Five star rating
 					buf.append("<div class='status-text'>No rating was submitted for this item.</div>");
@@ -1286,15 +1282,15 @@ public class Homework extends HttpServlet {
 					break;
 				case 8:  // Chemical structure question
 					buf.append("<div class='status-text'>Structure mismatch</div>"
-							+ "<p class='explanation-text'>"
-							+ (structureComparison==null?"The submitted structure could not be evaluated.":structureComparison.message())
-							+ "<br/><br/></p>");
+						+ "<p class='explanation-text'>"
+						+ (structureComparison==null?"The submitted structure could not be evaluated.":structureComparison.message())
+						+ "<br/><br/></p>");
 					break;
 				default:  // All other types of questions
 					buf.append("<div class='status-text'>Incorrect Answer</div>"
-							+ "<p class='explanation-text'>"
-							+ "Your answer was scored incorrect because it does not agree with the answer in the database.<br/>"
-							+ "</p>");
+						+ "<p class='explanation-text'>"
+						+ "Your answer was scored incorrect because it does not agree with the answer in the database.<br/>"
+						+ "</p>");
 				}
 			}
 		} catch (Exception e) {

@@ -89,6 +89,7 @@ public class Question implements Serializable, Cloneable {
 			boolean scrambleChoices;
 			boolean strictSpelling;
 			Date revisedAt;
+	@Ignore boolean correctFormat = false; // used for scoring student answers; not stored in datastore
 	@Ignore	boolean correctValue = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
 	@Ignore	boolean correctSigFigs = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
 	@Ignore boolean correctWork = false; // used for scoring student answers to NUMERIC questions, not stored in datastore
@@ -1266,17 +1267,24 @@ public class Question implements Serializable, Cloneable {
 		case 5: // Numeric Answer
 			studentAnswer = studentAnswer.replaceAll("[\\s,]+", ""); // remove all whitespace and commas from the student's answer
 			studentAnswer = calculateIonicCharge(studentAnswer); // calculate the ionic charge if applicable by removing a trailing sign
-			correctValue = agreesToRequiredPrecision(studentAnswer); 
-			if (!correctValue) { // Extract the numeric part of the student's answer, removing any trailing units
+			
+			// Evaluate the numeric value of the student's answer against the required precision
+			if (agreesToRequiredPrecision(studentAnswer)) {
+				correctValue = correctFormat = true;
+			} else {
 				var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
-				String numericPart = matcher.find() ? matcher.group(1) : studentAnswer;
-				correctValue = agreesToRequiredPrecision(numericPart); 
-				if (correctValue) studentAnswer = numericPart;
+				boolean validNumber = correctFormat = matcher.find();
+				String numericPart = validNumber ? matcher.group(1) : studentAnswer;
+				if (agreesToRequiredPrecision(numericPart)) {  // evaluate just the leading numeric part, trimming units
+					correctValue = true;
+					studentAnswer = numericPart;  // update the student's answer to just the numeric part to evaluate sig figs
+				} else { // run the parsed value check
+					String parsedValue = parseString(studentAnswer,0); 
+					correctValue = agreesToRequiredPrecision(parsedValue);
+					if (correctValue || !parsedValue.equals(studentAnswer)) correctFormat = true;
+				}
 			}
-			if (!correctValue) { // Parse the math expression to get its value
-				correctValue = agreesToRequiredPrecision(parseString(studentAnswer,0)); 
-			}
-			// Evaluate the correctness of the answer:
+			// If the value is correct, we then check significant figures and work
 			correctSigFigs = correctValue && (significantFigures==0 || hasCorrectSigFigs(studentAnswer)); // true if sig figs not required OR (parsingFailed AND the value is correct AND sig figs are correct)
 			correctWork = correctValue && (showWork == null || workIsValid(showWork)); // null value means that no work is required, so it is valid; otherwise check the work if correctValue is true
 			return correctValue && correctSigFigs && correctWork;
