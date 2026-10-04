@@ -20,15 +20,21 @@ package org.chemvantage;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serial;
+import java.net.InetAddress;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -61,6 +67,11 @@ public class Admin extends HttpServlet {
 
 	@Serial
 	private static final long serialVersionUID = 137L;
+	private static final int MAX_JWKS_RESPONSE_BYTES = 1024 * 1024;
+	private static final HttpClient JWKS_DIAGNOSTIC_CLIENT = HttpClient.newBuilder()
+			.connectTimeout(Duration.ofSeconds(10))
+			.followRedirects(HttpClient.Redirect.NORMAL)
+			.build();
 	
 	public String getServletInfo() {
 		return "This servlet is used by ChemVantage admins to manage user properties and roles.";
@@ -126,7 +137,7 @@ public class Admin extends HttpServlet {
 				out.println(Subject.getHeader(user) + viewCodes(org) + Subject.footer);
 				break;
 			default: 
-				out.println(Subject.getHeader(user) + mainAdminForm(user,userRequest,searchString,cursor) + Subject.footer);
+				out.println(Subject.getHeader(user) + mainAdminForm(user,userRequest,searchString,cursor,request) + Subject.footer);
 			}
 		} catch (Exception e) {
 		}
@@ -154,6 +165,23 @@ public class Admin extends HttpServlet {
 			
 			String userRequest = request.getParameter("UserRequest");
 			if (userRequest == null) userRequest = "";
+			if ("Fetch JWKS".equals(userRequest)) {
+				jakarta.servlet.http.HttpSession session = request.getSession(false);
+				String expectedToken = session == null ? null : (String) session.getAttribute("jwksDiagnosticCsrf");
+				String submittedToken = request.getParameter("csrfToken");
+				if (session == null || expectedToken == null || !expectedToken.equals(submittedToken)) {
+					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWKS diagnostic request.");
+					return;
+				}
+				session.removeAttribute("jwksDiagnosticCsrf");
+				String diagnostic = fetchJwksDiagnostic(request.getParameter("jwksUrl"));
+				response.setContentType("text/html;charset=UTF-8");
+				response.setHeader("Cache-Control", "no-store");
+				response.getWriter().println(Subject.header("JWKS Diagnostic")
+						+ "<h1>JWKS Diagnostic</h1><pre style='white-space:pre-wrap;overflow-wrap:anywhere;'>"
+						+ escapeHtml(diagnostic) + "</pre><p><a href='/Admin'>Back to Admin</a></p>" + Subject.footer);
+				return;
+			}
 			
 			switch (userRequest) {
 			case "Announce": 
@@ -217,7 +245,7 @@ public class Admin extends HttpServlet {
 				}
 				break;
 			}
-			out.println(Subject.getHeader(user) + mainAdminForm(user,userRequest,searchString,cursor) + Subject.footer);
+			out.println(Subject.getHeader(user) + mainAdminForm(user,userRequest,searchString,cursor,request) + Subject.footer);
 		} catch (Exception e) {
 			response.getWriter().println("Unexpected error: " + e.toString() + e.getMessage());
 		}
@@ -251,7 +279,7 @@ public class Admin extends HttpServlet {
 		return buf.toString();
 	}
 	
-	String mainAdminForm(User user,String userRequest,String searchString,String cursor) {
+	String mainAdminForm(User user,String userRequest,String searchString,String cursor,HttpServletRequest request) {
 		StringBuffer buf = new StringBuffer("<section class='bg-gradient-primary text-white' style='max-width:500px'>"
 				+ "      <div class='container py-5'>"
 				+ "          <div class='col-lg-7'>"
@@ -259,6 +287,13 @@ public class Admin extends HttpServlet {
 				+ "          </div>"
 				+ "        </div>"
 				+ "    </section><p>");
+			String csrfToken = java.util.UUID.randomUUID().toString();
+			request.getSession().setAttribute("jwksDiagnosticCsrf", csrfToken);
+			buf.append("<h2>JWKS Diagnostic</h2><form method=post action='/Admin'>"
+					+ "<input type=hidden name=UserRequest value='Fetch JWKS' />"
+					+ "<input type=hidden name=csrfToken value='" + csrfToken + "' />"
+					+ "JWKS URL: <input type=url name=jwksUrl size=60 required placeholder='https://online.eiu.edu/d2l/.well-known/jwks' /> "
+					+ "<input type=submit value='Fetch JWKS' /></form><p>");
 		try {
 			// Announcements
 			boolean blockLaunches = Subject.getBlockLaunches();
@@ -484,6 +519,99 @@ public class Admin extends HttpServlet {
 		} catch (Exception e) {
 			return "<p>Regression status unavailable: " + escapeHtml(e.getMessage() == null ? e.toString() : e.getMessage()) + "</p>";
 		}
+	}
+
+	private String fetchJwksDiagnostic(String rawUrl) {
+		StringBuilder diagnostic = new StringBuilder("JWKS request diagnostic\nTime: ")
+				.append(java.time.Instant.now())
+				.append("\nCloud Run revision: ").append(System.getenv("K_REVISION"))
+				.append('\n');
+		try {
+			URI uri = new URI(rawUrl == null ? "" : rawUrl.trim());
+			if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null
+					|| uri.getRawUserInfo() != null || uri.getRawFragment() != null) {
+				throw new IllegalArgumentException("Enter an HTTPS URL with a hostname, no credentials, and no fragment.");
+			}
+			InetAddress[] addresses = InetAddress.getAllByName(uri.getHost());
+			if (addresses.length == 0) throw new IllegalArgumentException("The hostname did not resolve to an IP address.");
+			diagnostic.append("Resolved addresses: ");
+			for (int i = 0; i < addresses.length; i++) {
+				if (isNonPublicAddress(addresses[i])) {
+					throw new IllegalArgumentException("The hostname resolves to a private, local, or reserved IP address.");
+				}
+				if (i > 0) diagnostic.append(", ");
+				diagnostic.append(addresses[i].getHostAddress());
+			}
+			diagnostic.append('\n');
+
+			HttpRequest request = HttpRequest.newBuilder(uri)
+					.timeout(Duration.ofSeconds(15))
+					.header("Accept", "application/json, text/plain, */*")
+					.header("Accept-Encoding", "gzip, deflate, br")
+					.header("Accept-Language", "en-US,en;q=0.9")
+					.header("User-Agent", Utilities.LTI_USER_AGENT)
+					.header("Cache-Control", "no-cache")
+					.GET()
+					.build();
+			diagnostic.append("Request: GET ").append(request.uri()).append("\nRequest body: (none)\nRequest headers:\n");
+			for (Map.Entry<String,List<String>> header : request.headers().map().entrySet()) {
+				diagnostic.append(header.getKey()).append(": ").append(String.join(", ", header.getValue())).append('\n');
+			}
+			diagnostic.append("Host: generated by HttpClient\nRedirects: normal\n");
+
+			HttpResponse<InputStream> response;
+			try {
+				response = JWKS_DIAGNOSTIC_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			}
+			diagnostic.append("\nResponse status: ").append(response.statusCode())
+					.append("\nHTTP version: ").append(response.version())
+					.append("\nResponse URL: ").append(response.uri()).append("\nResponse headers:\n");
+			for (Map.Entry<String,List<String>> header : response.headers().map().entrySet()) {
+				diagnostic.append(header.getKey()).append(": ")
+						.append("set-cookie".equalsIgnoreCase(header.getKey()) ? "(redacted)" : String.join(", ", header.getValue()))
+						.append('\n');
+			}
+			try (InputStream body = response.body()) {
+				byte[] bytes = body.readNBytes(MAX_JWKS_RESPONSE_BYTES + 1);
+				boolean truncated = bytes.length > MAX_JWKS_RESPONSE_BYTES;
+				String responseBody = new String(bytes, 0, Math.min(bytes.length, MAX_JWKS_RESPONSE_BYTES), StandardCharsets.UTF_8);
+				diagnostic.append("Response body:\n").append(responseBody);
+				if (truncated) diagnostic.append("\n[body truncated at ").append(MAX_JWKS_RESPONSE_BYTES).append(" bytes]");
+			}
+		} catch (Exception e) {
+			diagnostic.append("\nFailure: ").append(LTIv1p3Launch.describeFailure(e));
+		}
+		return diagnostic.toString();
+	}
+
+	private boolean isNonPublicAddress(InetAddress address) {
+		if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+				|| address.isSiteLocalAddress() || address.isMulticastAddress()) return true;
+		byte[] bytes = address.getAddress();
+		if (bytes.length == 4) {
+			int a = bytes[0] & 0xff;
+			int b = bytes[1] & 0xff;
+			int c = bytes[2] & 0xff;
+			return a == 0 || a == 10 || a == 127 || a >= 224
+					|| (a == 100 && b >= 64 && b <= 127)
+					|| (a == 169 && b == 254)
+					|| (a == 172 && b >= 16 && b <= 31)
+					|| (a == 192 && (b == 0 || b == 2 || b == 168))
+					|| (a == 192 && b == 88 && c == 99)
+					|| (a == 198 && (b == 18 || b == 19 || b == 51 && c == 100))
+					|| (a == 203 && b == 0 && c == 113);
+		}
+		if (bytes.length == 16) {
+			int first = bytes[0] & 0xff;
+			int second = bytes[1] & 0xff;
+			return (first & 0xe0) != 0x20
+					|| (first & 0xfe) == 0xfc
+					|| (first == 0x20 && second == 0x01 && (bytes[2] & 0xff) == 0x0d && (bytes[3] & 0xff) == 0xb8);
+		}
+		return true;
 	}
 
 	private String escapeHtml(String input) {
