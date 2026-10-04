@@ -731,7 +731,6 @@ public class LTIRegistration extends HttpServlet {
 		config.addProperty("privacy_level", "public");
 		config.addProperty("target_link_uri", iss + "/lti/launch");
 		config.addProperty("oidc_initiation_url", iss + "/auth/token");
-		//config.addProperty("public_jwk_url", iss + "/jwks");
 		config.add("public_jwk", KeyStore.getJwk(KeyStore.getAKeyId(lms)));
 		  JsonArray scopes = new JsonArray();
 		  scopes.add("https://purl.imsglobal.org/spec/lti-ags/scope/lineitem");

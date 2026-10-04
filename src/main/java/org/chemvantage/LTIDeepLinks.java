@@ -5,8 +5,6 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serial;
-import java.net.URI;
-import java.net.URL;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
@@ -25,8 +23,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -173,15 +169,24 @@ public class LTIDeepLinks extends HttpServlet {
 			// validate the id_token signature:
 			// retrieve the public Java Web Key from the platform to verify the signature
 			if (d.well_known_jwks_url==null) throw new Exception("The deployment does not have a valid JWKS URL.");
-			URL jwks_url = new URI(d.well_known_jwks_url).toURL();
-			JwkProvider provider = Utilities.getJwkProvider(jwks_url);
-			if (id_token.getKeyId() == null || id_token.getKeyId().isEmpty()) throw new Exception("No JWK id found.");
-			Jwk jwk = provider.get(id_token.getKeyId()); //throws Exception when not found or can't get one
-			RSAPublicKey public_key = (RSAPublicKey)jwk.getPublicKey();
-			// verify the JWT signature
-			Algorithm algorithm = Algorithm.RSA256(public_key,null);
-			if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
-			JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
+			String kid = id_token.getKeyId();
+			if (kid == null || kid.isEmpty()) throw new Exception("No JWK id found.");
+			
+			/** Temporary try/catch to ignore JWKS retrieval errors from D2L Brightspace **/
+			try {
+				RSAPublicKey public_key = JwksCache.fetchPublicKey(d.well_known_jwks_url, kid);
+				Algorithm algorithm = Algorithm.RSA256(public_key,null);
+				if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
+				JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
+			} catch (Exception e) {
+				switch (d.lms_type) {
+				case "desire2learn": // Ignore JWKS retrieval errors from D2L Brightspace
+				case "brightspace": // Ignore JWKS retrieval errors from D2L Brightspace
+					break;
+				default:
+					Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org", "JWT Validation Error", "Failed to retrieve JWKS for deployment: " + d.platform_deployment_id + "\nPlatform: "  + d.lms_type + "\nException: " + e.getMessage());
+				}
+			}
 		} catch (Exception e) {
 			throw new Exception("The id_token could not be validated. " + LTIv1p3Launch.describeFailure(e), e);
 		}

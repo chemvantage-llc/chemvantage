@@ -44,8 +44,6 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serial;
-import java.net.URI;
-import java.net.URL;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -60,8 +58,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -565,24 +561,24 @@ public class LTIv1p3Launch extends HttpServlet {
 			// validate the id_token signature:
 			// retrieve the public Java Web Key from the platform to verify the signature
 			if (d.well_known_jwks_url==null) throw new Exception("The deployment does not have a valid JWKS URL.");
-			URL jwks_url = new URI(d.well_known_jwks_url).toURL();
+			//URL jwks_url = new URI(d.well_known_jwks_url).toURL();
 			String kid = id_token.getKeyId();
-			
-			/**************** TEMPORARY TRY/CATCH TO IGNORE JWKS RETRIEVAL ERRORS ******************************/
-			try {  
-				JwkProvider provider = Utilities.getJwkProvider(jwks_url);
-				
-				if (kid == null || kid.isEmpty()) throw new Exception("No JWK id found.");
-				Jwk jwk = provider.get(kid); //throws Exception when not found or can't get one
-				RSAPublicKey public_key = (RSAPublicKey)jwk.getPublicKey();
-				
-				// verify the JWT signature
+		
+			/** Temporary try/catch to ignore JWKS retrieval errors from D2L Brightspace **/
+			try {
+				RSAPublicKey public_key = JwksCache.fetchPublicKey(d.well_known_jwks_url, kid);
 				Algorithm algorithm = Algorithm.RSA256(public_key,null);
 				if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
 				JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
-			} catch (Exception e) {}
-			/**************** END OF TEMPORARY TRY/CATCH FOR JWKS RETRIEVAL ERRORS ******************************/
-			
+			} catch (Exception e) {
+				switch (d.lms_type) {
+				case "desire2learn": // Ignore JWKS retrieval errors from D2L Brightspace
+				case "brightspace": // Ignore JWKS retrieval errors from D2L Brightspace
+					break;
+				default:
+					Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org", "JWT Validation Error", "Failed to retrieve JWKS for deployment: " + d.platform_deployment_id + "\nPlatform: "  + d.lms_type + "\nException: " + e.getMessage());
+				}
+			}
 			return d;
 		} catch (Exception e) {
 			throw new Exception("ID token could not be validated: " + describeFailure(e));
@@ -593,7 +589,7 @@ public class LTIv1p3Launch extends HttpServlet {
 	static String describeFailure(Throwable e) {
 		StringBuilder buf = new StringBuilder(e.getMessage()==null?e.toString():e.getMessage());
 		for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
-			buf.append(" Caused by: ").append(cause.getMessage()==null?cause.toString():cause.getClass().getSimpleName() + ": " + cause.getMessage());
+			buf.append(" \nCaused by: ").append(cause.getMessage()==null?cause.toString():cause.getClass().getSimpleName() + ": " + cause.getMessage());
 		}
 		return buf.toString();
 	}

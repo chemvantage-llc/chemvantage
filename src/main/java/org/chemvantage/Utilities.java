@@ -4,17 +4,18 @@ import static com.googlecode.objectify.ObjectifyService.key;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.IOException;
-import java.net.URL;
 import java.net.URLConnection;
+//import java.net.URL;
+//import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+//import java.util.concurrent.ConcurrentHashMap;
 
-import com.auth0.jwk.JwkProvider;
+//import com.auth0.jwk.JwkProvider;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
@@ -44,21 +45,29 @@ public class Utilities {
 
 	// Platform WAFs (MoodleCloud, Schoology) return 403 to a spoofed browser user-agent arriving
 	// from a datacenter IP, so outbound LTI calls identify themselves honestly instead.
-	static final String LTI_USER_AGENT = "ChemVantage-LTI/1.0 (+https://www.chemvantage.org)";
+	static final String LTI_USER_AGENT = "ChemVantage-LTI/1.0 (https://www.chemvantage.org)";
 	static final int LTI_TIMEOUT_MILLIS = 10000;
-	private static final Map<String,JwkProvider> jwkProviders = new ConcurrentHashMap<String,JwkProvider>();
+	//private static final Map<String,JwkProvider> jwkProviders = new ConcurrentHashMap<String,JwkProvider>();
+ 
+	static void setLtiRequestDefaults(URLConnection uc) {
+		uc.setRequestProperty("User-Agent", LTI_USER_AGENT);
+		uc.setConnectTimeout(LTI_TIMEOUT_MILLIS);
+		uc.setReadTimeout(LTI_TIMEOUT_MILLIS);
+	}
+	
+/* 
+	// Providers are cached per URL so the key set is not refetched on every launch; JwksCache adds a
+	// Datastore-backed copy shared across Cloud Run instances and used when a platform refetch fails.
+	static JwkProvider getJwkProvider(URL jwks_url) {
+		return jwkProviders.computeIfAbsent(jwks_url.toString(), u -> JwksCache.provider(jwks_url));
+	}
 
 	static void setLtiRequestDefaults(URLConnection uc) {
 		uc.setRequestProperty("User-Agent", LTI_USER_AGENT);
 		uc.setConnectTimeout(LTI_TIMEOUT_MILLIS);
 		uc.setReadTimeout(LTI_TIMEOUT_MILLIS);
 	}
-
-	// Providers are cached per URL so the key set is not refetched on every launch; JwksCache adds a
-	// Datastore-backed copy shared across Cloud Run instances and used when a platform refetch fails.
-	static JwkProvider getJwkProvider(URL jwks_url) {
-		return jwkProviders.computeIfAbsent(jwks_url.toString(), u -> JwksCache.provider(jwks_url));
-	}
+*/
 	
 	public static void createTask(String relativeUri, String query) throws IOException {
 		createTask(relativeUri, query, 0);
