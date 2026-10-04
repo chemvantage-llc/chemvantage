@@ -545,10 +545,10 @@ public class Admin extends HttpServlet {
 			diagnostic.append('\n');
 
 			HttpRequest request = HttpRequest.newBuilder(uri)
-					.timeout(Duration.ofSeconds(15))
-					.header("Accept", "application/json, text/plain, */*")
-					.header("Accept-Encoding", "gzip, deflate, br")
-					.header("Accept-Language", "en-US,en;q=0.9")
+					.timeout(Duration.ofSeconds(5)) 
+					.header("Accept", "text/html, text/plain, application/json, */*")
+ 					.header("Accept-Encoding", "gzip, deflate, br")
+ 					.header("Accept-Language", "en-US,en;q=0.9")
 					.header("User-Agent", Utilities.LTI_USER_AGENT)
 					.header("Cache-Control", "no-cache")
 					.GET()

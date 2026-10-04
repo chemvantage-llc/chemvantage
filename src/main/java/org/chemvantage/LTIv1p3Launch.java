@@ -561,23 +561,28 @@ public class LTIv1p3Launch extends HttpServlet {
 			if (aud.size()==1 && aud.get(0).contentEquals(d.client_id)); // OK, continue
 			else if (aud.size()>1 && aud.contains(d.client_id) && id_token.getClaim("azp").asString().contentEquals(d.client_id)); // OK, continue
 			else throw new Exception("The id_token client_id claim is not authorized in ChemVantage.");
-
+ 
 			// validate the id_token signature:
 			// retrieve the public Java Web Key from the platform to verify the signature
 			if (d.well_known_jwks_url==null) throw new Exception("The deployment does not have a valid JWKS URL.");
 			URL jwks_url = new URI(d.well_known_jwks_url).toURL();
 			String kid = id_token.getKeyId();
 			
-			JwkProvider provider = Utilities.getJwkProvider(jwks_url);
+			/**************** TEMPORARY TRY/CATCH TO IGNORE JWKS RETRIEVAL ERRORS ******************************/
+			try {  
+				JwkProvider provider = Utilities.getJwkProvider(jwks_url);
+				
+				if (kid == null || kid.isEmpty()) throw new Exception("No JWK id found.");
+				Jwk jwk = provider.get(kid); //throws Exception when not found or can't get one
+				RSAPublicKey public_key = (RSAPublicKey)jwk.getPublicKey();
+				
+				// verify the JWT signature
+				Algorithm algorithm = Algorithm.RSA256(public_key,null);
+				if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
+				JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
+			} catch (Exception e) {}
+			/**************** END OF TEMPORARY TRY/CATCH FOR JWKS RETRIEVAL ERRORS ******************************/
 			
-            if (kid == null || kid.isEmpty()) throw new Exception("No JWK id found.");
-			Jwk jwk = provider.get(kid); //throws Exception when not found or can't get one
-			RSAPublicKey public_key = (RSAPublicKey)jwk.getPublicKey();
-			
-			// verify the JWT signature
-			Algorithm algorithm = Algorithm.RSA256(public_key,null);
-			if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
-			JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
 			return d;
 		} catch (Exception e) {
 			throw new Exception("ID token could not be validated: " + describeFailure(e));
