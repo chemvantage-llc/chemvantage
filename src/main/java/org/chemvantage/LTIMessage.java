@@ -21,7 +21,6 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 import static com.googlecode.objectify.ObjectifyService.key;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,10 +30,14 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -53,6 +56,12 @@ import org.springframework.web.util.HtmlUtils;
 public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+JSON" messages to a Tool Consumer (LMS)
 	
 	private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LTIMessage.class.getName());
+	private static final Duration TOKEN_HTTP_CONNECT_TIMEOUT = Duration.ofMillis(15000);
+	private static final HttpClient.Redirect TOKEN_HTTP_REDIRECT_POLICY = HttpClient.Redirect.NORMAL;
+	private static final HttpClient TOKEN_HTTP_CLIENT = HttpClient.newBuilder()
+			.connectTimeout(TOKEN_HTTP_CONNECT_TIMEOUT)
+			.followRedirects(TOKEN_HTTP_REDIRECT_POLICY)
+			.build();
 
 	private static void setRequestHeaders(HttpURLConnection connection) {
 		connection.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
@@ -82,8 +91,6 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		Date in15Min = new Date(now.getTime() + 900000L);  // 15 minutes from now
 		StringBuffer debug = new StringBuffer("Failed LTIMessage.getAccessToken()<br/>");
 
-		DataOutputStream wr = null;
-		BufferedReader reader = null;
 		try {
 			d = Deployment.getInstance(platformDeploymentId);
 			if (d==null) debug.append("ChemVantage Deployment unknown<br/>");
@@ -142,34 +149,42 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			debug.append("Body: " + body.replace("&client_assertion=" + URLEncoder.encode(token, StandardCharsets.UTF_8),
 					"&client_assertion=(redacted)") + "<br/>");
 
-			URL u = new URI(d.oauth_access_token_url).toURL();
-			HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-			setRequestHeaders(uc);
-			uc.setDoOutput(true);
-			uc.setDoInput(true);
-			uc.setRequestMethod("POST");
-			uc.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
-			uc.setRequestProperty("Accept", "application/json, application/jwk-set+json");
-			uc.setRequestProperty("charset", "utf-8");
-			uc.setRequestProperty("Cache-Control", "no-cache");
-			debug.append("Headers: " + "<br/>");
-			for (Map.Entry<String, List<String>> header : uc.getRequestProperties().entrySet()) {
-				debug.append(header.getKey() + ": " + String.join(", ", header.getValue()) + "<br/>");
+			HttpRequest tokenRequest = HttpRequest.newBuilder(new URI(d.oauth_access_token_url))
+					.timeout(Duration.ofMillis(15000))
+					.header("Content-Type", "application/x-www-form-urlencoded")
+					.header("Accept", "application/json, text/plain, */*")
+					.header("Accept-Encoding", "identity")
+					.header("Accept-Language", "en-US,en;q=0.9")
+					.header("charset", "utf-8")
+					.header("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)")
+					.header("Cache-Control", "no-cache")
+					.POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+					.build();
+			debug.append("Request: POST ").append(tokenRequest.uri()).append("<br/>");
+			debug.append("Headers:<br/>");
+			for (Map.Entry<String,List<String>> header : tokenRequest.headers().map().entrySet()) {
+				debug.append(header.getKey()).append(": ").append(String.join(", ", header.getValue())).append("<br/>");
 			}
-			uc.setUseCaches(false);
-			uc.setReadTimeout(15000);  // waits up to 15 s for server to respond
-			// send the message
-			wr = new DataOutputStream(uc.getOutputStream());
-			wr.writeBytes(body);
-			wr.close();
+			debug.append("POST URL: ").append(tokenRequest.uri()).append("<br/>");
+			debug.append("Date/Time: ").append(new Date().toString()).append("<br/>");
+			debug.append("HttpClient: connectTimeout=").append(TOKEN_HTTP_CONNECT_TIMEOUT)
+					.append(", redirectPolicy=").append(TOKEN_HTTP_REDIRECT_POLICY)
+					.append(", preferredVersion=").append(TOKEN_HTTP_CLIENT.version()).append("<br/>");
 
-			int responseCode = uc.getResponseCode();
+			HttpResponse<String> tokenResponse;
+			try {
+				tokenResponse = TOKEN_HTTP_CLIENT.send(tokenRequest,
+						HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			}
+			int responseCode = tokenResponse.statusCode();
 			debug.append("ResponseCode: " + responseCode + "<br/>");
+			debug.append("HTTP version: ").append(tokenResponse.version()).append("<br/>");
 
 			if (responseCode/100 == 2) { // response is OK
-				reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));				
-				JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
-				reader.close();
+				JsonObject json = JsonParser.parseString(tokenResponse.body()).getAsJsonObject();
 				String access_token = json.get("access_token").getAsString();
 				long expires_in = json.get("expires_in").getAsLong();  // number of seconds from now, typically 3600
 
@@ -181,18 +196,12 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 
 				return access_token;
 			} else {
-				// The LMS error body is not guaranteed to be valid JSON, so read it as raw text first
-				String errorBody = "(no error body)";
-				if (uc.getErrorStream() != null) {
-					try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(uc.getErrorStream()))) {
-						errorBody = errorReader.lines().reduce("",(a1,b) -> a1+b);
-					}
-				}
+				String errorBody = tokenResponse.body().isEmpty() ? "(no error body)" : tokenResponse.body();
 				debug.append("Error Stream: " + errorBody + "<br/>");
 				// These identify whether the platform's edge rejected the request before it reached the OAuth service
 				for (String h : new String[] {"x-amzn-errortype","x-amzn-requestid","x-amz-apigw-id","x-amzn-waf-action","cf-ray","server","www-authenticate"}) {
-					String v = uc.getHeaderField(h);
-					if (v != null) debug.append(h + ": " + v + "<br/>");
+					List<String> values = tokenResponse.headers().allValues(h);
+					if (!values.isEmpty()) debug.append(h).append(": ").append(String.join(", ", values)).append("<br/>");
 				}
 				throw new Exception("Failed AuthToken Request");
 			}
