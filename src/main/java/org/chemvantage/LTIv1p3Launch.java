@@ -564,21 +564,11 @@ public class LTIv1p3Launch extends HttpServlet {
 			//URL jwks_url = new URI(d.well_known_jwks_url).toURL();
 			String kid = id_token.getKeyId();
 		
-			/** Temporary try/catch to ignore JWKS retrieval errors from D2L Brightspace **/
-			try {
-				RSAPublicKey public_key = JwksCache.fetchPublicKey(d.well_known_jwks_url, kid);
-				Algorithm algorithm = Algorithm.RSA256(public_key,null);
-				if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
-				JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
-			} catch (Exception e) {
-				switch (d.lms_type) {
-				case "desire2learn": // Ignore JWKS retrieval errors from D2L Brightspace
-				case "brightspace": // Ignore JWKS retrieval errors from D2L Brightspace
-					break;
-				default:
-					Utilities.sendEmail("ChemVantage Administrator","admin@chemvantage.org", "JWT Validation Error", "Failed to retrieve JWKS for deployment: " + d.platform_deployment_id + "\nPlatform: "  + d.lms_type + "\nException: " + e.getMessage());
-				}
-			}
+			RSAPublicKey public_key = JwksCache.fetchPublicKey(d.well_known_jwks_url, kid);
+			Algorithm algorithm = Algorithm.RSA256(public_key,null);
+			if (!"RS256".contentEquals(id_token.getAlgorithm())) throw new Exception("JWT algorithm must be RS256");
+			JWT.require(algorithm).build().verify(id_token);  // throws JWTVerificationException if not valid
+
 			return d;
 		} catch (Exception e) {
 			throw new Exception("ID token could not be validated: " + describeFailure(e));
