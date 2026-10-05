@@ -29,15 +29,9 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.security.interfaces.RSAPrivateKey;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,8 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -56,13 +48,7 @@ import org.springframework.web.util.HtmlUtils;
 public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+JSON" messages to a Tool Consumer (LMS)
 	
 	private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LTIMessage.class.getName());
-	private static final Duration TOKEN_HTTP_CONNECT_TIMEOUT = Duration.ofMillis(15000);
-	private static final HttpClient.Redirect TOKEN_HTTP_REDIRECT_POLICY = HttpClient.Redirect.NORMAL;
-	private static final HttpClient TOKEN_HTTP_CLIENT = HttpClient.newBuilder()
-			.connectTimeout(TOKEN_HTTP_CONNECT_TIMEOUT)
-			.followRedirects(TOKEN_HTTP_REDIRECT_POLICY)
-			.build();
-
+	
 	private static void setRequestHeaders(HttpURLConnection connection) {
 		connection.setRequestProperty("User-Agent", "ChemVantage/1.0 (https://www.chemvantage.org; admin@chemvantage.org)");
 		connection.setRequestProperty("Host", connection.getURL().getAuthority());
@@ -75,7 +61,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 	// - No logging of sensitive tokens
 	// - Thread-safe operations
 	// - Proper cleanup on invalidation
-	
+/* 	
 	static String getAccessToken(String platformDeploymentId,String scope) throws IOException {
 		return getAccessToken(platformDeploymentId, scope, false);
 	}
@@ -152,7 +138,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			HttpRequest tokenRequest = HttpRequest.newBuilder(new URI(d.oauth_access_token_url))
 					.timeout(Duration.ofMillis(15000))
 					.header("Content-Type", "application/x-www-form-urlencoded")
-					.header("Accept", "application/json, text/plain, */*")
+					.header("Accept", "application/json, text/plain")
 					.header("Accept-Encoding", "identity")
 					.header("Accept-Language", "en-US,en;q=0.9")
 					.header("charset", "utf-8")
@@ -188,11 +174,11 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				String access_token = json.get("access_token").getAsString();
 				long expires_in = json.get("expires_in").getAsLong();  // number of seconds from now, typically 3600
 
-			// SECURITY FIX: Cache token using SecureCredentialManager
-			// - Token is cached with proper expiration
-			// - No logging of the actual token value
-			// - Thread-safe operations
-			SecureCredentialManager.cacheToken(d.platform_deployment_id, access_token, expires_in);
+				// SECURITY FIX: Cache token using SecureCredentialManager
+				// - Token is cached with proper expiration
+				// - No logging of the actual token value
+				// - Thread-safe operations
+				SecureCredentialManager.cacheToken(d.platform_deployment_id, access_token, expires_in);
 
 				return access_token;
 			} else {
@@ -216,7 +202,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			return "Failed AuthToken Request <br/>" + (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>" + debug.toString();
 		}    
 	}
-
+*/
     static JsonObject getLineItem(Deployment d,String resourceLinkId,String lti_ags_lineitems_url) throws Exception {   	
     	String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";    	
     	try {
@@ -238,7 +224,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
     	int responseCode = 0;
     	try {
     		String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
-    		String bearerAuth = "Bearer " + getAccessToken(d.platform_deployment_id,scope);
+    		String bearerAuth = "Bearer " + AccessTokenCache.fetchToken(d,scope);
 
     		URL u = new URI(lti_ags_lineitem_url).toURL();
     		HttpURLConnection uc = (HttpURLConnection) u.openConnection();
@@ -273,7 +259,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
     	
     	JsonArray container = new JsonArray();
     	try {
-    		String accessToken = getAccessToken(d.platform_deployment_id,d.scope);
+    		String accessToken = AccessTokenCache.fetchToken(d,d.scope);
     		if (accessToken.indexOf("Failed AuthToken Request")>=0) throw new Exception("Failed AuthToken request.");
     		String bearerAuth = "Bearer " + accessToken;
     		String next_url = lti_ags_lineitems_url;
@@ -307,7 +293,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
     static String getLineItemContainer(Deployment d,String lti_ags_lineitems_url,String resourceLinkId,String scope) {
     	// This method asks the platform to return one lineitems for the context having the specified resourceLinkId
     	try {
-    		String accessToken = getAccessToken(d.platform_deployment_id,scope);
+    		String accessToken = AccessTokenCache.fetchToken(d,scope);
     		if (accessToken == null) return "Access token not granted: " + accessToken;
     		String bearerAuth = "Bearer " + accessToken;
 
@@ -344,7 +330,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
 			String lineItemUrl = null;
 			
-			String accessToken = getAccessToken(d.platform_deployment_id,scope);
+			String accessToken = AccessTokenCache.fetchToken(d,scope);
     		if (accessToken == null) return "Access token not granted.";
     		String bearerAuth = "Bearer " + accessToken;
     		debug.append("Authorization: " + bearerAuth + "<br>");
@@ -420,7 +406,8 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		
 		try {		
 			String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
-			String accessToken = getAccessToken(a.domain,scope);
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			String accessToken = AccessTokenCache.fetchToken(d,scope);
 			if (accessToken == null || accessToken.startsWith("Failed AuthToken Request"))
 				throw new Exception(accessToken == null ? "Access token was not granted" : accessToken);
 			String bearerAuth = "Bearer " + accessToken;
@@ -483,7 +470,9 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		HttpURLConnection uc = null;
 		try {
 			String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
-			String bearerAuth = "Bearer " + getAccessToken(a.domain,scope);
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			String accessToken = AccessTokenCache.fetchToken(d,scope);
+			String bearerAuth = "Bearer " + accessToken;
 			
 			// If necessary, convert the full ChemVantage userId (with domain and slash) to raw LMNS user_ud
 			int lastSlash = userId.lastIndexOf("/");  // returns -1 if no slashes (raw LMS user_id)
@@ -494,7 +483,6 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			
 			// There is some uncertainty about the query parameter; The LTI spec is user_id but the container has userId
 			URL u = null;
-			Deployment d = ofy().load().type(Deployment.class).id(a.domain).safe();
 			switch (d.lms_type) {
 			case "moodle":
 				String base_url = a.lti_ags_lineitem_url.substring(0,a.lti_ags_lineitem_url.indexOf("?")) + "/results";
@@ -565,11 +553,12 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			buf.append("User hashedId=" + hashedId + "<br/>");
 			if (a != null) buf.append("ScoreKey: " + key(key(User.class,hashedId),Score.class,a.id).toString() + "<br/>");
 			
-			String authToken = a != null ? getAccessToken(a.domain,scope) : null;
-			buf.append("AuthToken:" + authToken + "<br/>");
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			String accessToken = AccessTokenCache.fetchToken(d,scope);
+			buf.append("AuthToken:" + accessToken + "<br/>");
 
-			if (authToken != null && authToken.startsWith("Failed")) throw new Exception("Failed: could not get access token. " + authToken);
-			String bearerAuth = "Bearer " + authToken;
+			if (accessToken != null && accessToken.startsWith("Failed")) throw new Exception("Failed: could not get access token. " + accessToken);
+			String bearerAuth = "Bearer " + accessToken;
 			
 			String raw_id = userId.substring(userId.lastIndexOf("/")+1);
 			
@@ -615,7 +604,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				if (success) {  
 					s.lisReportComplete = true;
 					ofy().save().entity(s);
-					buf.append("Success " + responseCode + "<br/>AuthToken: " + authToken + "<br/>JSON: " + json);
+					buf.append("Success " + responseCode + "<br/>AuthToken: " + accessToken + "<br/>JSON: " + json);
 					//sendEmailToAdmin("Score submission success",buf.toString());
 				} else if (responseCode==422) {
 					buf.append("Response code 422: This LMS does not allow LTI score submissions for instructors or test students.<br/>");
@@ -653,7 +642,9 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		try {
 			String scope = "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly";
 			String bearerAuth;
-			if ((bearerAuth=getAccessToken(a.domain,scope)).startsWith("response")) throw new Exception("the LMS failed to issue an auth token: " + bearerAuth);
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			String accessToken = AccessTokenCache.fetchToken(d,scope);
+			if ((bearerAuth=accessToken).startsWith("response")) throw new Exception("the LMS failed to issue an auth token: " + bearerAuth);
 			else bearerAuth = "Bearer " + bearerAuth;
 
 			if (a.lti_nrps_context_memberships_url==null) throw new Exception("the service endpoint URL for this group is unknown");
@@ -715,7 +706,8 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		try {
 			if (a == null) throw new IllegalArgumentException("Assignment is required for a membership request.");
 			String scope = "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly";
-			accessToken = getAccessToken(a.domain,scope);
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			accessToken = AccessTokenCache.fetchToken(d,scope);
 			if (accessToken == null || accessToken.startsWith("Failed") || accessToken.startsWith("response"))
 				throw new Exception("The LMS failed to issue an access token.");
 			String bearerAuth = "Bearer " + accessToken;
