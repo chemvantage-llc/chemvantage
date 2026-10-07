@@ -1202,7 +1202,10 @@ public class Homework extends HttpServlet {
 				} catch (Exception e) {}
 				HWTransaction ht = new HWTransaction(q.id,user.getHashedId(),presented,now,studentScore,hwa.id,q.pointValue,showWork);
 				ht.studentAnswer = studentAnswer;
-				ht.correctAnswer = q.getCorrectAnswer();				
+				ht.correctAnswer = q.getCorrectAnswer();
+				ht.correctValue = q.correctValue;
+				ht.correctSigFigs = q.correctSigFigs;
+				ht.correctWork = q.correctWork;
 				ofy().save().entity(ht).now();
 			
 				// create/update/store a Score object and report the score to the LMS

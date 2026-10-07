@@ -41,6 +41,9 @@ public class HWTransaction implements Serializable {
 			String topicTitle;
 			String showWork;
 			String studentAnswer;
+			boolean correctValue;
+			boolean correctSigFigs;
+			boolean correctWork;
 			String correctAnswer;
 			boolean scoreOverride;
 	
