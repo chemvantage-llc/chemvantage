@@ -186,7 +186,7 @@ Provisioned resources:
   - Default backend (both top-level and path matcher): cv-dev-static-frontend (static bucket)
   - Host rule: dev.chemvantage.org -> path matcher dev-host-matcher
   - Admin path rule (IAP, routed to cv-dev-admin-bes):
-    - /Admin, /DataStoreCleaner, /Edit, /EraseEntity, /contacts, /messages, /ReportScore, /ValidateQuestions (each with a `/*` wildcard variant)
+    - /Admin, /DataStoreCleaner, /Edit, /EraseEntity, /QuestionTimingStats, /contacts, /messages, /ReportScore, /ValidateQuestions (each with a `/*` wildcard variant)
   - Redirect rule: /chemistry-reasoning -> urlRedirect (302 FOUND) to /chemistry-reasoning/ (infra-level, no app code)
   - All other servlet paths explicitly routed to cv-dev-run-bes:
     - /checkout, /Contribute, /example-questions, /examples, /Feedback, /feedback, /Help, /help, /Homework, /images/*, /itembank, /items, /jwks, /lti/deeplinks, /lti/registration, /lti/launch, /rewards/*, /item, /PlacementExam, /Poll, /PracticeExam, /Quiz, /Sage, /SmartText, /auth/token, /unsubscribe, /VideoQuiz (each with a `/*` wildcard variant except /images/* and /rewards/*, which are wildcard-only to match their servlet mappings)
