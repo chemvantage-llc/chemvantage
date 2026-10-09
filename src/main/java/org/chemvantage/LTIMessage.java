@@ -544,6 +544,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 		// and the specific cell is identified by the user_id value defined by the LMS platform
 
 		StringBuffer buf = new StringBuffer("<h2>PostUserScoreDebug</h2>");
+		String accessToken = null;
 		try {
 			Assignment a = ofy().load().type(Assignment.class).id(s.assignmentId).safe();
 			if (a == null) throw new Exception("Assignment not found: " + s.assignmentId);
@@ -554,8 +555,9 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			if (a != null) buf.append("ScoreKey: " + key(key(User.class,hashedId),Score.class,a.id).toString() + "<br/>");
 			
 			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
-			String accessToken = AccessTokenCache.fetchToken(d,scope);
-			buf.append("AuthToken:" + accessToken + "<br/>");
+			buf.append("Deployment: " + d.platform_deployment_id + "(" + d.lms_type + ")<br/>");
+			accessToken = AccessTokenCache.fetchToken(d,scope);
+			buf.append("AuthToken: [REDACTED]<br/>");
 
 			if (accessToken != null && accessToken.startsWith("Failed")) throw new Exception("Failed: could not get access token. " + accessToken);
 			String bearerAuth = "Bearer " + accessToken;
@@ -604,7 +606,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				if (success) {  
 					s.lisReportComplete = true;
 					ofy().save().entity(s);
-					buf.append("Success " + responseCode + "<br/>AuthToken: " + accessToken + "<br/>JSON: " + json);
+					buf.append("Success " + responseCode + "<br/>JSON: " + json);
 					//sendEmailToAdmin("Score submission success",buf.toString());
 				} else if (responseCode==422) {
 					buf.append("Response code 422: This LMS does not allow LTI score submissions for instructors or test students.<br/>");
@@ -612,7 +614,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				} else {			
 					buf.append(uc.getRequestMethod() + " " + u.toString() + "<br>"
 							+ "Content-Type: application/vnd.ims.lis.v1.score+json<br>"
-							+ "Authorization: " + bearerAuth + "<p>"
+							+ "Authorization: [REDACTED]<p>"
 							+ json + "<p>");
 					Map<String,List<String>> headers = uc.getHeaderFields();
 					for (Entry<String,List<String>> e : headers.entrySet()) {
@@ -627,15 +629,25 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 						buf.append(line);
 					}
 					reader.close();
-					//Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Score submission failed",buf.toString());
 				}
 			}
 		} catch (Exception e) {
-			Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Score submission failed",buf.toString());
+			String errorDetails = e.toString();
+			if (accessToken != null && !accessToken.isBlank()) {
+				errorDetails = errorDetails.replace(accessToken, "[REDACTED]");
+			}
+			buf.append("Exception: " + errorDetails + "<br/>");
+			Utilities.sendEmail("ChemVantage","admin@chemvantage.org","Score submission failed",
+					redactAccessToken(buf.toString(), accessToken));
 		}
-		return buf.toString();
+		return redactAccessToken(buf.toString(), accessToken);
 	}
-	
+
+	private static String redactAccessToken(String diagnostic, String accessToken) {
+		if (diagnostic == null || accessToken == null || accessToken.isBlank()) return diagnostic;
+		return diagnostic.replace(accessToken, "[REDACTED]");
+	}
+
 	static JsonObject getMembershipContainer(Assignment a) {
 		JsonObject membershipContainer = new JsonObject();
 		
