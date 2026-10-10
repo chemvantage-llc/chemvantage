@@ -24,13 +24,17 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.googlecode.objectify.Key;
+import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
@@ -132,6 +136,44 @@ public class Group {
 		return buf.toString();
 	}
 	
+	private record PaidSubscriptionTotals(long users, long amount) {}
+
+	private static Set<String> getSmartTextUserIds(Date qStart, Date qEnd) {
+		Set<String> userIds = new HashSet<>();
+		for (STTransaction transaction : ofy().load().type(STTransaction.class)
+				.filter("graded >=",qStart).filter("graded <=",qEnd)
+				.project("userId").distinct(true)) {
+			if (transaction.userId != null) userIds.add(transaction.userId);
+		}
+		return userIds;
+	}
+
+	private static PaidSubscriptionTotals getPaidSubscriptionTotals(Set<String> smartTextUserIds, List<String> groupOrgs, Date qStart, Date qEnd) {
+		List<String> userIds = new ArrayList<>(smartTextUserIds);
+		Set<String> organizations = new HashSet<>(groupOrgs);
+		organizations.remove(null);
+		long users = 0;
+		long amount = 0;
+
+		for (String organization : organizations) {
+			for (int offset = 0; offset < userIds.size(); offset += 30) {
+				List<Key<PremiumUser>> userKeyBatch = new ArrayList<>();
+				for (String userId : userIds.subList(offset, Math.min(offset + 30, userIds.size()))) {
+					userKeyBatch.add(ObjectifyService.key(PremiumUser.class, userId));
+				}
+				for (PremiumUser premiumUser : ofy().load().type(PremiumUser.class)
+						.filterKey("IN", userKeyBatch)
+						.filter("org", organization)
+						.filter("start >=",qStart).filter("start <=",qEnd)
+						.filter("paid >",0)) {
+					users++;
+					amount += premiumUser.paid;
+				}
+			}
+		}
+		return new PaidSubscriptionTotals(users, amount);
+	}
+
 	static String openStaxCSVReport() { // this generates a CSV version of openStaxReport for uploading to OpenStax
 		StringBuffer buf = new StringBuffer();
 		try {
@@ -185,16 +227,10 @@ public class Group {
 			}
 			
 			// Find the number and amount of paid subscriptions for this period
-			List<PremiumUser> premiumUsers = ofy().load().type(PremiumUser.class).filter("paid >",0).list();
-			int pUsers = 0; // paid SmartText users
-			int paid = 0;   // total SmartText subscription receipts for this period
-			for (PremiumUser pu : premiumUsers) {
-				if (pu.start.before(qStart) || pu.start.after(qEnd)) continue; // only count subscriptions started during the quarter
-				if (groupOrgs.contains(pu.org)) {
-					pUsers ++;
-					paid += pu.paid;
-				}
-			}
+			Set<String> smartTextUserIds = getSmartTextUserIds(qStart, qEnd);
+			PaidSubscriptionTotals totals = getPaidSubscriptionTotals(smartTextUserIds, groupOrgs, qStart, qEnd);
+			long pUsers = totals.users();
+			long paid = totals.amount();
 			double receipts = (double)paid;
 			
 			buf.append("\"Total active ChemVantage users\",,\"" + nUsers + "\"\n"
@@ -270,16 +306,10 @@ public class Group {
 			table.append("</table>");
 			
 			// Find the number and amount of paid subscriptions for this period
-			List<PremiumUser> premiumUsers = ofy().load().type(PremiumUser.class).filter("paid >",0).list();
-			int pUsers = 0; // paid SmartText users
-			int paid = 0;   // total SmartText subscription receipts for this period
-			for (PremiumUser pu : premiumUsers) {
-				if (pu.start.before(qStart) || pu.start.after(qEnd)) continue; // only count subscriptions started during the quarter
-				if (groupOrgs.contains(pu.org)) {
-					pUsers ++;
-					paid += pu.paid;
-				}
-			}
+			Set<String> smartTextUserIds = getSmartTextUserIds(qStart, qEnd);
+			PaidSubscriptionTotals totals = getPaidSubscriptionTotals(smartTextUserIds, groupOrgs, qStart, qEnd);
+			long pUsers = totals.users();
+			long paid = totals.amount();
 			double receipts = (double)paid;
 			
 			buf.append("<table>"

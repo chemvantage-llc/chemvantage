@@ -83,6 +83,13 @@ indexes:
   - name: graded
   - name: downloaded
 
+- kind: PremiumUser
+  properties:
+  - name: org
+  - name: __key__
+  - name: paid
+  - name: start
+
 - kind: ProvisionalDeployment
   properties:
   - name: platformId
@@ -194,6 +201,11 @@ indexes:
   - name: userId
   - name: assignmentId
   
+- kind: STTransaction
+  properties:
+  - name: userId
+  - name: graded
+
 - kind: User
   properties:
   - name: hashedId
