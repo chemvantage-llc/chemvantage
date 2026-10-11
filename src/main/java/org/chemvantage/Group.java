@@ -33,8 +33,6 @@ import java.util.Set;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.googlecode.objectify.Key;
-import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
@@ -149,28 +147,29 @@ public class Group {
 	}
 
 	private static PaidSubscriptionTotals getPaidSubscriptionTotals(Set<String> smartTextUserIds, List<String> groupOrgs, Date qStart, Date qEnd) {
-		List<String> userIds = new ArrayList<>(smartTextUserIds);
 		Set<String> organizations = new HashSet<>(groupOrgs);
 		organizations.remove(null);
 		long users = 0;
 		long amount = 0;
+		long quarterPremiumUsers = 0;
+		long organizationMatches = 0;
+		long smartTextUserMatches = 0;
+		long positivePaidMatches = 0;
 
-		for (String organization : organizations) {
-			for (int offset = 0; offset < userIds.size(); offset += 30) {
-				List<Key<PremiumUser>> userKeyBatch = new ArrayList<>();
-				for (String userId : userIds.subList(offset, Math.min(offset + 30, userIds.size()))) {
-					userKeyBatch.add(ObjectifyService.key(PremiumUser.class, userId));
-				}
-				for (PremiumUser premiumUser : ofy().load().type(PremiumUser.class)
-						.filterKey("IN", userKeyBatch)
-						.filter("org", organization)
-						.filter("start >=",qStart).filter("start <=",qEnd)
-						.filter("paid >",0)) {
-					users++;
-					amount += premiumUser.paid;
-				}
-			}
+		for (PremiumUser premiumUser : ofy().load().type(PremiumUser.class)
+				.filter("start >=",qStart).filter("start <=",qEnd)) {
+			quarterPremiumUsers++;
+			boolean organizationMatchesUser = organizations.contains(premiumUser.org);
+			boolean hasGradedSmartText = smartTextUserIds.contains(premiumUser.hashedId);
+			if (organizationMatchesUser) organizationMatches++;
+			if (hasGradedSmartText) smartTextUserMatches++;
+			if (premiumUser.paid <= 0 || !organizationMatchesUser || !hasGradedSmartText) continue;
+			positivePaidMatches++;
+			users++;
+			amount += premiumUser.paid;
 		}
+		System.out.printf("OpenStax subscription report: gradedSmartTextUsers=%d organizations=%d quarterPremiumUsers=%d organizationMatches=%d smartTextUserMatches=%d positivePaidMatches=%d amount=%d%n",
+				smartTextUserIds.size(), organizations.size(), quarterPremiumUsers, organizationMatches, smartTextUserMatches, positivePaidMatches, amount);
 		return new PaidSubscriptionTotals(users, amount);
 	}
 
