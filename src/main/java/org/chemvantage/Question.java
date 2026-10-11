@@ -432,7 +432,7 @@ public class Question implements Serializable, Cloneable {
 		case 7: // Short ESSAY question
 			buf.append(text);
 			buf.append("<br/>");
-			buf.append("<span style='color:#B20000;font-size:small;'><label for='" + this.id + "'>Write a short essay (800 characters max):</label></span><br/>");
+			buf.append("<span style='color:#B20000;font-size:small;'><label for='" + this.id + "'>Enter your answer here (800 characters max):</label></span><br/>");
 			buf.append("<textarea id=" + this.id + " aria-label='enter your essay here' name=" + this.id 
 					+ " rows=5 cols=60 wrap=soft placeholder='Enter your answer here' maxlength=800 >" + escapeHtml(studentAnswer) + "</textarea><br>");
 			break;
