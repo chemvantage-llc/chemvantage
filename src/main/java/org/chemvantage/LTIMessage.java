@@ -602,7 +602,7 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 				int responseCode = uc.getResponseCode(); // success if 200-202
 				buf.append("Response Code = " + responseCode + "<br/>");
 
-				boolean success = responseCode>199 && responseCode<203;
+				boolean success = responseCode>=200 && responseCode<=299;
 				if (success) {  
 					s.lisReportComplete = true;
 					ofy().save().entity(s);
