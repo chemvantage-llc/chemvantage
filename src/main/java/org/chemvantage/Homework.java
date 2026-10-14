@@ -108,6 +108,9 @@ public class Homework extends HttpServlet {
 				if (user.isInstructor()) out.println(Subject.header("Customize ChemVantage Homework Assignment") + selectQuestionsForm(user,a,request) + Subject.footer);
 				else out.println(Subject.header("Customize ChemVantage Homework Assignment") + "<h2>Forbidden</h2>You must be signed in as the instructor to perform this functuon." + Subject.footer);
 				break;
+			case "ShowMismatchedScores":
+				out.println(Subject.header("Mismatched Scores") + showMismatchedScores(user,a) + Subject.footer);
+				break;
 			case "SynchronizeScore":
 				out.println(synchronizeScore(user,a,request.getParameter("ForUserId")));
 				break;
@@ -490,7 +493,8 @@ public class Homework extends HttpServlet {
 			
 			// Link to review student scores if membership service is supported
 			boolean supportsMembership = a.lti_nrps_context_memberships_url != null;
-			if (supportsMembership) buf.append("<a href='/Homework?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "'>Review your students' homework scores</a><br/>");
+			if (supportsMembership) buf.append("<a href='/Homework?UserRequest=ShowSummary&sig=" + user.getTokenSignature() + "'>Review your students' homework scores</a><br/><br/>");
+			else buf.append("<a href='/Homework?UserRequest=ShowMismatchedScores&sig=" + user.getTokenSignature() + "'>Grade book synchronization report</a><br/><br/>");
 			
 			buf.append("Need help? Please <a href=/Feedback?sig=" + user.getTokenSignature() + "&AssignmentId=" + a.id + ">submit a comment, question or request here</a>.<br/><br/>");			
 			
@@ -1781,6 +1785,62 @@ public class Homework extends HttpServlet {
 		return buf.toString();
 	}
 	
+	static String showMismatchedScores(User user, Assignment a) {
+		StringBuffer buf = new StringBuffer();
+		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
+		try {
+			buf.append("<h1>Scores Report</h1>");
+			buf.append("Title: "+ a.title + "<br/>");
+			buf.append("Assignment ID: " + a.id + "<br/>");
+			buf.append("Valid: " + new Date() + "<br/><br/>");
+			buf.append("Your LMS does not support the LTI Names and Roles Provisioning Service, so we cannot display scores for individuasl students. "
+				+ "This report compares the scores recorded in the LMS grade book (by userId) with the scores maintained by ChemVantage.<br/><br/>");
+
+			Map<String,String> scores = LTIMessage.readMembershipScores(a);
+			if (scores==null) throw new Exception("Failed to read membership scores from the LMS");
+			Map<String,Key<Score>> keys = new HashMap<String,Key<Score>>();
+			Deployment d = ofy().load().type(Deployment.class).id(a.domain).safe();
+			String platform_id = d.getPlatformId() + "/";
+			for (String id : scores.keySet()) {
+				keys.put(id,key(key(User.class,Subject.hashId(platform_id+id)),Score.class,a.id));
+			}
+			Map<Key<Score>,Score> cvScores = ofy().load().keys(keys.values());
+			int mismatched = 0;
+			for (Map.Entry<String,String> entry : scores.entrySet()) {
+				if (entry == null) continue;
+				try {
+					String userId = platform_id + entry.getKey();
+					Key<Score> scoreKey = key(key(org.chemvantage.User.class,
+							Subject.hashId(userId)), Score.class, a.id);
+					Score cvScore = cvScores.get(scoreKey);
+					if (cvScore == null) {
+						cvScore = Score.getInstance(userId, a);
+						if (!"-".equals(cvScore.getScore())) ofy().save().entity(cvScore).now();
+					}
+					if (String.valueOf(cvScore.getPctScore()).equals(scores.get(entry.getKey()))) continue;
+					mismatched++;
+				} catch (Exception e) {}
+			}
+			if (mismatched > 0) {
+				buf.append("We found " + String.valueOf(mismatched) + (mismatched == 1 ? " score " : " scores ") 
+					+ "where the ChemVantage score did not match the score reported by the LMS grade book. "
+					+ "This may happen for one or more of the following reasons:<ul>"
+					+ "<li>The instructor has manually overridden a score in the LMS grade book.</li>"
+					+ "<li>A late student submission was not accepted by the LMS.</li>"
+					+ "<li>The LMS was offline when ChemVantage tried to update the score.</li></ul>"
+					+ "<p>Click the button below to repost " + mismatched + " score" + (mismatched == 1 ? "" : "s") + " to the LMS grade book.</p>"
+					+ "<form method='post' action='/Homework'>"
+					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
+					+ "<input type='submit' name='UserRequest' value='Synchronize Scores' />"
+					+ "</form><br/><br/>"
+					+ "<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
+			} else buf.append("Good news! All of the LMS grade book scores for this assignment are consistent with ChemVantage scores.<br/>");
+		} catch (Exception e) {
+			buf.append(e.toString());
+		}
+		return buf.toString();
+	}
+
 	static String showSummary(User user,Assignment a) {
 		StringBuffer buf = new StringBuffer();
 		if (!user.isInstructor()) return "You must be logged in as the instructor to view this page.";
