@@ -1793,7 +1793,7 @@ public class Homework extends HttpServlet {
 			buf.append("Title: "+ a.title + "<br/>");
 			buf.append("Assignment ID: " + a.id + "<br/>");
 			buf.append("Valid: " + new Date() + "<br/><br/>");
-			buf.append("Your LMS does not support the LTI Names and Roles Provisioning Service, so we cannot display scores for individuasl students. "
+			buf.append("Your LMS does not support the LTI Names and Roles Provisioning Service, so we cannot display scores for individual students. "
 				+ "This report compares the scores recorded in the LMS grade book (by userId) with the scores maintained by ChemVantage.<br/><br/>");
 
 			Map<String,String> scores = LTIMessage.readMembershipScores(a);
