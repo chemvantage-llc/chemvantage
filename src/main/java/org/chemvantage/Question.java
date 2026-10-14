@@ -57,7 +57,7 @@ import org.springframework.web.util.HtmlUtils;
 public class Question implements Serializable, Cloneable {
 	@Serial
 	private static final long serialVersionUID = 137L;
-	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?)");
+	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*(([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+)))(?:(?:[eE][+-]?\\d+)|(?:[xX*]\\s*10\\s*\\^\\s*[+-]?\\d+))?)");
 	private static final Pattern IONIC_CHARGE = Pattern.compile("^\\s*(\\d+)([+-])\\s*$");
 	private static final PolicyFactory EXPLANATION_HTML_POLICY = new HtmlPolicyBuilder()
 			.allowElements("p", "br", "b", "strong", "i", "em", "u", "sub", "sup", "code", "pre", "blockquote", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td")
@@ -1279,6 +1279,7 @@ public class Question implements Serializable, Cloneable {
 					correctValue = true;
 					studentAnswer = numericPart;  // update the student's answer to just the numeric part to evaluate sig figs
 				} else { // run the parsed value check
+					
 					String parsedValue = parseString(studentAnswer,0); 
 					correctValue = agreesToRequiredPrecision(parsedValue);
 					if (correctValue || !parsedValue.equals(studentAnswer)) correctFormat = true;
@@ -1345,9 +1346,12 @@ public class Question implements Serializable, Cloneable {
 		if (significantFigures==0) return true;  // no sig figs required
 		
 		studentAnswer = studentAnswer.replaceAll(",", "").replaceAll("\\s", "");  // removes comma separators and whitespace from numbers
-				
-		int exponentPosition = studentAnswer.toUpperCase().indexOf("E");  		// turns "e" to "E"
-		String mantissa = exponentPosition>=0?studentAnswer.substring(0,exponentPosition):studentAnswer;
+			
+		if (studentAnswer.isEmpty()) return false;  // no digits left after removing commas and whitespace
+		
+		var matcher = NUMERIC_PREFIX.matcher(studentAnswer);
+		if (!matcher.find()) return false;
+		String mantissa = matcher.group(2);
 		
 		// check to see if the value has a trailing zero before the decimal place
 		// this check has been disabled to forgive lack of a trailing decimal
@@ -1370,6 +1374,7 @@ public class Question implements Serializable, Cloneable {
 		if (!"NUMERIC".equals(type) || studentAnswer == null || studentAnswer.isEmpty() || hasNoCorrectAnswer()) return false;
 		try {
 			studentAnswer = studentAnswer.replaceAll(",", "").replaceAll("\\s", "").toUpperCase();  // removes comma separators and whitespace from numbers, turns e to E
+			studentAnswer = studentAnswer.replaceAll("X(?=10\\^)", "*"); // normalize x10^n scientific notation for the math parser
 			double dStudentAnswer = Double.parseDouble(parseString(studentAnswer,0));
 			double dCorrectAnswer = Double.parseDouble(parseString(correctAnswer));
 			if (requiredPrecision==0.) return Double.compare(dStudentAnswer,dCorrectAnswer)==0.; // exact match required
