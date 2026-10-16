@@ -1,0 +1,77 @@
+defaultService: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendBuckets/chemvantage-static
+fingerprint: AO47xPlYPU0=
+hostRules:
+- hosts:
+  - www.chemvantage.org
+  pathMatcher: www-host-matcher
+- hosts:
+  - images.chemvantage.org
+  pathMatcher: images-host-matcher
+- hosts:
+  - chemvantage.org
+  pathMatcher: apex-host-matcher
+name: chemvantage-static-ip
+pathMatchers:
+- defaultService: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendBuckets/chemvantage-static
+  name: www-host-matcher
+  pathRules:
+  - paths:
+    - /Admin
+    - /DataStoreCleaner
+    - /Edit
+    - /EraseEntity
+    - /contacts
+    - /messages
+    - /QuestionTimingStats
+    - /ReportScore
+    - /ValidateQuestions
+    service: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendServices/cv-prod-admin-bes
+  - paths:
+    - /chemistry-reasoning
+    urlRedirect:
+      pathRedirect: /chemistry-reasoning/
+      redirectResponseCode: FOUND
+      stripQuery: false
+  - paths:
+    - /checkout
+    - /Contribute
+    - /example-questions
+    - /example-questions/
+    - /examples
+    - /Feedback
+    - /feedback
+    - /Help
+    - /help
+    - /Homework
+    - /itembank
+    - /items
+    - /jwks
+    - /jwks/
+    - /lti/deeplinks
+    - /lti/deeplinks/
+    - /lti/registration
+    - /lti/registration/
+    - /lti/launch
+    - /lti/launch/
+    - /item
+    - /PlacementExam
+    - /Poll
+    - /PracticeExam
+    - /Quiz
+    - /Sage
+    - /SmartText
+    - /auth/token
+    - /unsubscribe
+    - /VideoQuiz
+    service: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendServices/cv-prod-run-bes
+- defaultUrlRedirect:
+    hostRedirect: www.chemvantage.org
+    prefixRedirect: /images
+    redirectResponseCode: FOUND
+    stripQuery: false
+  name: images-host-matcher
+- defaultUrlRedirect:
+    hostRedirect: www.chemvantage.org
+    redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+    stripQuery: false
+  name: apex-host-matcher
