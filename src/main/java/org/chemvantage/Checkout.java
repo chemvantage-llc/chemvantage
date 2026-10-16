@@ -47,7 +47,7 @@ public class Checkout extends HttpServlet {
 	private static final long serialVersionUID = 137L;
 	private static int price = 2;
 	private static PayPalHttpClient payPalClient = null;
-	private static final Long ONE_WEEK = 7L*24*60*60*1000;  // Length of free trial eligibilityperiod
+	private static final Long ONE_WEEK = 7L*24*60*60*1000;  // Length of free trial eligibility period
 	private static final Long ONE_DAY = 24L*60*60*1000; // Extension period for free trial
 	
 	/**
@@ -244,16 +244,15 @@ public class Checkout extends HttpServlet {
 		voucherCode = voucherCode.toUpperCase();
 		Voucher v = ofy().load().type(Voucher.class).id(voucherCode).now();
 		if (v==null) throw new Exception("The code was missing  or invalid.");
-		if (!v.activate()) { // check for duplicate submission by same user
+		if (v.activate()) { // code is valid, so create a new PremiumUser
+			Deployment deployment = ofy().load().type(Deployment.class).id(request.getParameter("d")).safe();
+			if (pu == null) pu = new PremiumUser(user.getHashedId(), v.months, v.paid, deployment.getOrganization(),v.code); // constructor automatically saves new entity
+			return pu.exp;
+		} else { // check for duplicate submission by same user
 			pu = ofy().load().type(PremiumUser.class).id(user.hashedId).safe();
 			if (pu.order_id.equals(v.code)) return pu.exp;
 			else throw new Exception("This voucher code has expired or was redeemed previously.");
 		}
-
-		// code is valid, so create a new PremiumUser
-		Deployment deployment = ofy().load().type(Deployment.class).id(request.getParameter("d")).safe();
-		if (pu == null) pu = new PremiumUser(user.getHashedId(), v.months, v.paid, deployment.getOrganization(),v.code); // constructor automatically saves new entity
-		return pu.exp;
 	}
 	
 	String createOrder(User user, HttpServletRequest request) throws Exception {	

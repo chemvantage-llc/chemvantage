@@ -205,6 +205,33 @@ class QuestionTest {
     }
 
     @Test
+    @DisplayName("Significant figures are counted from the numeric mantissa")
+    void testNumericSignificantFiguresUseMantissa() {
+        Question q = new Question(Question.NUMERIC);
+        q.significantFigures = 3;
+
+        assertTrue(q.hasCorrectSigFigs("3.14"));
+        assertTrue(q.hasCorrectSigFigs("3.14e+2"));
+        assertTrue(q.hasCorrectSigFigs("3.14E+2"));
+        assertTrue(q.hasCorrectSigFigs("3.14*10^2"));
+        assertTrue(q.hasCorrectSigFigs("3.14 g"));
+        assertFalse(q.hasCorrectSigFigs("3.1E+2"));
+    }
+
+    @Test
+    @DisplayName("Numeric answers accept x-times-ten scientific notation with units")
+    void testNumericScientificNotationWithX() {
+        Question q = new Question(Question.NUMERIC);
+        q.correctAnswer = "4.58E22";
+        q.requiredPrecision = 1.0;
+        q.significantFigures = 3;
+
+        assertTrue(q.isCorrect("4.58x10^22"));
+        assertTrue(q.isCorrect("4.58 x 10^22 mol"));
+        assertFalse(q.isCorrect("4.6x10^22"));
+    }
+
+    @Test
     @DisplayName("OnLoad should set null fields to defaults")
     void testOnLoadDefaults() {
         Question q = new Question();

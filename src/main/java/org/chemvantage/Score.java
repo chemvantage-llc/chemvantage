@@ -82,8 +82,6 @@ public class Score {    // this object represents a best score achieved by a use
 			break;
 		case "Homework":
 			List<HWTransaction> hwTransactions = ofy().load().type(HWTransaction.class).filter("userId",hashedId).filter("assignmentId",a.id).list();
-			List<Key<Question>> assignmentQuestionKeys = new ArrayList<Key<Question>>();
-			assignmentQuestionKeys.addAll(a.questionKeys);  // clones the assignment List of question keys
 			
 			// Check a.questionKeys for possible inclusion of deleted question
 			Map<Key<Question>, Question> qmap = ofy().load().keys(a.questionKeys);
@@ -96,7 +94,7 @@ public class Score {    // this object represents a best score achieved by a use
 			for (HWTransaction ht : hwTransactions) {
 				s.numberOfAttempts++;
 				Key<Question> questionKey = key(Question.class,ht.questionId);
-				if (assignmentQuestionKeys.contains(questionKey) && !scoredQuestionKeys.contains(questionKey)) {
+				if (a.questionKeys.contains(questionKey) && !scoredQuestionKeys.contains(questionKey)) {
 					scoredQuestionKeys.add(questionKey);
 					double bestScore = 0;
 					HWTransaction latestOverride = null;

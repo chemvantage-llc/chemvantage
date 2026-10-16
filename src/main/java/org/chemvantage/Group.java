@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -132,6 +134,45 @@ public class Group {
 		return buf.toString();
 	}
 	
+	private record PaidSubscriptionTotals(long users, long amount) {}
+
+	private static Set<String> getSmartTextUserIds(Date qStart, Date qEnd) {
+		Set<String> userIds = new HashSet<>();
+		for (STTransaction transaction : ofy().load().type(STTransaction.class)
+				.filter("graded >=",qStart).filter("graded <=",qEnd)
+				.project("userId").distinct(true)) {
+			if (transaction.userId != null) userIds.add(transaction.userId);
+		}
+		return userIds;
+	}
+
+	private static PaidSubscriptionTotals getPaidSubscriptionTotals(Set<String> smartTextUserIds, List<String> groupOrgs, Date qStart, Date qEnd) {
+		Set<String> organizations = new HashSet<>(groupOrgs);
+		organizations.remove(null);
+		long users = 0;
+		long amount = 0;
+		long quarterPremiumUsers = 0;
+		long organizationMatches = 0;
+		long smartTextUserMatches = 0;
+		long positivePaidMatches = 0;
+
+		for (PremiumUser premiumUser : ofy().load().type(PremiumUser.class)
+				.filter("start >=",qStart).filter("start <=",qEnd)) {
+			quarterPremiumUsers++;
+			boolean organizationMatchesUser = organizations.contains(premiumUser.org);
+			boolean hasGradedSmartText = smartTextUserIds.contains(premiumUser.hashedId);
+			if (organizationMatchesUser) organizationMatches++;
+			if (hasGradedSmartText) smartTextUserMatches++;
+			if (premiumUser.paid <= 0 || !organizationMatchesUser || !hasGradedSmartText) continue;
+			positivePaidMatches++;
+			users++;
+			amount += premiumUser.paid;
+		}
+		System.out.printf("OpenStax subscription report: gradedSmartTextUsers=%d organizations=%d quarterPremiumUsers=%d organizationMatches=%d smartTextUserMatches=%d positivePaidMatches=%d amount=%d%n",
+				smartTextUserIds.size(), organizations.size(), quarterPremiumUsers, organizationMatches, smartTextUserMatches, positivePaidMatches, amount);
+		return new PaidSubscriptionTotals(users, amount);
+	}
+
 	static String openStaxCSVReport() { // this generates a CSV version of openStaxReport for uploading to OpenStax
 		StringBuffer buf = new StringBuffer();
 		try {
@@ -185,16 +226,10 @@ public class Group {
 			}
 			
 			// Find the number and amount of paid subscriptions for this period
-			List<PremiumUser> premiumUsers = ofy().load().type(PremiumUser.class).filter("paid >",0).list();
-			int pUsers = 0; // paid SmartText users
-			int paid = 0;   // total SmartText subscription receipts for this period
-			for (PremiumUser pu : premiumUsers) {
-				if (pu.start.before(qStart) || pu.start.after(qEnd)) continue; // only count subscriptions started during the quarter
-				if (groupOrgs.contains(pu.org)) {
-					pUsers ++;
-					paid += pu.paid;
-				}
-			}
+			Set<String> smartTextUserIds = getSmartTextUserIds(qStart, qEnd);
+			PaidSubscriptionTotals totals = getPaidSubscriptionTotals(smartTextUserIds, groupOrgs, qStart, qEnd);
+			long pUsers = totals.users();
+			long paid = totals.amount();
 			double receipts = (double)paid;
 			
 			buf.append("\"Total active ChemVantage users\",,\"" + nUsers + "\"\n"
@@ -270,16 +305,10 @@ public class Group {
 			table.append("</table>");
 			
 			// Find the number and amount of paid subscriptions for this period
-			List<PremiumUser> premiumUsers = ofy().load().type(PremiumUser.class).filter("paid >",0).list();
-			int pUsers = 0; // paid SmartText users
-			int paid = 0;   // total SmartText subscription receipts for this period
-			for (PremiumUser pu : premiumUsers) {
-				if (pu.start.before(qStart) || pu.start.after(qEnd)) continue; // only count subscriptions started during the quarter
-				if (groupOrgs.contains(pu.org)) {
-					pUsers ++;
-					paid += pu.paid;
-				}
-			}
+			Set<String> smartTextUserIds = getSmartTextUserIds(qStart, qEnd);
+			PaidSubscriptionTotals totals = getPaidSubscriptionTotals(smartTextUserIds, groupOrgs, qStart, qEnd);
+			long pUsers = totals.users();
+			long paid = totals.amount();
 			double receipts = (double)paid;
 			
 			buf.append("<table>"
