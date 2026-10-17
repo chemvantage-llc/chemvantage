@@ -1835,9 +1835,11 @@ public class Homework extends HttpServlet {
 					+ "<form method='post' action='/Homework'>"
 					+ "<input type=hidden name=sig value=" + user.getTokenSignature() + " />"
 					+ "<input type='submit' name='UserRequest' value='Synchronize Scores' />"
-					+ "</form><br/><br/>"
-					+ "<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
-			} else buf.append("Good news! All of the LMS grade book scores for this assignment are consistent with ChemVantage scores.<br/>");
+					+ "</form><br/><br/>");
+			} else {
+				buf.append("Good news! All of the LMS grade book scores for this assignment are consistent with ChemVantage scores.<br/><br/>");
+			}
+			buf.append("<a href='/Homework?UserRequest=Instructor&sig=" + user.getTokenSignature() + "' class='btn btn-primary'>Return to the Instructor Page</a><br/><br/>");
 		} catch (Exception e) {
 			buf.append(e.toString());
 		}
