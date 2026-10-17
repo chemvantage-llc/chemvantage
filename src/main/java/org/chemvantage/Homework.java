@@ -42,7 +42,6 @@ import org.springframework.web.util.HtmlUtils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -1148,42 +1147,24 @@ public class Homework extends HttpServlet {
 				int response_code = uc.getResponseCode();
 				debug.append("HTTP Response Code: " + response_code);
 
-				JsonObject api_response = null;
-				if (response_code/100==2) {
-					reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-					api_response = JsonParser.parseReader(reader).getAsJsonObject();
-					debug.append(api_response.toString());
-					reader.close();
-				} else {
-					reader = new BufferedReader(new InputStreamReader(uc.getErrorStream()));
-					debug.append(JsonParser.parseReader(reader).getAsJsonObject().toString());
-					reader.close();
-				}
-
-				// Find the output text buried in the response JSON:
-				if (api_response != null) {
-					JsonArray output = api_response.get("output").getAsJsonArray();
-					JsonObject message = null;
-					JsonObject output_text = null;
-					for (JsonElement o : output) {
-						message = o.getAsJsonObject();
-						if (message.has("content")) {
-							JsonArray content = message.get("content").getAsJsonArray();
-							for (JsonElement c : content) {
-								output_text = c.getAsJsonObject();
-								if (output_text.has("text")) {
-									String textContent = output_text.get("text").getAsString();  // this is the essay score JSON string
-									essay_score = JsonParser.parseString(textContent).getAsJsonObject();
-									studentScore = essay_score.get("score").getAsInt()>=4?q.pointValue:0;
-									break;
-								} else if (output_text.has("refusal")) {
-									debug.append("API Error: " + output_text.get("refusal").getAsString());
-								}
-							}
-							break;
+				if (response_code/100!=2) {
+					InputStream errorStream = uc.getErrorStream();
+					if (errorStream != null) {
+						try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+							String line;
+							while ((line = errorReader.readLine()) != null) debug.append(line);
 						}
 					}
+					throw new IOException("Essay grading service returned HTTP " + response_code);
 				}
+
+				reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
+				JsonObject api_response = JsonParser.parseReader(reader).getAsJsonObject();
+				debug.append(api_response.toString());
+				reader.close();
+
+				essay_score = extractEssayScore(api_response);
+				studentScore = essay_score.get("score").getAsInt()>=4?q.pointValue:0;
 				debug.append("e");
 				break;
 			case 8:  // Chemical structure comparison with CDK
@@ -1407,6 +1388,51 @@ public class Homework extends HttpServlet {
 		if (studentScore==q.pointValue) buf.append("</div>"); // end of badge+feedback container
 		debug.append("6");
 		return buf.toString();
+	}
+
+	static JsonObject extractEssayScore(JsonObject apiResponse) throws IOException {
+		JsonElement outputElement = apiResponse == null ? null : apiResponse.get("output");
+		if (outputElement == null || !outputElement.isJsonArray()) {
+			throw new IOException("Essay grading service returned no output.");
+		}
+
+		for (JsonElement outputItem : outputElement.getAsJsonArray()) {
+			if (!outputItem.isJsonObject()) continue;
+			JsonElement contentElement = outputItem.getAsJsonObject().get("content");
+			if (contentElement == null || !contentElement.isJsonArray()) continue;
+
+			for (JsonElement contentItem : contentElement.getAsJsonArray()) {
+				if (!contentItem.isJsonObject()) continue;
+				JsonElement textElement = contentItem.getAsJsonObject().get("text");
+				if (textElement == null || !textElement.isJsonPrimitive()
+						|| !textElement.getAsJsonPrimitive().isString()) continue;
+
+				JsonElement parsed;
+				try {
+					parsed = JsonParser.parseString(textElement.getAsString());
+				} catch (com.google.gson.JsonParseException e) {
+					continue;
+				}
+				if (!parsed.isJsonObject()) continue;
+
+				JsonObject essayScore = parsed.getAsJsonObject();
+				JsonElement scoreElement = essayScore.get("score");
+				JsonElement feedbackElement = essayScore.get("feedback");
+				if (scoreElement == null || !scoreElement.isJsonPrimitive()
+						|| !scoreElement.getAsJsonPrimitive().isNumber()
+						|| feedbackElement == null || !feedbackElement.isJsonPrimitive()
+						|| !feedbackElement.getAsJsonPrimitive().isString()) continue;
+
+				try {
+					int score = Integer.parseInt(scoreElement.getAsString());
+					if (score >= 0 && score <= 5) return essayScore;
+				} catch (NumberFormatException e) {
+					// Try later output text items; only integer scores are valid.
+				}
+			}
+		}
+
+		throw new IOException("Essay grading service returned no valid score and feedback.");
 	}
 	
 	String questionTypeDropDownBox(int questionType) {
@@ -1978,4 +2004,3 @@ public class Homework extends HttpServlet {
 		}
 	}	
 }
-
