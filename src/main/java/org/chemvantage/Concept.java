@@ -19,11 +19,15 @@ package org.chemvantage;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import com.google.gson.JsonArray;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HttpOptions;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -33,6 +37,7 @@ import com.googlecode.objectify.annotation.Index;
 
 @Entity
 public class Concept implements Serializable {
+	private static final Logger logger = Logger.getLogger(Concept.class.getName());
 	@Serial
 	private static final long serialVersionUID = 137L;
 	@Id 	Long id;
@@ -48,70 +53,64 @@ public class Concept implements Serializable {
 	}
 	
 	String getSummary() {
-		if (summary == null) {
-			try {
-				JsonObject api_request = new JsonObject();
-				api_request.addProperty("model", Subject.getGPTModel());
-				JsonObject prompt = new JsonObject();
-				prompt.addProperty("id", "pmpt_68b1042b8a8481909fad9e65e35b00a7058a5345b5584798");
-				JsonObject variables = new JsonObject();
-				variables.addProperty("key_concept", this.title);
-				prompt.add("variables", variables);
-				api_request.add("prompt", prompt);
+		if (summary != null) return summary;
 
-				URL u = new URI("https://api.openai.com/v1/responses").toURL();
-				HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-				uc.setRequestMethod("POST");
-				uc.setDoInput(true);
-				uc.setDoOutput(true);
-				uc.setRequestProperty("Authorization", "Bearer " + Subject.getOpenAIKey());
-				uc.setRequestProperty("Content-Type", "application/json");
-				uc.setRequestProperty("Accept", "application/json");
-				OutputStream os = uc.getOutputStream();
-				byte[] json_bytes = api_request.toString().getBytes("utf-8");
-				os.write(json_bytes, 0, json_bytes.length);           
-				os.close();
+		try {
+			String generatedSummary = parseSummaryResponse(requestSummaryFromGemini());
+			this.summary = generatedSummary;
+			ofy().save().entity(this);
+			return this.summary;
+		} catch (Exception e) {
+			logger.log(Level.WARNING, "Unable to generate summary for concept " + id, e);
+			return "Sorry, Sage is unable to provide a summary of this concept at the moment.";
+		}
+	}
 
-				int response_code = uc.getResponseCode();
-				
-				JsonObject api_response = null;
-				BufferedReader reader = null;
-				if (response_code/100==2) {
-					reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-					api_response = JsonParser.parseReader(reader).getAsJsonObject();
-					reader.close();
-				} else {
-					reader = new BufferedReader(new InputStreamReader(uc.getErrorStream()));
-					reader.close();
-				}
+	static String parseSummaryResponse(String responseText) throws IOException {
+		if (responseText == null || responseText.isBlank()) {
+			throw new IOException("Google Gen AI response did not contain summary text.");
+		}
+		JsonObject json = JsonParser.parseString(responseText.trim()).getAsJsonObject();
+		JsonElement summaryElement = json.get("summary");
+		if (summaryElement == null || !summaryElement.isJsonPrimitive()
+				|| !summaryElement.getAsJsonPrimitive().isString()
+				|| summaryElement.getAsString().isBlank()) {
+			throw new IOException("Google Gen AI response did not contain a valid summary.");
+		}
+		String generatedSummary = Question.sanitizeExplanationHtml(summaryElement.getAsString());
+		if (generatedSummary.isBlank()) {
+			throw new IOException("Google Gen AI summary contained no displayable content.");
+		}
+		return generatedSummary;
+	}
 
-				// Find the output text buried in the response JSON:
-				if (api_response == null) {
-					return "Sorry, Sage is unable to provide a summary of this concepot at the moment.";
-				}
-				JsonArray output = api_response.get("output").getAsJsonArray();
-				JsonObject message = null;
-				JsonObject output_text = null;
-				for (JsonElement element0 : output) {
-					message = element0.getAsJsonObject();
-					if (message.has("content")) {
-						JsonArray content = message.get("content").getAsJsonArray();
-						for (JsonElement element1 : content) {
-							output_text = element1.getAsJsonObject();
-							if (output_text.has("text")) {
-								this.summary = output_text.get("text").getAsString();
-								ofy().save().entity(this);
-								break;
-							}
-						}
-						break;
-					}
-				}
-				return this.summary;
-			} catch (Exception e) {
-				return "Sorry, Sage is unable to provide a summary of this concepot at the moment.<p>"
-						+ e.getMessage()==null?e.toString():e.getMessage();
-			}
-		} else return summary;
+	String requestSummaryFromGemini() throws IOException {
+		Map<String,Object> responseSchema = Map.of(
+				"type", "object",
+				"properties", Map.of("summary", Map.of("type", "string")),
+				"required", List.of("summary")
+		);
+		GenerateContentConfig generationConfig = GenerateContentConfig.builder()
+				.responseMimeType("application/json")
+				.responseJsonSchema(responseSchema)
+				.candidateCount(1)
+				.build();
+		String prompt = "You are Sage, a general chemistry tutor. Provide a concise, accurate summary of "
+				+ "key_concept for a college-level general chemistry student. Explain the central ideas, "
+				+ "relevant chemical relationships or equations, and a helpful example when appropriate. "
+				+ "Format the summary as an HTML fragment using paragraphs, lists, subscript and superscript "
+				+ "as needed, without scripts, links, markdown or code fences. "
+				+ "Return ONLY a JSON object with a single string field named summary.\n\n"
+				+ "key_concept:\n" + this.title;
+
+		try (Client client = Client.builder()
+				.enterprise(true)
+				.project(Subject.getProjectId())
+				.location(Subject.getGemModelLocation())
+				.httpOptions(HttpOptions.builder().apiVersion("v1").build())
+				.build()) {
+			GenerateContentResponse response = client.models.generateContent(Subject.getGemModel(), prompt, generationConfig);
+			return response.text();
+		}
 	}
 }

@@ -20,9 +20,6 @@ package org.chemvantage;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.text.Collator;
 import java.text.DecimalFormat;
@@ -32,6 +29,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import com.bestcode.mathparser.IMathParser;
@@ -40,7 +39,6 @@ import com.google.genai.Client;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.HttpOptions;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -55,6 +53,7 @@ import org.springframework.web.util.HtmlUtils;
 
 @Entity
 public class Question implements Serializable, Cloneable {
+	private static final Logger logger = Logger.getLogger(Question.class.getName());
 	@Serial
 	private static final long serialVersionUID = 137L;
 	private static final Pattern NUMERIC_PREFIX = Pattern.compile("^\\s*(([+-]?(?:(?:\\d+(?:\\.\\d*)?)|(?:\\.\\d+)))(?:(?:[eE][+-]?\\d+)|(?:[xX*]\\s*10\\s*\\^\\s*[+-]?\\d+))?)");
@@ -743,6 +742,74 @@ public class Question implements Serializable, Cloneable {
 	}
 
 	String getExplanation() {
+		if (!this.requiresParser() && this.explanation != null && !this.explanation.isEmpty()) return this.explanation;
+
+		try {
+			String responseText = requestExplanationFromGemini();
+			if (responseText == null || responseText.isBlank()) {
+				throw new IOException("Google Gen AI response did not contain explanation text.");
+			}
+			JsonObject json = JsonParser.parseString(responseText.trim()).getAsJsonObject();
+			JsonElement explanationElement = json.get("explanation");
+			if (explanationElement == null || !explanationElement.isJsonPrimitive()
+					|| !explanationElement.getAsJsonPrimitive().isString()
+					|| explanationElement.getAsString().isBlank()) {
+				throw new IOException("Google Gen AI response did not contain a valid explanation.");
+			}
+			String generatedExplanation = sanitizeExplanationHtml(explanationElement.getAsString());
+			if (generatedExplanation.isBlank()) {
+				throw new IOException("Google Gen AI explanation contained no displayable content.");
+			}
+			if (!this.requiresParser()) {
+				this.explanation = generatedExplanation;
+				ofy().save().entity(this);
+			}
+			return generatedExplanation;
+		} catch (Exception e) {
+			logger.log(Level.WARNING, "Unable to generate explanation for question " + id, e);
+			return "Sorry, an explanation is not available at this time.";
+		}
+	}
+
+	String requestExplanationFromGemini() throws IOException {
+		Map<String,Object> responseSchema = Map.of(
+				"type", "object",
+				"properties", Map.of("explanation", Map.of("type", "string")),
+				"required", List.of("explanation")
+		);
+		GenerateContentConfig generationConfig = GenerateContentConfig.builder()
+				.responseMimeType("application/json")
+				.responseJsonSchema(responseSchema)
+				.candidateCount(1)
+				.build();
+		String prompt = "You are a general chemistry tutor. Explain clearly, step by step, why correct_answer "
+				+ "is the correct answer to question_item. Use the values and units given in the question, "
+				+ "and explain relevant calculations and significant figures when applicable. "
+				+ "Format the explanation as an HTML fragment using paragraphs, lists, subscript, superscript "
+				+ "and LaTeX as needed, without scripts, links, markdown or code fences. "
+				+ "Use MathJax LaTeX delimiters \\( ... \\) for inline math and \\[ ... \\] for display math, "
+				+ "not single-dollar delimiters. Keep LaTeX as text, not inside HTML tags or attributes. "
+				+ "In the JSON string, escape every LaTeX backslash as two backslashes, including delimiters "
+				+ "and commands such as \\frac, \\text and \\begin, so JSON parsing preserves the original LaTeX. "
+				+ "Escape double quotes and line breaks according to JSON syntax as well. "
+				+ "For example, valid JSON is: {\"explanation\":\"<p>Use \\\\(n = \\\\frac{m}{M}\\\\).</p>\"}. "
+				+ "Return ONLY a JSON object with a single string field named explanation.\n\n"
+				+ "question_item:\n" + this.printForSage() + "\n\n"
+				+ "correct_answer:\n" + this.getCorrectAnswerForSage();
+
+		try (Client client = Client.builder()
+				.enterprise(true)
+				.project(Subject.getProjectId())
+				.location(Subject.getGemModelLocation())
+				.httpOptions(HttpOptions.builder().apiVersion("v1").build())
+				.build()) {
+			GenerateContentResponse response = client.models.generateContent(Subject.getGemModel(), prompt, generationConfig);
+			return response.text();
+		}
+	}
+
+	/* Previous OpenAI implementation retained for reference.
+	String getExplanation() {
 		// if an explanation was stored previously 
 		if (!this.requiresParser() && this.explanation != null && !this.explanation.isEmpty()) return this.explanation;
 		// Otherwise, compute an explanation
@@ -822,6 +889,7 @@ public class Question implements Serializable, Cloneable {
 		}
 		return buf.toString();
 	}
+	*/
 
 	static String sanitizeExplanationHtml(String html) {
 		return EXPLANATION_HTML_POLICY.sanitize(html == null ? "" : html);

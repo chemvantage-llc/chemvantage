@@ -3,18 +3,12 @@ package org.chemvantage;
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Random;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -197,95 +191,20 @@ public class OneQuestion extends HttpServlet {
 					buf.append(q.printAllToStudents(answer) + "<br/><br/>");
 					break;
 				case 7:  // Essay question
-					if (answer.length()>800) answer = answer.substring(0,799);
-					JsonObject api_request = new JsonObject();
-					api_request.addProperty("model", Subject.getGPTModel());
-					JsonObject prompt = new JsonObject();
-					prompt.addProperty("id", "pmpt_68b05dd3c7e88190b02ec3c4a41e412003d177cd13da4c5d");
-					JsonObject variables = new JsonObject();
-					variables.addProperty("question_item", q.printForSage());
-					variables.addProperty("student_answer", answer);
-					prompt.add("variables", variables);
-					api_request.add("prompt", prompt);
-
-					URL u = new URI("https://api.openai.com/v1/responses").toURL();
-					HttpURLConnection uc = (HttpURLConnection) u.openConnection();
-					uc.setRequestMethod("POST");
-					uc.setDoInput(true);
-					uc.setDoOutput(true);
-					uc.setRequestProperty("Authorization", "Bearer " + Subject.getOpenAIKey());
-					uc.setRequestProperty("Content-Type", "application/json");
-					uc.setRequestProperty("Accept", "application/json");
-					OutputStream os = uc.getOutputStream();
-					byte[] json_bytes = api_request.toString().getBytes("utf-8");
-					os.write(json_bytes, 0, json_bytes.length);           
-					os.close();
-
-					int response_code = uc.getResponseCode();
-					
-					BufferedReader reader = null;
-					JsonObject api_response = null;
-					if (response_code/100==2) {
-						reader = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-						api_response = JsonParser.parseReader(reader).getAsJsonObject();
-						reader.close();
+					if (answer.length()>800) answer = answer.substring(0,800);
+					JsonObject essayScore = Homework.extractEssayScore(Homework.requestEssayScoreFromGemini(q, answer));
+					int score = essayScore.get("score").getAsInt();
+					if (score == 1) {
+						buf.append("<h3>Your answer is incorrect.</h3>");
+					} else if (score < 4) {
+						buf.append("<h3>Your answer is partly correct, but needs improvement.</h3>");
 					} else {
-						reader = new BufferedReader(new InputStreamReader(uc.getErrorStream()));
-						reader.close();
+						buf.append("<h3>Congratulations. You answered the question correctly.</h3>");
 					}
-
-					// Find the output text buried in the response JSON:
-					
-					JsonObject essay_score = new JsonObject(); // to contain score and feedback
-					if (api_response != null) {
-						JsonArray output = api_response.get("output").getAsJsonArray();
-					JsonObject message = null;
-					JsonObject output_text = null;
-					for (JsonElement element0 : output) {
-						message = element0.getAsJsonObject();
-						if (message.has("content")) {
-							JsonArray content = message.get("content").getAsJsonArray();
-							for (JsonElement element1 : content) {
-								output_text = element1.getAsJsonObject();
-								if (output_text.has("text")) {
-									essay_score = JsonParser.parseString(output_text.get("text").getAsString()).getAsJsonObject();
-									break;
-								}
-							}
-							break;
-						}
-					}
-					}
-
-					
-					// get the ChatGPT score from the response:
-					try {
-						try {
-							int score = essay_score.get("score").getAsInt();
-							switch (score) {
-							case 0:
-							case 1: 
-								buf.append("<h3>Your answer is incorrect.</h3>");
-								break;
-							case 2:
-							case 3:
-								buf.append("<h3>Your answer is partly correct, but needs improvement.</h3>");
-								break;
-							case 4:
-							case 5:
-								buf.append("<h3>Congratulations. You answered the question correctly.</h3>");
-								break;
-								}
-							answer += "<br/><br/><b>Feedback: </b>" + essay_score.get("feedback").getAsString() 
-									+ "<br/><br/><b>Score: </b>" + score + "/5" + (score>=4?" (full credit)":"") + "<br/>";
-							buf.append(q.printAllToStudents(answer) + "<br/>");
-						} catch (Exception e) {
-							buf.append("<h3>Oops, an error occurred. Please <a href=/Feedback>report a problem</a> with this question.</h3>" 
-									+ (e.getMessage()==null?e.toString():e.getMessage()) + "<br/>");
-						if (api_response != null) buf.append(api_response.toString() + "<br/><br/>");
-						}
-						break;
-					} catch (Exception e) {}
+					buf.append(q.printAllToStudents(answer) + "<br/>");
+					buf.append("<div><b>Feedback: </b>" + essayScore.get("feedback").getAsString()
+							+ "</div><br/><b>Score: </b>" + score + "/5"
+							+ (score>=4?" (full credit)":"") + "<br/>");
 					break;
 				default:  // All other types of questions
 					buf.append("<h3>Your answer was not correct. Please <a href=/item?q=" + q.id + ">try again</a>.</h3>");
