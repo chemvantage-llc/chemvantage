@@ -20,7 +20,7 @@
   </properties>
 
   <dependencyManagement>
-   <dependencies>
+    <dependencies>
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
@@ -205,17 +205,17 @@
     
   <build>
     <plugins>
-       <plugin>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-maven-plugin</artifactId>
-		<executions>
+      <plugin>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-maven-plugin</artifactId>
+		    <executions>
           <execution>
-			<goals>
-			  <goal>repackage</goal>
-			</goals>
-		  </execution>
-		</executions>
-	  </plugin>
+			      <goals>
+			        <goal>repackage</goal>
+			      </goals>
+		      </execution>
+		    </executions>
+	    </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -246,17 +246,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-
-      <!-- App Engine plugin for deploying to the live site. -->
-      <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>appengine-maven-plugin</artifactId>
-        <version>2.8.7</version>
-        <configuration>
-          <projectId>GCLOUD_CONFIG</projectId>
-          <version>GCLOUD_CONFIG</version>
-        </configuration>
       </plugin>
       
     </plugins>
