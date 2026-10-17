@@ -279,13 +279,6 @@ public class Admin extends HttpServlet {
 				+ "          </div>"
 				+ "        </div>"
 				+ "    </section><p>");
-			String csrfToken = java.util.UUID.randomUUID().toString();
-			request.getSession().setAttribute("jwksDiagnosticCsrf", csrfToken);
-			buf.append("<h2>JWKS Diagnostic</h2><form method=post action='/Admin'>"
-					+ "<input type=hidden name=UserRequest value='Fetch JWKS' />"
-					+ "<input type=hidden name=csrfToken value='" + csrfToken + "' />"
-					+ "JWKS URL: <input type=url name=jwksUrl size=60 required placeholder='https://online.eiu.edu/d2l/.well-known/jwks' /> "
-					+ "<input type=submit value='Fetch JWKS' /></form><p>");
 		try {
 			// Announcements
 			boolean blockLaunches = Subject.getBlockLaunches();
@@ -299,6 +292,16 @@ public class Admin extends HttpServlet {
 					+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
 					+ "<INPUT TYPE=SUBMIT VALUE='Post this message now'></FORM><p>");
 
+			/*  JWKS Diagnostic
+			String csrfToken = java.util.UUID.randomUUID().toString();
+			request.getSession().setAttribute("jwksDiagnosticCsrf", csrfToken);
+			buf.append("<h2>JWKS Diagnostic</h2><form method=post action='/Admin'>"
+					+ "<input type=hidden name=UserRequest value='Fetch JWKS' />"
+					+ "<input type=hidden name=csrfToken value='" + csrfToken + "' />"
+					+ "JWKS URL: <input type=url name=jwksUrl size=60 required placeholder='https://online.eiu.edu/d2l/.well-known/jwks' /> "
+					+ "<input type=submit value='Fetch JWKS' /></form><p>");
+			*/
+		
 			// User Feedback
 			int nUserReports = ofy().load().type(UserReport.class).count();
 			if (nUserReports > 0)  {
@@ -411,6 +414,8 @@ public class Admin extends HttpServlet {
 					+ "1 week: " + Long.toHexString(User.encode(new Date(new Date().getTime() + 604800000L).getTime())) + "<br/>"
 					+ "1 month: " + Long.toHexString(User.encode(new Date(new Date().getTime() + 2678400000L).getTime())) + "<br/>"
 					+ "1 year: " + Long.toHexString(User.encode(new Date(new Date().getTime() + 31536000000L).getTime())) + "<p>");	
+
+			// Search Questions for Text
 			buf.append("<h2>Search Questions for Text</h2><"
 					+ "form method=get>"
 					+ "Search for: <input type=text name=searchFor /><input type=submit name=UserRequest value='Find text' />"
