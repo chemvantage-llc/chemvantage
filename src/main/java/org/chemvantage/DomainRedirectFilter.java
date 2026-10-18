@@ -76,7 +76,7 @@ public class DomainRedirectFilter implements Filter {
             scriptSrc +
             "worker-src 'self' blob: https://static.chemvantage.org; " +
             "style-src 'self' 'unsafe-inline' https://static.chemvantage.org fonts.googleapis.com cdn.jsdelivr.net; " +
-            "img-src 'self' data: images.chemvantage.org fonts.gstatic.com https://www.google-analytics.com https://www.paypalobjects.com; " +
+            "img-src 'self' data: images.chemvantage.org fonts.gstatic.com https://www.google-analytics.com https://www.paypalobjects.com https://site.imsglobal.org; " +
             "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdn.jsdelivr.net; " +
             "frame-src 'self' https://static.chemvantage.org https://www.youtube.com https://www.google.com https://www.gstatic.com https://www.paypal.com https://www.sandbox.paypal.com; " +
             "connect-src 'self' https://static.chemvantage.org cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://www.paypal.com https://www.sandbox.paypal.com; " +
