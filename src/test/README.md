@@ -2,6 +2,17 @@
 
 This directory contains unit and integration tests for the ChemVantage application.
 
+`SageAnswerTest` checks Gemini answer parsing, HTML sanitization, LaTeX preservation,
+and rejection of invalid responses without making live API calls. Run it with
+`mvn test -Dtest=SageAnswerTest`. Ask Sage uses the same Google Cloud project,
+Gemini model, location, and credentials as concept summaries and question explanations.
+`SageGeminiTest` covers cached and parameterized hints, failure propagation, and
+Gemini essay grading on Sage's 0-5 scale (Homework retains its 1-5 scale).
+Run it with `mvn test -Dtest=SageGeminiTest`.
+`ValidateQuestionsTest` verifies the batch validator's Gemini response contract,
+parameter initialization, sanitization, and error propagation without live API calls.
+Run it with `mvn test -Dtest=ValidateQuestionsTest`.
+
 ## Test Structure
 
 ```

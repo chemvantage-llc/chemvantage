@@ -57,7 +57,7 @@ public class Subject {
 	private double avgStars;
 	private String projectId;
 	private String serverUrl;
-	private String gptModel;  // e.g. "gpt-4-0613"
+	//private String gptModel;  // e.g. "gpt-4-0613"
 	private String gemModel;  // e.g. "gemini-3.5-flash-lite"
 	private String gemModelLocation;  // e.g. "us"
 	private String payPalClientId;
@@ -68,7 +68,7 @@ public class Subject {
 		Subject fallback = new Subject();
 		fallback.id = 1L;
 		fallback.title = "General Chemistry";
-		fallback.gptModel = "changeMe";
+		//fallback.gptModel = "changeMe";
 		fallback.gemModel = "changeMe";
 		fallback.gemModelLocation = "changeMe";
 		fallback.payPalClientId = "changeMe";
@@ -205,12 +205,12 @@ public class Subject {
         	return null;
         }
 	}
-	
+/*	
 	static String getGPTModel() {  // GPT-4.0 is "gpt-4-0613", GPT-3.5 is "gpt-3.5-turbo-0613"
 		refresh();
 		return s.gptModel;
 	}
-	
+*/	
 	static String getGemModel() { // Gemini is Google's family of LLMs, e.g. "gemini-3.5-flash-lite"
 		refresh();
 		return s.gemModel;

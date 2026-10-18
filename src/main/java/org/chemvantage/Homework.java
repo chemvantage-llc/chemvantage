@@ -363,6 +363,10 @@ public class Homework extends HttpServlet {
 	}
 	
 	static JsonObject extractEssayScore(String responseText) throws IOException {
+		return extractEssayScore(responseText, 1);
+	}
+
+	static JsonObject extractEssayScore(String responseText, int minimumScore) throws IOException {
 		if (responseText == null || responseText.isBlank()) {
 			throw new IOException("Essay grading service returned no output.");
 		}
@@ -385,7 +389,7 @@ public class Homework extends HttpServlet {
 		}
 		try {
 			int score = Integer.parseInt(scoreElement.getAsString());
-			if (score >= 1 && score <= 5) {
+			if (score >= minimumScore && score <= 5) {
 				String feedback = Question.sanitizeExplanationHtml(feedbackElement.getAsString());
 				if (feedback.isBlank()) throw new IOException("Essay grading service returned no displayable feedback.");
 				essayScore.addProperty("feedback", feedback);
@@ -394,7 +398,7 @@ public class Homework extends HttpServlet {
 		} catch (NumberFormatException e) {
 			throw new IOException("Essay grading service returned a non-integer score.", e);
 		}
-		throw new IOException("Essay grading service returned a score outside the range 1-5.");
+		throw new IOException("Essay grading service returned a score outside the range " + minimumScore + "-5.");
 	}
 
 	public String getServletInfo() {
