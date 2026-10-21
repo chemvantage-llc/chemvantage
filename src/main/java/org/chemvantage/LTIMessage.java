@@ -719,6 +719,10 @@ public class LTIMessage {  // utility for sending LTI-compliant "POX" or "REST+J
 			if (a == null) throw new IllegalArgumentException("Assignment is required for a membership request.");
 			String scope = "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly";
 			Deployment d = ofy().load().type(Deployment.class).id(a.domain).now();
+			if (d == null) {  // orphaned assignment: nothing to diagnose, so skip the admin email
+				logger.warning("Membership request skipped; Deployment not found for assignment " + a.id + ": " + a.domain);
+				return membership;
+			}
 			accessToken = AccessTokenCache.fetchToken(d,scope);
 			if (accessToken == null || accessToken.startsWith("Failed") || accessToken.startsWith("response"))
 				throw new Exception("The LMS failed to issue an access token.");

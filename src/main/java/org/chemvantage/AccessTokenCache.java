@@ -169,4 +169,134 @@ public class AccessTokenCache {
         }
 		return null;
 	}
+
+	/**
+	 * Requests a fresh OAuth access token for administrator diagnostics. Unlike fetchToken(), this ignores
+	 * and updates the token cache only when storeInCache is true, sends no failure email, and never includes the token in its output.
+	 */
+	static String diagnoseTokenRequest(Deployment d) {
+		return diagnoseTokenRequest(d, false);
+	}
+
+	static String diagnoseTokenRequest(Deployment d, boolean storeInCache) {
+		Date start = new Date();
+		StringBuilder diagnostic = new StringBuilder("AuthToken request diagnostic\nTime: ")
+				.append(java.time.Instant.now()).append("\nCloud Run revision: ")
+				.append(System.getenv("K_REVISION")).append('\n');
+		try {
+			if (d == null) throw new IllegalArgumentException("Deployment not found.");
+			diagnostic.append("Deployment: ").append(d.platform_deployment_id)
+					.append("\nOrganization: ").append(d.org_url)
+					.append("\nLMS type: ").append(d.lms_type)
+					.append("\nStatus: ").append(d.status)
+					.append("\nClient ID: ").append(d.client_id)
+					.append("\nSigning key ID: ").append(d.rsa_key_id)
+					.append("\nToken endpoint: ").append(d.oauth_access_token_url)
+					.append("\nScope: ").append(d.scope).append('\n');
+			if (d.oauth_access_token_url == null || d.oauth_access_token_url.isBlank()) {
+				throw new IllegalArgumentException("The deployment has no OAuth access token URL.");
+			}
+			if (d.client_id == null || d.client_id.isBlank()) throw new IllegalArgumentException("The deployment has no client ID.");
+			if (d.scope == null || d.scope.isBlank()) throw new IllegalArgumentException("The deployment has no authorized scope.");
+
+			RSAPrivateKey signingKey = d.rsa_key_id == null ? null : KeyStore.getRSAPrivateKey(d.rsa_key_id);
+			if (signingKey == null) throw new IllegalStateException("No RSA private key is available for key ID: " + d.rsa_key_id);
+
+			Date now = new Date();
+			String iss = Subject.getProjectId().equals("dev-vantage-hrd")?"https://dev.chemvantage.org":"https://www.chemvantage.org";
+			String aud = d.oauth_access_token_url;
+			String sub = d.client_id;
+			if ("brightspace".equals(d.lms_type) || "desire2learn".equals(d.lms_type)) {
+				iss = sub;
+				aud = "https://api.brightspace.com/auth/token";
+			}
+			diagnostic.append("Client assertion issuer: ").append(iss)
+					.append("\nClient assertion subject: ").append(sub)
+					.append("\nClient assertion audience: ").append(aud).append('\n');
+
+			String jwtToken = JWT.create()
+					.withIssuer(iss)
+					.withSubject(sub)
+					.withAudience(aud)
+					.withKeyId(d.rsa_key_id)
+					.withExpiresAt(new Date(now.getTime() + 300000L))
+					.withIssuedAt(now)
+					.withJWTId(Nonce.generateNonce())
+					.sign(Algorithm.RSA256(null,signingKey));
+
+			String body = "grant_type=" + URLEncoder.encode("client_credentials", StandardCharsets.UTF_8)
+					+ "&client_assertion_type=" + URLEncoder.encode("urn:ietf:params:oauth:client-assertion-type:jwt-bearer", StandardCharsets.UTF_8)
+					+ "&client_assertion=" + URLEncoder.encode(jwtToken, StandardCharsets.UTF_8)
+					+ "&scope=" + URLEncoder.encode(d.scope, StandardCharsets.UTF_8);
+			HttpRequest tokenRequest = HttpRequest.newBuilder(new URI(d.oauth_access_token_url))
+					.timeout(Duration.ofMillis(15000))
+					.header("Content-Type", "application/x-www-form-urlencoded")
+					.header("Accept", "application/json, text/plain, */*")
+					.header("Accept-Encoding", "identity")
+					.header("Accept-Language", "en-US,en;q=0.9")
+					.header("charset", "utf-8")
+					.header("User-Agent", Utilities.LTI_USER_AGENT)
+					.header("Cache-Control", "no-cache")
+					.POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+					.build();
+			diagnostic.append("\nRequest: POST ").append(tokenRequest.uri()).append("\nRequest headers:\n");
+			for (Map.Entry<String,List<String>> header : tokenRequest.headers().map().entrySet()) {
+				diagnostic.append(header.getKey()).append(": ").append(String.join(", ", header.getValue())).append('\n');
+			}
+			diagnostic.append("Request body: ").append(body.replace("&client_assertion=" + URLEncoder.encode(jwtToken, StandardCharsets.UTF_8),
+					"&client_assertion=(redacted)")).append('\n');
+
+			HttpResponse<String> tokenResponse;
+			try {
+				tokenResponse = TOKEN_HTTP_CLIENT.send(tokenRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			}
+			int responseCode = tokenResponse.statusCode();
+			diagnostic.append("\nResponse code: ").append(responseCode)
+					.append("\nHTTP version: ").append(tokenResponse.version()).append('\n');
+			tokenResponse.headers().firstValue("Content-Type").ifPresent(value ->
+					diagnostic.append("Response Content-Type: ").append(value).append('\n'));
+			for (String h : new String[] {"x-amzn-errortype","x-amzn-requestid","x-amz-apigw-id","x-amzn-waf-action","cf-ray","server","www-authenticate"}) {
+				List<String> values = tokenResponse.headers().allValues(h);
+				if (!values.isEmpty()) diagnostic.append(h).append(": ").append(String.join(", ", values)).append('\n');
+			}
+
+			String responseBody = tokenResponse.body() == null ? "" : tokenResponse.body();
+			if (responseCode/100 != 2) {
+				diagnostic.append("\nFailure: the platform did not return an access token.\nResponse body: ")
+						.append(responseBody.isEmpty() ? "(no response body)" : responseBody).append('\n');
+			} else {
+				JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+				diagnostic.append("Response JSON fields: ").append(json.keySet()).append('\n');
+				String accessToken = json.has("access_token") && json.get("access_token").isJsonPrimitive()
+						? json.get("access_token").getAsString() : null;
+				if (accessToken == null || accessToken.isBlank()) {
+					diagnostic.append("\nFailure: the response did not contain an access_token.\n");
+				} else {
+					diagnostic.append("\nSUCCESS: the platform returned an access token (value redacted; length ")
+							.append(accessToken.length()).append(" characters).\n");
+					if (storeInCache) {
+						long expiresIn = json.has("expires_in") && json.get("expires_in").isJsonPrimitive()
+								? json.get("expires_in").getAsLong() : 0;
+						if (expiresIn > 0) {
+							ofy().save().entity(new AccessTokenCache(d.platform_deployment_id, accessToken,
+									new Date(System.currentTimeMillis() + expiresIn * 1000))).now();
+							diagnostic.append("Token stored in the access token cache.\n");
+						} else diagnostic.append("Token NOT cached: response had no positive expires_in value.\n");
+					}
+					for (String field : new String[] {"token_type","expires_in","scope"}) {
+						if (json.has(field) && json.get(field).isJsonPrimitive()) {
+							diagnostic.append(field).append(": ").append(json.get(field).getAsString()).append('\n');
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			diagnostic.append("\nFailure: ").append(LTIv1p3Launch.describeFailure(e)).append('\n');
+		}
+		diagnostic.append("Elapsed time: ").append(new Date().getTime() - start.getTime()).append(" ms");
+		return diagnostic.toString();
+	}
 }

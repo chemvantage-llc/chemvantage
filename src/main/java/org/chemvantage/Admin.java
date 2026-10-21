@@ -174,6 +174,27 @@ public class Admin extends HttpServlet {
 						+ escapeHtml(diagnostic) + "</pre><p><a href='/Admin'>Back to Admin</a></p>" + Subject.footer);
 				return;
 			}
+			if ("Fetch AuthToken".equals(userRequest)) {
+				jakarta.servlet.http.HttpSession session = request.getSession(false);
+				String expectedToken = session == null ? null : (String) session.getAttribute("authTokenDiagnosticCsrf");
+				String submittedToken = request.getParameter("csrfToken");
+				if (session == null || expectedToken == null || !expectedToken.equals(submittedToken)) {
+					response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid AuthToken diagnostic request.");
+					return;
+				}
+				session.removeAttribute("authTokenDiagnosticCsrf");
+				String deploymentId = request.getParameter("deploymentId");
+				String diagnostic = deploymentId == null || deploymentId.isBlank()
+						? "Enter a Deployment ID."
+						: AccessTokenCache.diagnoseTokenRequest(Deployment.getInstance(deploymentId.trim()),
+								"true".equals(request.getParameter("storeInCache")));
+				response.setContentType("text/html;charset=UTF-8");
+				response.setHeader("Cache-Control", "no-store");
+				response.getWriter().println(Subject.header("AuthToken Diagnostic")
+						+ "<h1>AuthToken Diagnostic</h1><pre style='white-space:pre-wrap;overflow-wrap:anywhere;'>"
+						+ escapeHtml(diagnostic) + "</pre><p><a href='/Admin'>Back to Admin</a></p>" + Subject.footer);
+				return;
+			}
 			
 			switch (userRequest) {
 			case "Announce": 
@@ -292,7 +313,7 @@ public class Admin extends HttpServlet {
 					+ "<INPUT TYPE=HIDDEN NAME=sig VALUE=" + user.getTokenSignature() + ">"
 					+ "<INPUT TYPE=SUBMIT VALUE='Post this message now'></FORM><p>");
 
-			/*  JWKS Diagnostic
+			/*/ JWKS Diagnostic
 			String csrfToken = java.util.UUID.randomUUID().toString();
 			request.getSession().setAttribute("jwksDiagnosticCsrf", csrfToken);
 			buf.append("<h2>JWKS Diagnostic</h2><form method=post action='/Admin'>"
@@ -300,7 +321,18 @@ public class Admin extends HttpServlet {
 					+ "<input type=hidden name=csrfToken value='" + csrfToken + "' />"
 					+ "JWKS URL: <input type=url name=jwksUrl size=60 required placeholder='https://online.eiu.edu/d2l/.well-known/jwks' /> "
 					+ "<input type=submit value='Fetch JWKS' /></form><p>");
-			*/
+			//
+
+			// AuthToken Diagnostic
+			String authTokenCsrfToken = java.util.UUID.randomUUID().toString();
+			request.getSession().setAttribute("authTokenDiagnosticCsrf", authTokenCsrfToken);
+			buf.append("<h2>AuthToken Diagnostic</h2><form method=post action='/Admin'>"
+					+ "<input type=hidden name=UserRequest value='Fetch AuthToken' />"
+					+ "<input type=hidden name=csrfToken value='" + authTokenCsrfToken + "' />"
+					+ "Deployment ID: <input type=text name=deploymentId size=60 required placeholder='https://platform.example.edu/deployment-id' /> "
+					+ "<input type=submit value='Request AuthToken' /><br/>"
+					+ "<label><input type=checkbox name=storeInCache value=true /> Store a successful token in the cache</label></form><p>");
+			/*/
 		
 			// User Feedback
 			int nUserReports = ofy().load().type(UserReport.class).count();
