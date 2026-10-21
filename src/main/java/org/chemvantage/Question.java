@@ -760,6 +760,7 @@ public class Question implements Serializable, Cloneable {
 			if (generatedExplanation.isBlank()) {
 				throw new IOException("Google Gen AI explanation contained no displayable content.");
 			}
+			generatedExplanation = generatedExplanation + "<br/>" + "<span style='font-size: smaller'>" + Subject.getGemModel() + "</span>";  // Append the Gemini model used for the explanation
 			if (!this.requiresParser()) {
 				this.explanation = generatedExplanation;
 				ofy().save().entity(this);

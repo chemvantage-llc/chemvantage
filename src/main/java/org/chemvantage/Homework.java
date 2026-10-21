@@ -1300,7 +1300,8 @@ public class Homework extends HttpServlet {
 			if (q.getQuestionType()==7) { // ESSAY
 				int essayScore = essay_score.get("score").getAsInt();
 				buf.append("<br/><b>Feedback: </b>" + essay_score.get("feedback").getAsString()
-				+ (essayScore<4?"":"<br/><br/><b>Score: </b>" + essay_score.get("score").getAsInt() + "/5 (full credit)") + "<br/>");
+				+ (essayScore<4?"":"<br/><br/><b>Score: </b>" + essay_score.get("score").getAsInt() + "/5 (full credit)") + "<br/>"
+				+ "<span style='font-size: smaller'>" + Subject.getGemModel() + "</span><br/>");
 			} else if (q.getQuestionType()<6) {
 				buf.append("<div class='ai-explanation'>"
 						+ " <button id=explainThis class='btn btn-primary' onclick=getExplanation();>Please explain this answer</button>"
