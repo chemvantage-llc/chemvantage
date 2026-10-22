@@ -85,6 +85,7 @@ public class Question implements Serializable, Cloneable {
 			String learn_more_url;
 			String sageAdvice;
 			String explanation;
+			String explanationModel;
 			boolean scrambleChoices;
 			boolean strictSpelling;
 			Date revisedAt;
@@ -742,7 +743,7 @@ public class Question implements Serializable, Cloneable {
 	}
 
 	String getExplanation() {
-		if (!this.requiresParser() && this.explanation != null && !this.explanation.isEmpty()) return this.explanation;
+		if (!this.requiresParser() && this.explanation != null && !this.explanation.isEmpty() && Subject.getGemModel().equals(this.explanationModel)) return this.explanation;
 
 		try {
 			String responseText = requestExplanationFromGemini();
@@ -760,9 +761,10 @@ public class Question implements Serializable, Cloneable {
 			if (generatedExplanation.isBlank()) {
 				throw new IOException("Google Gen AI explanation contained no displayable content.");
 			}
-			generatedExplanation = generatedExplanation + "<br/>" + "<span style='font-size: smaller'>" + Subject.getGemModel() + "</span>";  // Append the Gemini model used for the explanation
+			
 			if (!this.requiresParser()) {
 				this.explanation = generatedExplanation;
+				this.explanationModel = Subject.getGemModel();
 				ofy().save().entity(this);
 			}
 			return generatedExplanation;
