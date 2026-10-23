@@ -1,5 +1,5 @@
 defaultService: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendBuckets/chemvantage-static
-fingerprint: AO47xPlYPU0=
+fingerprint: yXYxgaER-3k=
 hostRules:
 - hosts:
   - www.chemvantage.org
@@ -23,6 +23,7 @@ pathMatchers:
     - /contacts
     - /messages
     - /QuestionTimingStats
+    - /QuestionTimingStats/*
     - /ReportScore
     - /ValidateQuestions
     service: https://www.googleapis.com/compute/v1/projects/chem-vantage-hrd/global/backendServices/cv-prod-admin-bes
@@ -31,6 +32,18 @@ pathMatchers:
     urlRedirect:
       pathRedirect: /chemistry-reasoning/
       redirectResponseCode: FOUND
+      stripQuery: false
+  - paths:
+    - /Registration.jsp
+    urlRedirect:
+      pathRedirect: /lti/registration
+      redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
+      stripQuery: false
+  - paths:
+    - /rewards_terms.html
+    urlRedirect:
+      pathRedirect: /
+      redirectResponseCode: MOVED_PERMANENTLY_DEFAULT
       stripQuery: false
   - paths:
     - /checkout
